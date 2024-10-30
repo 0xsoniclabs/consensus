@@ -51,7 +51,7 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch idx.Epoch) error {
 	}
 	for idx := range expectedAtropoi {
 		if want, got := expectedAtropoi[idx], recalculatedAtropoi[idx]; want != got {
-			return fmt.Errorf("incorrect atropos for epoch %d on position %d, expected: %v got: %v", epoch, idx, eventMap[want], eventMap[got])
+			return fmt.Errorf("incorrect atropos for epoch %d on position %d, expected: %s got: %s", epoch, idx, eventMap[want].String(), eventMap[got].String())
 		}
 	}
 	return nil
@@ -104,11 +104,12 @@ func processLocalEvent(testLachesis *CoreLachesis, event *tdag.TestEvent) error 
 	}
 	selfParentFrame := testLachesis.getSelfParentFrame(event)
 	if selfParentFrame != event.Frame() {
-		testLachesis.store.AddRoot(selfParentFrame, event)
+		testLachesis.store.AddRoot(event)
+		if err := testLachesis.handleElection(event); err != nil {
+			return fmt.Errorf("error wihile processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
+		}
 	}
-	if err := testLachesis.handleElection(selfParentFrame, event); err != nil {
-		return fmt.Errorf("error wihile processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
-	}
+
 	return nil
 }
 

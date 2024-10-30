@@ -99,14 +99,14 @@ func ForEachRandFork(
 			e.SetSeq(parent.Seq() + 1)
 			e.AddParent(parent.ID())
 			e.SetLamport(parent.Lamport() + 1)
-		}
-		// other parents are the lasts other's events
-		for _, other := range parents {
-			if ee := events[nodes[other]]; len(ee) > 0 {
-				parent := ee[len(ee)-1]
-				e.AddParent(parent.ID())
-				if e.Lamport() <= parent.Lamport() {
-					e.SetLamport(parent.Lamport() + 1)
+			// other parents are the lasts other's events
+			for _, other := range parents {
+				if ee := events[nodes[other]]; len(ee) > 0 {
+					parent := ee[len(ee)-1]
+					e.AddParent(parent.ID())
+					if e.Lamport() <= parent.Lamport() {
+						e.SetLamport(parent.Lamport() + 1)
+					}
 				}
 			}
 		}
