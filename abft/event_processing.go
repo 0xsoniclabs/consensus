@@ -48,6 +48,13 @@ func (p *Orderer) Process(e dag.Event) (err error) {
 	return err
 }
 
+func (p *Orderer) getSelfParentFrame(e dag.Event) idx.Frame {
+	if e.SelfParent() == nil {
+		return 0
+	}
+	return p.input.GetEvent(*e.SelfParent()).Frame()
+}
+
 // checkAndSaveEvent checks consensus-related fields: Frame, IsRoot
 func (p *Orderer) checkAndSaveEvent(e dag.Event) (error, idx.Frame) {
 	// check frame & isRoot
