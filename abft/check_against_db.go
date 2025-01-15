@@ -86,13 +86,28 @@ func ingestEvent(testLachesis *CoreLachesis, eventStore *EventStore, event *dbEv
 	testEvent.SetParents(event.parents)
 	testEvent.SetLamport(event.lamportTs)
 	testEvent.SetEpoch(testLachesis.store.GetEpoch())
-	if err := testLachesis.Build(testEvent); err != nil {
-		return fmt.Errorf("error while building event for validator: %d, seq: %d, err: %v", event.validatorId, event.seq, err)
-	}
 	testEvent.SetID([24]byte(event.hash[8:]))
 	eventStore.SetEvent(testEvent)
-	if err := testLachesis.Process(testEvent); err != nil {
-		return fmt.Errorf("error while processing event for validator: %d, seq: %d, err: %v", event.validatorId, event.seq, err)
+
+	return processLocalEvent(testLachesis, testEvent)
+}
+
+// processLocalEvent simulates a flattened (without redudantant indexing and frame (re)calculations)
+// event lifecycle in local computation intensive consensus components - DAG indexing, frame calculation, election
+// Conditions and order in which the components are invoked are identical to production Consensus behaviour
+func processLocalEvent(testLachesis *CoreLachesis, event *tdag.TestEvent) error {
+	if err := testLachesis.dagIndexer.Add(event); err != nil {
+		return fmt.Errorf("error wihile indexing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
+	}
+	if err := testLachesis.Lachesis.Build(event); err != nil {
+		return fmt.Errorf("error wihile building event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
+	}
+	selfParentFrame := testLachesis.getSelfParentFrame(event)
+	if selfParentFrame != event.Frame() {
+		testLachesis.store.AddRoot(selfParentFrame, event)
+	}
+	if err := testLachesis.handleElection(selfParentFrame, event); err != nil {
+		return fmt.Errorf("error wihile processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
 	return nil
 }
