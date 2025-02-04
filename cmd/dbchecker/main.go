@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Fantom-foundation/lachesis-base/abft"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/0xsoniclabs/consensus/abft"
+	"github.com/0xsoniclabs/consensus/inter/idx"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli/v2"
 )
@@ -31,7 +31,7 @@ func main() {
 	app := &cli.App{
 		Name:        "Event DB Checker",
 		Description: "Consensus regression testing tool",
-		Copyright:   "(c) 2024 Fantom Foundation",
+		Copyright:   "(c) 2025 Sonic Labs",
 		Flags:       []cli.Flag{&DbPathFlag, &EpochMinFlag, &EpochMaxFlag},
 		Action:      run,
 	}

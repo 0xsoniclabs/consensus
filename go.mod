@@ -1,4 +1,4 @@
-module github.com/Fantom-foundation/lachesis-base
+module github.com/0xsoniclabs/consensus
 
 go 1.22.0
 

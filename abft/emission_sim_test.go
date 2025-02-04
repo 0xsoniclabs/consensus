@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/emitter/ancestor"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag/tdag"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/inter/pos"
+	"github.com/0xsoniclabs/consensus/emitter/ancestor"
+	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/inter/dag"
+	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
+	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/inter/pos"
 )
 
 type Results struct {
@@ -61,7 +61,7 @@ func Benchmark_Emission(b *testing.B) {
 	for i, _ := range weights {
 		// uncomment one of the below options for valiator stake distribution
 		weights[i] = pos.Weight(1)                               //for equal stake
-		weights[i] = pos.Weight(sampleDist(stakeRNG, stakeDist)) // for non-equal stake sample from Fantom main net validator stake distribution
+		weights[i] = pos.Weight(sampleDist(stakeRNG, stakeDist)) // for non-equal stake sample from Sonic main net validator stake distribution
 	}
 	sort.Slice(weights, func(i, j int) bool { return weights[i] > weights[j] }) // sort weights in order
 	QIParentCount := 12                                                         // maximum number of parents selected by FC indexer
@@ -83,7 +83,7 @@ func Benchmark_Emission(b *testing.B) {
 	// // seed = time.Now().UnixNano() //use this for a different seed each time the simulator runs
 	// maxLatency := latency.initialise(numNodes, seed)
 
-	// Latencies between validators are drawn from a dataset of latencies observed by one Fantom main net validator. Note all pairs of validators will use the same distribution
+	// Latencies between validators are drawn from a dataset of latencies observed by one Sonic main net validator. Note all pairs of validators will use the same distribution
 	// var latency mainNetLatency
 	// maxLatency := latency.initialise()
 
