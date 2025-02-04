@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag/tdag"
+	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/inter/dag"
+	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
 )
 
 /*

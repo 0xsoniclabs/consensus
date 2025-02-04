@@ -1,8 +1,8 @@
 package tdag
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/inter/dag"
 )
 
 type TestEvent struct {

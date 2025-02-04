@@ -3,7 +3,7 @@ before:
     - make clean proto vendor
 builds:
   - main: ./cmd/lachesis/main.go
-    binary: lachesis-base
+    binary: consensus
     ldflags:
       - -linkmode external -extldflags -static -s -w
       - -X main.gitCommit={{ .ShortCommit }}
@@ -21,15 +21,15 @@ archive:
     386: i386
     amd64: x86_64
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - "^docs:"
+      - "^test:"
 nfpm:
   name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
   replacements:
@@ -38,8 +38,8 @@ nfpm:
     darwin: macOS
     linux: Tux
 
-  vendor: Fanton Foundation
-  homepage: https://fantom.foundation
+  vendor: Sonic Labs
+  homepage: https://soniclabs.com
   maintainer: Samuel Marks <samuel@fantom.foundation>
   description: BFT Consensus platform for distributed applications.
   license: MIT
@@ -49,10 +49,10 @@ nfpm:
     - rpm
 
   empty_folders:
-    - /var/log/lachesis-base
+    - /var/log/consensus
 
   files:
-    "scripts/daemon/lachesis-base.service": "/lib/systemd/system/lachesis-base.service"
+    "scripts/daemon/consensus.service": "/lib/systemd/system/consensus.service"
 
   # scripts:
   #   preinstall: "scripts/preinstall.bash"

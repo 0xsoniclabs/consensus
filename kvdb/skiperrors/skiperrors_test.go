@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/table"
+	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
+	"github.com/0xsoniclabs/consensus/kvdb/table"
 )
 
 func TestWrapper(t *testing.T) {

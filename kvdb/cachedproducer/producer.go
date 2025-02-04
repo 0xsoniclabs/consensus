@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 type cacheState struct {

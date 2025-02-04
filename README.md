@@ -1,7 +1,7 @@
-# Lachesis base 
+# Sonic Consensus
 
 A base library defines interfaces and modules of aBFT Lachesis consensus protocol.
-Part of Fantom's Consensus-as-a-Service for distributed applications.
+Part of Sonic's Consensus-as-a-Service for distributed applications.
 
 ## Build Details
 

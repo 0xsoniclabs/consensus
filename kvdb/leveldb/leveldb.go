@@ -14,8 +14,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/utils/piecefunc"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/utils/piecefunc"
 )
 
 const (

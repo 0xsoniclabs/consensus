@@ -5,9 +5,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 func (vi *Engine) setRlp(table kvdb.Store, key []byte, val interface{}) {

@@ -1,6 +1,6 @@
 package readonlystore
 
-import "github.com/Fantom-foundation/lachesis-base/kvdb"
+import "github.com/0xsoniclabs/consensus/kvdb"
 
 type Store struct {
 	kvdb.Store

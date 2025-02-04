@@ -1,7 +1,7 @@
 package devnulldb
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 // Database is an always empty database.

@@ -1,7 +1,7 @@
 package ancestor
 
 import (
-	"github.com/Fantom-foundation/lachesis-base/hash"
+	"github.com/0xsoniclabs/consensus/hash"
 )
 
 type Metric uint64

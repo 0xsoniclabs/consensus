@@ -3,8 +3,8 @@ package tdag
 import (
 	"strings"
 
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/inter/dag"
 )
 
 // TestEvents is a ordered slice of events.

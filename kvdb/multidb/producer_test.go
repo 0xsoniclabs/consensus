@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Fantom-foundation/lachesis-base/kvdb/flushable"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/memorydb"
+	"github.com/0xsoniclabs/consensus/kvdb/flushable"
+	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/status-im/keycard-go/hexutils"
 
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/stretchr/testify/assert"
 )
 
