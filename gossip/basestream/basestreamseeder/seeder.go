@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/gossip/basestream"
-	"github.com/Fantom-foundation/lachesis-base/utils/workers"
+	"github.com/0xsoniclabs/consensus/gossip/basestream"
+	"github.com/0xsoniclabs/consensus/utils/workers"
 )
 
 var (

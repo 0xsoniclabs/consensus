@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
+	"github.com/0xsoniclabs/consensus/inter/dag"
 )
 
 type DataSemaphore struct {

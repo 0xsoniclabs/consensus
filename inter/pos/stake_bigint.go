@@ -3,7 +3,7 @@ package pos
 import (
 	"math/big"
 
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
+	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
 // ValidatorsBuilderBig is a helper to create Validators object out of bigint numbers

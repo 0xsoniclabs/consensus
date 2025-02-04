@@ -4,13 +4,13 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/Fantom-foundation/lachesis-base/eventcheck"
-	"github.com/Fantom-foundation/lachesis-base/gossip/dagordering"
-	"github.com/Fantom-foundation/lachesis-base/hash"
-	"github.com/Fantom-foundation/lachesis-base/inter/dag"
-	"github.com/Fantom-foundation/lachesis-base/inter/idx"
-	"github.com/Fantom-foundation/lachesis-base/utils/datasemaphore"
-	"github.com/Fantom-foundation/lachesis-base/utils/workers"
+	"github.com/0xsoniclabs/consensus/eventcheck"
+	"github.com/0xsoniclabs/consensus/gossip/dagordering"
+	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/inter/dag"
+	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/utils/datasemaphore"
+	"github.com/0xsoniclabs/consensus/utils/workers"
 )
 
 var (

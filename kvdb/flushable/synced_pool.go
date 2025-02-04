@@ -8,9 +8,9 @@ import (
 
 	"github.com/status-im/keycard-go/hexutils"
 
-	"github.com/Fantom-foundation/lachesis-base/kvdb"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/readonlystore"
-	"github.com/Fantom-foundation/lachesis-base/kvdb/synced"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb/readonlystore"
+	"github.com/0xsoniclabs/consensus/kvdb/synced"
 )
 
 var _ kvdb.FlushableDBProducer = (*SyncedPool)(nil)
