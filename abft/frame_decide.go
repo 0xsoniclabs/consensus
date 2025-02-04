@@ -22,7 +22,7 @@ func (p *Orderer) onFrameDecided(frame idx.Frame, atropos hash.Event) (bool, err
 		if err != nil {
 			return true, err
 		}
-		p.election.Reset(1, newValidators)
+		p.election.Reset(FirstFrame, newValidators)
 	} else {
 		lastDecidedState.LastDecidedFrame = frame
 	}

@@ -67,12 +67,7 @@ func (s *Store) GetFrameRoots(frame idx.Frame) []election.EventDescriptor {
 			EventID:     hash.BytesToEvent(key[frameSize+validatorIDSize:]),
 			ValidatorID: idx.BytesToValidatorID(key[frameSize : frameSize+validatorIDSize]),
 		}
-
-		// if r.Frame != frame {
-		// 	s.crit(fmt.Errorf("roots table: invalid frame=%d, expected=%d", r.Frame, frame))
-		// }
 		roots = append(roots, r)
-
 	}
 	if it.Error() != nil {
 		s.crit(it.Error())

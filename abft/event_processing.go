@@ -49,7 +49,7 @@ func (p *Orderer) Process(e dag.Event) (err error) {
 	return err
 }
 
-// Process event's that have been locally built
+// Process event that's been built locally
 func (p *Orderer) ProcessLocalEvent(e dag.Event) (err error) {
 	selfParentFrame := p.getSelfParentFrame(e)
 	if selfParentFrame == e.Frame() {
@@ -137,10 +137,7 @@ func (p *Orderer) forklessCausedByQuorumOn(e dag.Event, f idx.Frame) bool {
 	return observedCounter.HasQuorum()
 }
 
-// calcFrameIdx checks root-conditions for new event and returns event's frame.
-// It is not safe for concurrent use.
-// calcFrameIdx checks root-conditions for new event and returns event's frame.
-// It is not safe for concurrent use.
+// calcFrameIdx is not safe for concurrent use.
 func (p *Orderer) calcFrameIdx(e dag.Event) (selfParentFrame, frame idx.Frame) {
 	if e.SelfParent() == nil {
 		return 0, 1
@@ -151,7 +148,6 @@ func (p *Orderer) calcFrameIdx(e dag.Event) (selfParentFrame, frame idx.Frame) {
 		frame = max(frame, p.input.GetEvent(parent).Frame())
 	}
 
-	// Find highest frame s.t. event e is forklessCausedByQuorumOn by frame-1 roots
 	if p.forklessCausedByQuorumOn(e, frame) {
 		frame++
 	}
