@@ -27,7 +27,7 @@ type AtroposDecision struct {
 type ElectorRoot struct {
 	frameToDeliverOffset idx.Frame
 	rootHash             hash.Event
-	voteMatr             []float32
+	voteMatrix           []float32
 }
 
 type Election struct {
@@ -79,15 +79,15 @@ func (el *Election) ElectForRoot(
 		return []*AtroposDecision{}, nil
 	}
 	aggregationMatrix := make([]float32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
-	voteVec := vek32.Repeat(-1., int(el.validatorCount))
+	voteVector := vek32.Repeat(-1., int(el.validatorCount))
 
 	observedRoots := el.observedRoots(rootHash, frame-1)
 	stakeAccul := float32(0)
 	for _, observedRoot := range observedRoots {
-		voteVec[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
+		voteVector[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
 		stakeAccul += float32(el.validators.GetWeightByIdx(el.validators.GetIdx(observedRoot.ValidatorID)))
 		if rootContext, ok := el.vote[frame-1][observedRoot.ValidatorID]; ok {
-			vek32.Add_Inplace(aggregationMatrix, rootContext.voteMatr[(el.frameToDeliver-rootContext.frameToDeliverOffset)*el.validatorCount:])
+			vek32.Add_Inplace(aggregationMatrix, rootContext.voteMatrix[(el.frameToDeliver-rootContext.frameToDeliverOffset)*el.validatorCount:])
 		}
 	}
 	el.decideRoots(frame, aggregationMatrix, stakeAccul)
@@ -95,14 +95,14 @@ func (el *Election) ElectForRoot(
 	vek32.FromBool_Into(aggregationMatrix, kroneckerDeltaMask)
 	vek32.MulNumber_Inplace(aggregationMatrix, 2.)
 	vek32.SubNumber_Inplace(aggregationMatrix, 1.)
-	aggregationMatrix = append(aggregationMatrix, voteVec...)
+	aggregationMatrix = append(aggregationMatrix, voteVector...)
 	vek32.MulNumber_Inplace(aggregationMatrix, float32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
-	el.vote[frame][validatorId].voteMatr = aggregationMatrix
+	el.vote[frame][validatorId].voteMatrix = aggregationMatrix
 	return el.getDeliveryReadyAtropoi(), nil
 }
 
-func (el *Election) decideRoots(aggregatingFrame idx.Frame, aggregationMatr []float32, seenRootsStake float32) {
-	Q := (4.*float32(el.validators.TotalWeight()) - 3*seenRootsStake) / 4
+func (el *Election) decideRoots(aggregatingFrame idx.Frame, aggregationMatr []float32, observedRootsStake float32) {
+	Q := (4.*float32(el.validators.TotalWeight()) - 3*observedRootsStake) / 4
 	yesDecisions := vek32.GtNumber(aggregationMatr, Q)
 	noDecisions := vek32.LtNumber(aggregationMatr, -Q)
 
