@@ -100,9 +100,9 @@ func (el *Election) ElectForRoot(
 }
 
 func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []float32, observedRootsStake float32) {
-	Q := (4.*float32(el.validators.TotalWeight()) - 3*observedRootsStake) / 4
-	yesDecisions := vek32.GtNumber(aggregationMatr, Q)
-	noDecisions := vek32.LtNumber(aggregationMatr, -Q)
+	Q := (4.*float32(el.validators.TotalWeight()) - 3*observedRootsStake) / 3
+	yesDecisions := vek32.GteNumber(aggregationMatr, Q)
+	noDecisions := vek32.LteNumber(aggregationMatr, -Q)
 
 	for frame := range el.vote {
 		if frame < el.frameToDeliver || frame >= aggregatingFrame-1 {
