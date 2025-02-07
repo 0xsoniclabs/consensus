@@ -82,26 +82,23 @@ func (el *Election) ElectForRoot(
 	voteVector := vek32.Repeat(-1., int(el.validatorCount))
 
 	observedRoots := el.observedRoots(rootHash, frame-1)
-	stakeAccul := float32(0)
+	observedRootsStake := float32(0)
 	for _, observedRoot := range observedRoots {
 		voteVector[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
-		stakeAccul += float32(el.validators.GetWeightByIdx(el.validators.GetIdx(observedRoot.ValidatorID)))
+		observedRootsStake += float32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
 		if rootContext, ok := el.vote[frame-1][observedRoot.ValidatorID]; ok {
-			vek32.Add_Inplace(aggregationMatrix, rootContext.voteMatrix[(el.frameToDeliver-rootContext.frameToDeliverOffset)*el.validatorCount:])
+			nonDeliveredFramesOffset := (el.frameToDeliver - rootContext.frameToDeliverOffset) * el.validatorCount
+			vek32.Add_Inplace(aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
 		}
 	}
-	el.decideRoots(frame, aggregationMatrix, stakeAccul)
-	kroneckerDeltaMask := vek32.GteNumber(aggregationMatrix, 0.)
-	vek32.FromBool_Into(aggregationMatrix, kroneckerDeltaMask)
-	vek32.MulNumber_Inplace(aggregationMatrix, 2.)
-	vek32.SubNumber_Inplace(aggregationMatrix, 1.)
-	aggregationMatrix = append(aggregationMatrix, voteVector...)
+	el.decide(frame, aggregationMatrix, observedRootsStake)
+	aggregationMatrix = normalize(aggregationMatrix)
 	vek32.MulNumber_Inplace(aggregationMatrix, float32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
 	el.vote[frame][validatorId].voteMatrix = aggregationMatrix
 	return el.getDeliveryReadyAtropoi(), nil
 }
 
-func (el *Election) decideRoots(aggregatingFrame idx.Frame, aggregationMatr []float32, observedRootsStake float32) {
+func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []float32, observedRootsStake float32) {
 	Q := (4.*float32(el.validators.TotalWeight()) - 3*observedRootsStake) / 4
 	yesDecisions := vek32.GtNumber(aggregationMatr, Q)
 	noDecisions := vek32.LtNumber(aggregationMatr, -Q)
@@ -158,4 +155,13 @@ func (el *Election) prepareNewElectorRoot(frame idx.Frame, validatorId idx.Valid
 
 func (el *Election) cleanupDecidedFrame(frame idx.Frame) {
 	delete(el.vote, frame)
+}
+
+// Normalizes the aggregated stake matrix back into the cannonical [-1, 1] range
+func normalize(matrix []float32) []float32 {
+	kroneckerDeltaMask := vek32.GteNumber(matrix, 0.)
+	vek32.FromBool_Into(matrix, kroneckerDeltaMask)
+	vek32.MulNumber_Inplace(matrix, 2.)
+	vek32.SubNumber_Inplace(matrix, 1.)
+	return matrix
 }
