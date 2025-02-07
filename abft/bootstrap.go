@@ -86,7 +86,7 @@ func (p *Orderer) Reset(epoch idx.Epoch, validators *pos.Validators) error {
 	if p.callback.EpochDBLoaded != nil {
 		p.callback.EpochDBLoaded(p.store.GetEpoch())
 	}
-	p.election.Reset(FirstFrame, validators)
+	p.election.ResetEpoch(FirstFrame, validators)
 	return nil
 }
 

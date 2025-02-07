@@ -191,7 +191,7 @@ func testProcessRoot(
 
 	// events:
 	ordered := make(tdag.TestEvents, 0)
-	frameRoots := make(map[idx.Frame][]EventDescriptor)
+	frameRoots := make(map[idx.Frame][]RootContext)
 	vertices := make(map[hash.Event]slot)
 	edges := make(map[fakeEdge]bool)
 
@@ -210,8 +210,8 @@ func testProcessRoot(
 			hsh := root.ID()
 			frameRoots[frameOf(name)] = append(
 				frameRoots[frameOf(name)],
-				EventDescriptor{
-					EventID:     hsh,
+				RootContext{
+					RootHash:    hsh,
 					ValidatorID: slot.validatorID,
 				},
 			)
@@ -249,7 +249,7 @@ func testProcessRoot(
 		}
 		return edges[edge]
 	}
-	getFrameRootsFn := func(f idx.Frame) []EventDescriptor {
+	getFrameRootsFn := func(f idx.Frame) []RootContext {
 		return frameRoots[f]
 	}
 
@@ -269,7 +269,7 @@ func testProcessRoot(
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		atropoi, err := el.ProcessRoot(rootSlot.frame, rootSlot.validatorID, rootHash)
+		atropoi, err := el.ElectForRoot(rootSlot.frame, rootSlot.validatorID, rootHash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -280,7 +280,7 @@ func testProcessRoot(
 			assertar.NotNil(atropoi)
 			assertar.NotEmpty(atropoi)
 			assertar.Equal(expected.DecidedFrame, atropoi[0].Frame)
-			assertar.Equal(expected.DecidedAtropos, atropoi[0].AtroposID.String())
+			assertar.Equal(expected.DecidedAtropos, atropoi[0].AtroposHash.String())
 			return
 		} else {
 			assertar.Empty(atropoi)

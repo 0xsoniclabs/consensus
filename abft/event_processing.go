@@ -81,12 +81,12 @@ func (p *Orderer) checkAndSaveEvent(e dag.Event) (error, idx.Frame) {
 
 // calculates Atropos election for the root, calls p.onFrameDecided if election was decided
 func (p *Orderer) handleElection(root dag.Event) error {
-	decisions, err := p.election.ProcessRoot(root.Frame(), root.Creator(), root.ID())
+	decisions, err := p.election.ElectForRoot(root.Frame(), root.Creator(), root.ID())
 	if err != nil {
 		return err
 	}
 	for _, atroposDecision := range decisions {
-		sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposID)
+		sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
 		if err != nil {
 			return err
 		}
@@ -104,12 +104,12 @@ func (p *Orderer) bootstrapElection() error {
 			break
 		}
 		for _, root := range frameRoots {
-			decisions, err := p.election.ProcessRoot(frame, root.ValidatorID, root.EventID)
+			decisions, err := p.election.ElectForRoot(frame, root.ValidatorID, root.RootHash)
 			if err != nil {
 				return err
 			}
 			for _, atroposDecision := range decisions {
-				sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposID)
+				sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
 				if err != nil {
 					return err
 				}
@@ -127,7 +127,7 @@ func (p *Orderer) forklessCausedByQuorumOn(e dag.Event, f idx.Frame) bool {
 	observedCounter := p.store.GetValidators().NewCounter()
 	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
 	for _, it := range p.store.GetFrameRoots(f) {
-		if p.dagIndex.ForklessCause(e.ID(), it.EventID) {
+		if p.dagIndex.ForklessCause(e.ID(), it.RootHash) {
 			observedCounter.Count(it.ValidatorID)
 		}
 		if observedCounter.HasQuorum() {

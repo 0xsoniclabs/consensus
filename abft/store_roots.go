@@ -10,11 +10,11 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
-func rootRecordKey(frame idx.Frame, root *election.EventDescriptor) []byte {
+func rootRecordKey(frame idx.Frame, root *election.RootContext) []byte {
 	key := bytes.Buffer{}
 	key.Write(frame.Bytes())
 	key.Write(root.ValidatorID.Bytes())
-	key.Write(root.EventID.Bytes())
+	key.Write(root.RootHash.Bytes())
 	return key.Bytes()
 }
 
@@ -25,9 +25,9 @@ func (s *Store) AddRoot(root dag.Event) {
 }
 
 func (s *Store) addRoot(root dag.Event, frame idx.Frame) {
-	r := election.EventDescriptor{
+	r := election.RootContext{
 		ValidatorID: root.Creator(),
-		EventID:     root.ID(),
+		RootHash:    root.ID(),
 	}
 
 	if err := s.epochTable.Roots.Put(rootRecordKey(frame, &r), []byte{}); err != nil {
@@ -36,7 +36,7 @@ func (s *Store) addRoot(root dag.Event, frame idx.Frame) {
 
 	// Add to cache.
 	if c, ok := s.cache.FrameRoots.Get(frame); ok {
-		rr := c.([]election.EventDescriptor)
+		rr := c.([]election.RootContext)
 		rr = append(rr, r)
 		s.cache.FrameRoots.Add(frame, rr, uint(len(rr)))
 	}
@@ -50,11 +50,11 @@ const (
 
 // GetFrameRoots returns all the roots in the specified frame
 // Not safe for concurrent use due to the complex mutable cache!
-func (s *Store) GetFrameRoots(frame idx.Frame) []election.EventDescriptor {
+func (s *Store) GetFrameRoots(frame idx.Frame) []election.RootContext {
 	if rr, ok := s.cache.FrameRoots.Get(frame); ok {
-		return rr.([]election.EventDescriptor)
+		return rr.([]election.RootContext)
 	}
-	roots := make([]election.EventDescriptor, 0, 100)
+	roots := make([]election.RootContext, 0, 100)
 	it := s.epochTable.Roots.NewIterator(frame.Bytes(), nil)
 	defer it.Release()
 	for it.Next() {
@@ -63,8 +63,8 @@ func (s *Store) GetFrameRoots(frame idx.Frame) []election.EventDescriptor {
 			s.crit(fmt.Errorf("roots table: incorrect key len=%d", len(key)))
 		}
 
-		r := election.EventDescriptor{
-			EventID:     hash.BytesToEvent(key[frameSize+validatorIDSize:]),
+		r := election.RootContext{
+			RootHash:    hash.BytesToEvent(key[frameSize+validatorIDSize:]),
 			ValidatorID: idx.BytesToValidatorID(key[frameSize : frameSize+validatorIDSize]),
 		}
 		roots = append(roots, r)
