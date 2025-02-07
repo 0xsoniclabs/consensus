@@ -93,6 +93,7 @@ func (el *Election) ElectForRoot(
 	}
 	el.decide(frame, aggregationMatrix, observedRootsStake)
 	aggregationMatrix = normalize(aggregationMatrix)
+	aggregationMatrix = append(aggregationMatrix, voteVector...)
 	vek32.MulNumber_Inplace(aggregationMatrix, float32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
 	el.vote[frame][validatorId].voteMatrix = aggregationMatrix
 	return el.getDeliveryReadyAtropoi(), nil
