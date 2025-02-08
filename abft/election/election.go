@@ -24,7 +24,7 @@ type AtroposDecision struct {
 	AtroposHash hash.Event
 }
 
-type ElectorRoot struct {
+type RootVoteContext struct {
 	frameToDeliverOffset idx.Frame
 	rootHash             hash.Event
 	voteMatrix           []float32
@@ -36,7 +36,7 @@ type Election struct {
 	forklessCauses ForklessCauseFn
 	getFrameRoots  GetFrameRootsFn
 
-	vote           map[idx.Frame]map[idx.ValidatorID]*ElectorRoot
+	vote           map[idx.Frame]map[idx.ValidatorID]*RootVoteContext
 	validatorIDMap map[idx.ValidatorID]idx.Validator
 	validatorCount idx.Frame
 
@@ -64,12 +64,12 @@ func (el *Election) ResetEpoch(frameToDeliver idx.Frame, validators *pos.Validat
 	heap.Init(&el.deliveryBuffer)
 	el.frameToDeliver = frameToDeliver
 	el.validators = validators
-	el.vote = make(map[idx.Frame]map[idx.ValidatorID]*ElectorRoot)
+	el.vote = make(map[idx.Frame]map[idx.ValidatorID]*RootVoteContext)
 	el.validatorCount = idx.Frame(validators.Len())
 	el.validatorIDMap = validators.Idxs()
 }
 
-func (el *Election) ElectForRoot(
+func (el *Election) VoteAndAggregate(
 	frame idx.Frame,
 	validatorId idx.ValidatorID,
 	rootHash hash.Event,
@@ -149,9 +149,9 @@ func (el *Election) getDeliveryReadyAtropoi() []*AtroposDecision {
 
 func (el *Election) prepareNewElectorRoot(frame idx.Frame, validatorId idx.ValidatorID, root hash.Event) {
 	if _, ok := el.vote[frame]; !ok {
-		el.vote[frame] = make(map[idx.ValidatorID]*ElectorRoot)
+		el.vote[frame] = make(map[idx.ValidatorID]*RootVoteContext)
 	}
-	el.vote[frame][validatorId] = &ElectorRoot{frameToDeliverOffset: el.frameToDeliver, rootHash: root}
+	el.vote[frame][validatorId] = &RootVoteContext{frameToDeliverOffset: el.frameToDeliver, rootHash: root}
 }
 
 func (el *Election) cleanupDecidedFrame(frame idx.Frame) {
