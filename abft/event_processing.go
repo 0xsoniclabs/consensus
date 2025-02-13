@@ -3,7 +3,6 @@ package abft
 import (
 	"github.com/pkg/errors"
 
-	"github.com/0xsoniclabs/consensus/abft/election"
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 )
@@ -39,8 +38,10 @@ func (p *Orderer) Process(e dag.Event) (err error) {
 		return err
 	}
 
-	err = p.handleElection(selfParentFrame, e)
-	if err != nil {
+	if selfParentFrame == e.Frame() {
+		return nil
+	}
+	if err := p.handleElection(e); err != nil {
 		// election doesn't fail under normal circumstances
 		// storage is in an inconsistent state
 		p.crit(err)
@@ -48,11 +49,20 @@ func (p *Orderer) Process(e dag.Event) (err error) {
 	return err
 }
 
-func (p *Orderer) getSelfParentFrame(e dag.Event) idx.Frame {
-	if e.SelfParent() == nil {
-		return 0
+// Process event that's been built locally
+func (p *Orderer) ProcessLocalEvent(e dag.Event) (err error) {
+	selfParentFrame := p.getSelfParentFrame(e)
+	if selfParentFrame == e.Frame() {
+		return nil
 	}
-	return p.input.GetEvent(*e.SelfParent()).Frame()
+	// It's a root
+	p.store.AddRoot(e)
+	if err := p.handleElection(e); err != nil {
+		// election doesn't fail under normal circumstances
+		// storage is in an inconsistent state
+		p.crit(err)
+	}
+	return err
 }
 
 // checkAndSaveEvent checks consensus-related fields: Frame, IsRoot
@@ -64,92 +74,52 @@ func (p *Orderer) checkAndSaveEvent(e dag.Event) (error, idx.Frame) {
 	}
 
 	if selfParentFrame != frameIdx {
-		p.store.AddRoot(selfParentFrame, e)
+		p.store.AddRoot(e)
 	}
 	return nil, selfParentFrame
 }
 
 // calculates Atropos election for the root, calls p.onFrameDecided if election was decided
-func (p *Orderer) handleElection(selfParentFrame idx.Frame, root dag.Event) error {
-	for f := selfParentFrame + 1; f <= root.Frame(); f++ {
-		decided, err := p.election.ProcessRoot(election.RootAndSlot{
-			ID: root.ID(),
-			Slot: election.Slot{
-				Frame:     f,
-				Validator: root.Creator(),
-			},
-		})
-		if err != nil {
-			return err
-		}
-		if decided == nil {
-			continue
-		}
-
-		// if we’re here, then this root has observed that lowest not decided frame is decided now
-		sealed, err := p.onFrameDecided(decided.Frame, decided.Atropos)
+func (p *Orderer) handleElection(root dag.Event) error {
+	decisions, err := p.election.VoteAndAggregate(root.Frame(), root.Creator(), root.ID())
+	if err != nil {
+		return err
+	}
+	for _, atroposDecision := range decisions {
+		sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
 		if err != nil {
 			return err
 		}
 		if sealed {
-			break
-		}
-		sealed, err = p.bootstrapElection()
-		if err != nil {
-			return err
-		}
-		if sealed {
-			break
+			return nil
 		}
 	}
 	return nil
 }
 
-// bootstrapElection calls processKnownRoots until it returns nil
-func (p *Orderer) bootstrapElection() (bool, error) {
-	for {
-		decided, err := p.processKnownRoots()
-		if err != nil {
-			return false, err
-		}
-		if decided == nil {
-			break
-		}
-
-		sealed, err := p.onFrameDecided(decided.Frame, decided.Atropos)
-		if err != nil {
-			return false, err
-		}
-		if sealed {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-// The function is similar to processRoot, but it fully re-processes the current voting.
-// This routine should be called after node startup, and after each decided frame.
-func (p *Orderer) processKnownRoots() (*election.Res, error) {
-	// iterate all the roots from LastDecidedFrame+1 to highest, call processRoot for each
-	lastDecidedFrame := p.store.GetLastDecidedFrame()
-	var decided *election.Res
-	for f := lastDecidedFrame + 1; ; f++ {
-		frameRoots := p.store.GetFrameRoots(f)
-		for _, it := range frameRoots {
-			var err error
-			decided, err = p.election.ProcessRoot(it)
-			if err != nil {
-				return nil, err
-			}
-			if decided != nil {
-				return decided, nil
-			}
-		}
+func (p *Orderer) bootstrapElection() error {
+	for frame := p.store.GetLastDecidedFrame() + 1; ; frame++ {
+		frameRoots := p.store.GetFrameRoots(frame)
 		if len(frameRoots) == 0 {
 			break
 		}
+		for _, root := range frameRoots {
+			decisions, err := p.election.VoteAndAggregate(frame, root.ValidatorID, root.RootHash)
+			if err != nil {
+				return err
+			}
+			for _, atroposDecision := range decisions {
+				sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
+				if err != nil {
+					return err
+				}
+				if sealed {
+					return nil
+				}
+			}
+		}
 	}
-	return nil, nil
+	return nil
 }
 
 // forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W roots on specified frame
@@ -157,8 +127,8 @@ func (p *Orderer) forklessCausedByQuorumOn(e dag.Event, f idx.Frame) bool {
 	observedCounter := p.store.GetValidators().NewCounter()
 	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
 	for _, it := range p.store.GetFrameRoots(f) {
-		if p.dagIndex.ForklessCause(e.ID(), it.ID) {
-			observedCounter.Count(it.Slot.Validator)
+		if p.dagIndex.ForklessCause(e.ID(), it.RootHash) {
+			observedCounter.Count(it.ValidatorID)
 		}
 		if observedCounter.HasQuorum() {
 			break
@@ -167,17 +137,26 @@ func (p *Orderer) forklessCausedByQuorumOn(e dag.Event, f idx.Frame) bool {
 	return observedCounter.HasQuorum()
 }
 
-// calcFrameIdx checks root-conditions for new event and returns event's frame.
-// It is not safe for concurrent use.
+// calcFrameIdx is not safe for concurrent use.
 func (p *Orderer) calcFrameIdx(e dag.Event) (selfParentFrame, frame idx.Frame) {
 	if e.SelfParent() == nil {
 		return 0, 1
 	}
 	selfParentFrame = p.input.GetEvent(*e.SelfParent()).Frame()
 	frame = selfParentFrame
-	// Find highest frame s.t. event e is forklessCausedByQuorumOn by frame-1 roots
-	for p.forklessCausedByQuorumOn(e, frame) {
+	for _, parent := range e.Parents() {
+		frame = max(frame, p.input.GetEvent(parent).Frame())
+	}
+
+	if p.forklessCausedByQuorumOn(e, frame) {
 		frame++
 	}
 	return selfParentFrame, frame
+}
+
+func (p *Orderer) getSelfParentFrame(e dag.Event) idx.Frame {
+	if e.SelfParent() == nil {
+		return 0
+	}
+	return p.input.GetEvent(*e.SelfParent()).Frame()
 }
