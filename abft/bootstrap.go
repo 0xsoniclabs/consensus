@@ -47,10 +47,10 @@ func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 	if p.callback.EpochDBLoaded != nil {
 		p.callback.EpochDBLoaded(p.store.GetEpoch())
 	}
-	p.election = election.New(p.store.GetValidators(), p.store.GetLastDecidedFrame()+1, p.dagIndex.ForklessCause, p.store.GetFrameRoots)
+	p.election = election.New(p.store.GetLastDecidedFrame()+1, p.store.GetValidators(), p.dagIndex.ForklessCause, p.store.GetFrameRoots)
 
 	// events reprocessing
-	_, err = p.bootstrapElection()
+	err = p.bootstrapElection()
 	return err
 }
 
@@ -71,7 +71,7 @@ func (p *Orderer) StartFrom(callback OrdererCallbacks, epoch idx.Epoch, validato
 	if p.callback.EpochDBLoaded != nil {
 		p.callback.EpochDBLoaded(p.store.GetEpoch())
 	}
-	p.election = election.New(validators, FirstFrame, p.dagIndex.ForklessCause, p.store.GetFrameRoots)
+	p.election = election.New(FirstFrame, p.store.GetValidators(), p.dagIndex.ForklessCause, p.store.GetFrameRoots)
 	return err
 }
 
@@ -86,7 +86,7 @@ func (p *Orderer) Reset(epoch idx.Epoch, validators *pos.Validators) error {
 	if p.callback.EpochDBLoaded != nil {
 		p.callback.EpochDBLoaded(p.store.GetEpoch())
 	}
-	p.election.Reset(validators, FirstFrame)
+	p.election.ResetEpoch(FirstFrame, validators)
 	return nil
 }
 

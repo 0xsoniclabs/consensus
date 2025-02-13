@@ -2,7 +2,7 @@ package election
 
 import (
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"testing"
@@ -38,32 +38,32 @@ func TestProcessRoot(t *testing.T) {
 		testProcessRoot(t,
 			nil,
 			weights{
-				"nodeA": 1,
+				"nodeA": 2,
 				"nodeB": 1,
 				"nodeC": 1,
 				"nodeD": 1,
 			}, `
-a0_0  b0_0  c0_0  d0_0
-║     ║     ║     ║
-a1_1══╬═════╣     ║
-║     ║     ║     ║
-║╚════b1_1══╣     ║
-║     ║     ║     ║
-║     ║╚════c1_1══╣
-║     ║     ║     ║
-║     ║╚═══─╫╩════d1_1
-║     ║     ║     ║
-a2_2══╬═════╬═════╣
-║     ║     ║     ║
-`)
+	a1_1  b1_1  c1_1  d1_1
+	║     ║     ║     ║
+	a2_2══╬═════╣     ║
+	║     ║     ║     ║
+	║╚════b2_2══╣     ║
+	║     ║     ║     ║
+	║     ║╚════c2_2══╣
+	║     ║     ║     ║
+	║     ║╚═══─╫╩════d2_2
+	║     ║     ║     ║
+	a3_3══╬═════╬═════╣
+	║     ║     ║     ║
+	`)
 	})
 
 	t.Run("4 equalWeights", func(t *testing.T) {
 		testProcessRoot(t,
 			&testExpected{
-				DecidedFrame:   0,
-				DecidedAtropos: "d0_0",
-				DecisiveRoots:  map[string]bool{"a2_2": true},
+				DecidedFrame:   1,
+				DecidedAtropos: "c1_1",
+				DecisiveRoots:  map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -71,27 +71,27 @@ a2_2══╬═════╬═════╣
 				"nodeC": 1,
 				"nodeD": 1,
 			}, `
-a0_0  b0_0  c0_0  d0_0
-║     ║     ║     ║
-a1_1══╬═════╣     ║
-║     ║     ║     ║
-║     b1_1══╬═════╣
-║     ║     ║     ║
-║     ║╚════c1_1══╣
-║     ║     ║     ║
-║     ║╚═══─╫╩════d1_1
-║     ║     ║     ║
-a2_2══╬═════╬═════╣
-║     ║     ║     ║
-`)
+			a1_1  b1_1  c1_1  d1_1
+			║     ║     ║     ║
+			a2_2══╬═════╣     ║
+			║     ║     ║     ║
+			║     b2_2══╬═════╣
+			║     ║     ║     ║
+			║     ║╚════c2_2══╣
+			║     ║     ║     ║
+			║     ║╚═══─╫╩════d2_2
+			║     ║     ║     ║
+			a3_3══╬═════╬═════╣
+			║     ║     ║     ║
+			`)
 	})
 
 	t.Run("4 equalWeights missingRoot", func(t *testing.T) {
 		testProcessRoot(t,
 			&testExpected{
-				DecidedFrame:   0,
-				DecidedAtropos: "a0_0",
-				DecisiveRoots:  map[string]bool{"a2_2": true},
+				DecidedFrame:   1,
+				DecidedAtropos: "c1_1",
+				DecisiveRoots:  map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -99,25 +99,25 @@ a2_2══╬═════╬═════╣
 				"nodeC": 1,
 				"nodeD": 1,
 			}, `
-a0_0  b0_0  c0_0  d0_0
-║     ║     ║     ║
-a1_1══╬═════╣     ║
-║     ║     ║     ║
-║╚════b1_1══╣     ║
-║     ║     ║     ║
-║╚═══─╫╩════c1_1  ║
-║     ║     ║     ║
-a2_2══╬═════╣     ║
-║     ║     ║     ║
-`)
+		a1_1  b1_1  c1_1  d1_1
+		║     ║     ║     ║
+		a2_2══╬═════╣     ║
+		║     ║     ║     ║
+		║╚════b2_2══╣     ║
+		║     ║     ║     ║
+		║╚═══─╫╩════c2_2  ║
+		║     ║     ║     ║
+		a3_3══╬═════╣     ║
+		║     ║     ║     ║
+		`)
 	})
 
 	t.Run("4 differentWeights", func(t *testing.T) {
 		testProcessRoot(t,
 			&testExpected{
-				DecidedFrame:   0,
-				DecidedAtropos: "a0_0",
-				DecisiveRoots:  map[string]bool{"b2_2": true},
+				DecidedFrame:   1,
+				DecidedAtropos: "a1_1",
+				DecisiveRoots:  map[string]bool{"b3_3": true},
 			},
 			weights{
 				"nodeA": math.MaxUint32/2 - 3,
@@ -125,27 +125,27 @@ a2_2══╬═════╣     ║
 				"nodeC": 1,
 				"nodeD": 1,
 			}, `
-a0_0  b0_0  c0_0  d0_0
-║     ║     ║     ║
-a1_1══╬═════╣     ║
-║     ║     ║     ║
-║╚════+b1_1 ║     ║
-║     ║     ║     ║
-║╚═══─╫─════+c1_1 ║
-║     ║     ║     ║
-║╚═══─╫╩═══─╫╩════d1_1
-║     ║     ║     ║
-╠═════b2_2══╬═════╣
-║     ║     ║     ║
-`)
+		a1_1  b1_1  c1_1  d1_1
+		║     ║     ║     ║
+		a2_2══╬═════╣     ║
+		║     ║     ║     ║
+		║╚════+b2_2 ║     ║
+		║     ║     ║     ║
+		║╚═══─╫─════+c2_2 ║
+		║     ║     ║     ║
+		║╚═══─╫╩═══─╫╩════d2_2
+		║     ║     ║     ║
+		╠═════b3_3══╬═════╣
+		║     ║     ║     ║
+		`)
 	})
 
 	t.Run("4 differentWeights 4rounds", func(t *testing.T) {
 		testProcessRoot(t,
 			&testExpected{
-				DecidedFrame:   0,
-				DecidedAtropos: "a0_0",
-				DecisiveRoots:  map[string]bool{"c2_2": true, "b2_2": true},
+				DecidedFrame:   1,
+				DecidedAtropos: "a1_1",
+				DecisiveRoots:  map[string]bool{"c3_3": true, "b3_3": true},
 			},
 			weights{
 				"nodeA": 4,
@@ -153,26 +153,31 @@ a1_1══╬═════╣     ║
 				"nodeC": 1,
 				"nodeD": 1,
 			}, `
-a0_0  b0_0  c0_0  d0_0
-║     ║     ║     ║
-a1_1══╣     ║     ║
-║     ║     ║     ║
-║     +b1_1═╬═════╣
-║     ║     ║     ║
-║╚═══─╫─════c1_1══╣
-║     ║     ║     ║
-║╚═══─╫─═══─╫╩════d1_1
-║     ║     ║     ║
-a2_2  ╣     ║     ║
-║     ║     ║     ║
-║╚════b2_2══╬═════╣
-║     ║     ║     ║
-║╚═══─╫╩════c2_2══╣
-║     ║     ║     ║
-║╚═══─╫╩═══─╫─════+d2_2
-`)
+	a1_1  b1_1  c1_1  d1_1
+	║     ║     ║     ║
+	a2_2══╣     ║     ║
+	║     ║     ║     ║
+	║     +b2_2═╬═════╣
+	║     ║     ║     ║
+	║╚═══─╫─════c2_2══╣
+	║     ║     ║     ║
+	║╚═══─╫─═══─╫╩════d2_2
+	║     ║     ║     ║
+	a3_3  ╣     ║     ║
+	║     ║     ║     ║
+	║╚════b3_3══╬═════╣
+	║     ║     ║     ║
+	║╚═══─╫╩════c3_3══╣
+	║     ║     ║     ║
+	║╚═══─╫╩═══─╫─════+d3_3
+	`)
 	})
 
+}
+
+type slot struct {
+	frame       idx.Frame
+	validatorID idx.ValidatorID
 }
 
 func testProcessRoot(
@@ -186,9 +191,8 @@ func testProcessRoot(
 
 	// events:
 	ordered := make(tdag.TestEvents, 0)
-	events := make(map[hash.Event]*tdag.TestEvent)
-	frameRoots := make(map[idx.Frame][]RootAndSlot)
-	vertices := make(map[hash.Event]Slot)
+	frameRoots := make(map[idx.Frame][]RootContext)
+	vertices := make(map[hash.Event]slot)
 	edges := make(map[fakeEdge]bool)
 
 	nodes, _, _ := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
@@ -197,18 +201,20 @@ func testProcessRoot(
 			// store all the events
 			ordered = append(ordered, root)
 
-			events[root.ID()] = root
-
-			slot := Slot{
-				Frame:     frameOf(name),
-				Validator: root.Creator(),
+			slot := slot{
+				frame:       frameOf(name),
+				validatorID: root.Creator(),
 			}
 			vertices[root.ID()] = slot
 
-			frameRoots[frameOf(name)] = append(frameRoots[frameOf(name)], RootAndSlot{
-				ID:   root.ID(),
-				Slot: slot,
-			})
+			hsh := root.ID()
+			frameRoots[frameOf(name)] = append(
+				frameRoots[frameOf(name)],
+				RootContext{
+					RootHash:    hsh,
+					ValidatorID: slot.validatorID,
+				},
+			)
 
 			// build edges to be able to fake forkless cause fn
 			noPrev := false
@@ -243,7 +249,7 @@ func testProcessRoot(
 		}
 		return edges[edge]
 	}
-	getFrameRootsFn := func(f idx.Frame) []RootAndSlot {
+	getFrameRootsFn := func(f idx.Frame) []RootContext {
 		return frameRoots[f]
 	}
 
@@ -254,33 +260,30 @@ func testProcessRoot(
 	}
 	ordered = unordered.ByParents()
 
-	election := New(validators, 0, forklessCauseFn, getFrameRootsFn)
+	el := New(1, validators, forklessCauseFn, getFrameRootsFn)
 
 	// processing:
-	var alreadyDecided bool
 	for _, root := range ordered {
 		rootHash := root.ID()
 		rootSlot, ok := vertices[rootHash]
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		got, err := election.ProcessRoot(RootAndSlot{
-			ID:   rootHash,
-			Slot: rootSlot,
-		})
+		atropoi, err := el.VoteAndAggregate(rootSlot.frame, rootSlot.validatorID, rootHash)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// checking:
 		decisive := expected != nil && expected.DecisiveRoots[root.ID().String()]
-		if decisive || alreadyDecided {
-			assertar.NotNil(got)
-			assertar.Equal(expected.DecidedFrame, got.Frame)
-			assertar.Equal(expected.DecidedAtropos, got.Atropos.String())
-			alreadyDecided = true
+		if decisive {
+			assertar.NotNil(atropoi)
+			assertar.NotEmpty(atropoi)
+			assertar.Equal(expected.DecidedFrame, atropoi[0].Frame)
+			assertar.Equal(expected.DecidedAtropos, atropoi[0].AtroposHash.String())
+			return
 		} else {
-			assertar.Nil(got)
+			assertar.Empty(atropoi)
 		}
 	}
 }
