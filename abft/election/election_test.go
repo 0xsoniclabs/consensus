@@ -269,7 +269,7 @@ func testProcessRoot(
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		atropoi, err := el.ElectForRoot(rootSlot.frame, rootSlot.validatorID, rootHash)
+		atropoi, err := el.VoteAndAggregate(rootSlot.frame, rootSlot.validatorID, rootHash)
 		if err != nil {
 			t.Fatal(err)
 		}

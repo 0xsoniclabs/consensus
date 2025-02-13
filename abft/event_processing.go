@@ -81,7 +81,7 @@ func (p *Orderer) checkAndSaveEvent(e dag.Event) (error, idx.Frame) {
 
 // calculates Atropos election for the root, calls p.onFrameDecided if election was decided
 func (p *Orderer) handleElection(root dag.Event) error {
-	decisions, err := p.election.ElectForRoot(root.Frame(), root.Creator(), root.ID())
+	decisions, err := p.election.VoteAndAggregate(root.Frame(), root.Creator(), root.ID())
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (p *Orderer) bootstrapElection() error {
 			break
 		}
 		for _, root := range frameRoots {
-			decisions, err := p.election.ElectForRoot(frame, root.ValidatorID, root.RootHash)
+			decisions, err := p.election.VoteAndAggregate(frame, root.ValidatorID, root.RootHash)
 			if err != nil {
 				return err
 			}
