@@ -23,7 +23,7 @@ type Callbacks struct {
 }
 
 type Engine struct {
-	crit          func(error)
+	errorHandler  func(error)
 	validators    *pos.Validators
 	validatorIdxs map[idx.ValidatorID]idx.Validator
 
@@ -43,8 +43,8 @@ type Engine struct {
 // NewIndex creates Engine instance.
 func NewIndex(crit func(error), callbacks Callbacks) *Engine {
 	vi := &Engine{
-		crit:     crit,
-		callback: callbacks,
+		errorHandler: crit,
+		callback:     callbacks,
 	}
 
 	return vi
@@ -75,7 +75,7 @@ func (vi *Engine) Flush() {
 		vi.setBranchesInfo(vi.branchesInfo)
 	}
 	if err := vi.vecDb.Flush(); err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 }
 
@@ -220,7 +220,7 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	}
 	err = vi.DfsSubgraph(e, onWalk)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 
 	// store calculated vectors

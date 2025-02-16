@@ -13,18 +13,18 @@ import (
 func (vi *Engine) setRlp(table kvdb.Store, key []byte, val interface{}) {
 	buf, err := rlp.EncodeToBytes(val)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 
 	if err := table.Put(key, buf); err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 }
 
 func (vi *Engine) getRlp(table kvdb.Store, key []byte, to interface{}) interface{} {
 	buf, err := table.Get(key)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 	if buf == nil {
 		return nil
@@ -32,7 +32,7 @@ func (vi *Engine) getRlp(table kvdb.Store, key []byte, to interface{}) interface
 
 	err = rlp.DecodeBytes(buf, to)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 	return to
 }
@@ -41,7 +41,7 @@ func (vi *Engine) getBytes(table kvdb.Store, id hash.Event) []byte {
 	key := id.Bytes()
 	b, err := table.Get(key)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 	return b
 }
@@ -50,7 +50,7 @@ func (vi *Engine) setBytes(table kvdb.Store, id hash.Event, b []byte) {
 	key := id.Bytes()
 	err := table.Put(key, b)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 }
 
@@ -80,7 +80,7 @@ func (vi *Engine) SetEventBranchID(id hash.Event, branchID idx.Validator) {
 func (vi *Engine) GetEventBranchID(id hash.Event) idx.Validator {
 	b := vi.getBytes(vi.table.EventBranch, id)
 	if b == nil {
-		vi.crit(errors.New("failed to read event's branch ID (inconsistent DB)"))
+		vi.errorHandler(errors.New("failed to read event's branch ID (inconsistent DB)"))
 		return 0
 	}
 	branchID := idx.BytesToValidator(b)
