@@ -4,15 +4,15 @@ import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/vecfc"
+	vecfc2 "github.com/0xsoniclabs/consensus/vecengine/vecfc"
 )
 
 type VectorSeqToDagIndexSeq struct {
-	*vecfc.HighestBeforeSeq
+	*vecfc2.HighestBeforeSeq
 }
 
 type BranchSeq struct {
-	vecfc.BranchSeq
+	vecfc2.BranchSeq
 }
 
 // Seq is a maximum observed e.Seq in the branch
@@ -32,7 +32,7 @@ func (b VectorSeqToDagIndexSeq) Get(i idx.Validator) dagidx.Seq {
 }
 
 type VectorToDagIndexer struct {
-	*vecfc.Index
+	*vecfc2.Index
 }
 
 func (v *VectorToDagIndexer) GetMergedHighestBefore(id hash.Event) dagidx.HighestBeforeSeq {

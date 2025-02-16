@@ -2,6 +2,7 @@ package abft
 
 import (
 	"errors"
+	"github.com/0xsoniclabs/consensus/vecengine/vecfc"
 	"math"
 	"math/rand"
 	"testing"
@@ -16,7 +17,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
-	"github.com/0xsoniclabs/consensus/vecfc"
 )
 
 func TestRestart_1(t *testing.T) {

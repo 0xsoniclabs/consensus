@@ -1,6 +1,7 @@
 package abft
 
 import (
+	"github.com/0xsoniclabs/consensus/vecengine/vecfc"
 	"math/rand"
 
 	"github.com/0xsoniclabs/consensus/hash"
@@ -11,7 +12,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
-	"github.com/0xsoniclabs/consensus/vecfc"
 )
 
 type dbEvent struct {

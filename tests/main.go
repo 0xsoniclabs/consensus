@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecengine/vecfc"
 	"io"
 
 	"github.com/0xsoniclabs/consensus/abft"
@@ -9,7 +10,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
-	"github.com/0xsoniclabs/consensus/vecfc"
 )
 
 func main() {
