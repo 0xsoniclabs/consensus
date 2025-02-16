@@ -41,9 +41,9 @@ type Engine struct {
 }
 
 // NewIndex creates Engine instance.
-func NewIndex(crit func(error), callbacks Callbacks) *Engine {
+func NewIndex(errorHandler func(error), callbacks Callbacks) *Engine {
 	vi := &Engine{
-		errorHandler: crit,
+		errorHandler: errorHandler,
 		callback:     callbacks,
 	}
 
