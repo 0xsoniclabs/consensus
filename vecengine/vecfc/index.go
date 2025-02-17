@@ -24,7 +24,7 @@ type IndexConfig struct {
 	Caches IndexCacheConfig
 }
 
-// Index is a data to detect forkless-cause condition, calculate median timestamp, detect forks.
+// Index is a data structure to detect forkless-cause condition, calculate median timestamp, detect forks.
 type Index struct {
 	*vecengine.Engine
 
