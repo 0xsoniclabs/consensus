@@ -11,7 +11,7 @@ import (
 // Excluding head
 // filter MAY BE called twice for the same event.
 func (vi *Engine) DfsSubgraph(head dag.Event, walk func(hash.Event) (godeeper bool)) error {
-	stack := make(hash.EventsStack, 0, vi.validators.Len()*5)
+	stack := make(hash.EventsStack, 0, vi.Validators.Len()*5)
 
 	// first element
 	stack.PushAll(head.Parents())
@@ -24,7 +24,7 @@ func (vi *Engine) DfsSubgraph(head dag.Event, walk func(hash.Event) (godeeper bo
 			continue
 		}
 
-		event := vi.getEvent(curr)
+		event := vi.GetEvent(curr)
 		if event == nil {
 			return errors.New("event not found " + curr.String())
 		}

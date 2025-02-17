@@ -14,12 +14,12 @@ type BranchesInfo struct {
 
 // InitBranchesInfo loads BranchesInfo from store
 func (vi *Engine) InitBranchesInfo() {
-	if vi.branchesInfo == nil {
+	if vi.BranchesInfo == nil {
 		// if not cached
-		vi.branchesInfo = vi.getBranchesInfo()
-		if vi.branchesInfo == nil {
+		vi.BranchesInfo = vi.getBranchesInfo()
+		if vi.BranchesInfo == nil {
 			// first run
-			vi.branchesInfo = newInitialBranchesInfo(vi.validators)
+			vi.BranchesInfo = newInitialBranchesInfo(vi.Validators)
 		}
 	}
 }
@@ -45,9 +45,5 @@ func newInitialBranchesInfo(validators *pos.Validators) *BranchesInfo {
 }
 
 func (vi *Engine) AtLeastOneFork() bool {
-	return idx.Validator(len(vi.branchesInfo.BranchIDCreatorIdxs)) > vi.validators.Len()
-}
-
-func (vi *Engine) BranchesInfo() *BranchesInfo {
-	return vi.branchesInfo
+	return idx.Validator(len(vi.BranchesInfo.BranchIDCreatorIdxs)) > vi.Validators.Len()
 }

@@ -13,18 +13,18 @@ import (
 func (vi *Engine) setRlp(table kvdb.Store, key []byte, val interface{}) {
 	buf, err := rlp.EncodeToBytes(val)
 	if err != nil {
-		vi.errorHandler(err)
+		vi.ErrorHandler(err)
 	}
 
 	if err := table.Put(key, buf); err != nil {
-		vi.errorHandler(err)
+		vi.ErrorHandler(err)
 	}
 }
 
 func (vi *Engine) getRlp(table kvdb.Store, key []byte, to interface{}) interface{} {
 	buf, err := table.Get(key)
 	if err != nil {
-		vi.errorHandler(err)
+		vi.ErrorHandler(err)
 	}
 	if buf == nil {
 		return nil
@@ -32,7 +32,7 @@ func (vi *Engine) getRlp(table kvdb.Store, key []byte, to interface{}) interface
 
 	err = rlp.DecodeBytes(buf, to)
 	if err != nil {
-		vi.errorHandler(err)
+		vi.ErrorHandler(err)
 	}
 	return to
 }
@@ -41,7 +41,7 @@ func (vi *Engine) getBytes(table kvdb.Store, id hash.Event) []byte {
 	key := id.Bytes()
 	b, err := table.Get(key)
 	if err != nil {
-		vi.errorHandler(err)
+		vi.ErrorHandler(err)
 	}
 	return b
 }
@@ -50,20 +50,20 @@ func (vi *Engine) setBytes(table kvdb.Store, id hash.Event, b []byte) {
 	key := id.Bytes()
 	err := table.Put(key, b)
 	if err != nil {
-		vi.errorHandler(err)
+		vi.ErrorHandler(err)
 	}
 }
 
 func (vi *Engine) setBranchesInfo(info *BranchesInfo) {
 	key := []byte("c")
 
-	vi.setRlp(vi.table.BranchesInfo, key, info)
+	vi.setRlp(vi.Table.BranchesInfo, key, info)
 }
 
 func (vi *Engine) getBranchesInfo() *BranchesInfo {
 	key := []byte("c")
 
-	w, exists := vi.getRlp(vi.table.BranchesInfo, key, &BranchesInfo{}).(*BranchesInfo)
+	w, exists := vi.getRlp(vi.Table.BranchesInfo, key, &BranchesInfo{}).(*BranchesInfo)
 	if !exists {
 		return nil
 	}
@@ -73,14 +73,14 @@ func (vi *Engine) getBranchesInfo() *BranchesInfo {
 
 // SetEventBranchID stores the event's global branch ID
 func (vi *Engine) SetEventBranchID(id hash.Event, branchID idx.Validator) {
-	vi.setBytes(vi.table.EventBranch, id, branchID.Bytes())
+	vi.setBytes(vi.Table.EventBranch, id, branchID.Bytes())
 }
 
 // GetEventBranchID reads the event's global branch ID
 func (vi *Engine) GetEventBranchID(id hash.Event) idx.Validator {
-	b := vi.getBytes(vi.table.EventBranch, id)
+	b := vi.getBytes(vi.Table.EventBranch, id)
 	if b == nil {
-		vi.errorHandler(errors.New("failed to read event's branch ID (inconsistent DB)"))
+		vi.ErrorHandler(errors.New("failed to read event's branch ID (inconsistent DB)"))
 		return 0
 	}
 	branchID := idx.BytesToValidator(b)
