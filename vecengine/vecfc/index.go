@@ -71,7 +71,7 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 		cfg:          config,
 		errorHandler: crit,
 	}
-	vi.Engine = vecengine.NewIndex(crit, vi.GetEngineCallbacks())
+	vi.Engine = vecengine.NewIndex(crit, vi.CreateEngineCallbacks())
 	vi.initCaches()
 
 	return vi
@@ -95,7 +95,7 @@ func (vi *Index) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, get
 	vi.onDropNotFlushed()
 }
 
-func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
+func (vi *Index) CreateEngineCallbacks() vecengine.Callbacks {
 	return vecengine.Callbacks{
 		GetHighestBefore: func(event hash.Event) vecengine.HighestBeforeI {
 			return vi.GetHighestBefore(event)
