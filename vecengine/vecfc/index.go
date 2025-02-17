@@ -66,12 +66,12 @@ func LiteConfig() IndexConfig {
 }
 
 // NewIndex creates Index instance.
-func NewIndex(crit func(error), config IndexConfig) *Index {
+func NewIndex(errorHandler func(error), config IndexConfig) *Index {
 	vi := &Index{
 		cfg:          config,
-		errorHandler: crit,
+		errorHandler: errorHandler,
 	}
-	vi.Engine = vecengine.NewIndex(crit, vi.CreateEngineCallbacks())
+	vi.Engine = vecengine.NewIndex(errorHandler, vi.CreateEngineCallbacks())
 	vi.initCaches()
 
 	return vi
