@@ -77,17 +77,6 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 	return vi
 }
 
-func NewIndexWithEngine(crit func(error), config IndexConfig, engine *vecengine.Engine) *Index {
-	vi := &Index{
-		Engine:       engine,
-		cfg:          config,
-		errorHandler: crit,
-	}
-	vi.initCaches()
-
-	return vi
-}
-
 func (vi *Index) initCaches() {
 	vi.cache.ForklessCause, _ = simplewlru.New(uint(vi.cfg.Caches.ForklessCausePairs), vi.cfg.Caches.ForklessCausePairs)
 	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
