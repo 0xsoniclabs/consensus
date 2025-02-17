@@ -28,25 +28,18 @@ type IndexConfig struct {
 type Index struct {
 	*vecengine.Engine
 
-	errorHandler  func(error)
-	validators    *pos.Validators
-	validatorIdxs map[idx.ValidatorID]idx.Validator
-
-	getEvent func(hash.Event) dag.Event
-
-	vecDb kvdb.Store
-	table struct {
+	TableAllVecs struct {
 		HighestBeforeSeq kvdb.Store `table:"S"`
 		LowestAfterSeq   kvdb.Store `table:"s"`
 	}
 
-	cache struct {
+	Cache struct {
 		HighestBeforeSeq *simplewlru.Cache
 		LowestAfterSeq   *simplewlru.Cache
 		ForklessCause    *simplewlru.Cache
 	}
 
-	cfg IndexConfig
+	Config IndexConfig
 }
 
 // DefaultConfig returns default index config
@@ -68,8 +61,7 @@ func LiteConfig() IndexConfig {
 // NewIndex creates Index instance.
 func NewIndex(errorHandler func(error), config IndexConfig) *Index {
 	vi := &Index{
-		cfg:          config,
-		errorHandler: errorHandler,
+		Config: config,
 	}
 	vi.Engine = vecengine.NewIndex(errorHandler, vi.CreateEngineCallbacks())
 	vi.initCaches()
@@ -78,20 +70,20 @@ func NewIndex(errorHandler func(error), config IndexConfig) *Index {
 }
 
 func (vi *Index) initCaches() {
-	vi.cache.ForklessCause, _ = simplewlru.New(uint(vi.cfg.Caches.ForklessCausePairs), vi.cfg.Caches.ForklessCausePairs)
-	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
-	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
+	vi.Cache.ForklessCause, _ = simplewlru.New(uint(vi.Config.Caches.ForklessCausePairs), vi.Config.Caches.ForklessCausePairs)
+	vi.Cache.HighestBeforeSeq, _ = simplewlru.New(vi.Config.Caches.HighestBeforeSeqSize, int(vi.Config.Caches.HighestBeforeSeqSize))
+	vi.Cache.LowestAfterSeq, _ = simplewlru.New(vi.Config.Caches.LowestAfterSeqSize, int(vi.Config.Caches.HighestBeforeSeqSize))
 }
 
 // Reset resets buffers.
 func (vi *Index) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, getEvent func(hash.Event) dag.Event) {
 	vi.Engine.Reset(validators, db, getEvent)
-	vi.vecDb = db
-	table.MigrateTables(&vi.table, vi.vecDb)
-	vi.getEvent = getEvent
-	vi.validators = validators
-	vi.validatorIdxs = validators.Idxs()
-	vi.cache.ForklessCause.Purge()
+	vi.VecDb = db
+	table.MigrateTables(&vi.TableAllVecs, vi.VecDb)
+	vi.GetEvent = getEvent
+	vi.Validators = validators
+	vi.ValidatorIdxs = validators.Idxs()
+	vi.Cache.ForklessCause.Purge()
 	vi.onDropNotFlushed()
 }
 
@@ -120,8 +112,8 @@ func (vi *Index) CreateEngineCallbacks() vecengine.Callbacks {
 }
 
 func (vi *Index) onDropNotFlushed() {
-	vi.cache.HighestBeforeSeq.Purge()
-	vi.cache.LowestAfterSeq.Purge()
+	vi.Cache.HighestBeforeSeq.Purge()
+	vi.Cache.LowestAfterSeq.Purge()
 }
 
 // GetMergedHighestBefore returns HighestBefore vector clock without branches, where branches are merged into one

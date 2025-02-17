@@ -27,14 +27,14 @@ type kv struct {
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
 func (vi *Index) ForklessCause(aID, bID hash.Event) bool {
-	if res, ok := vi.cache.ForklessCause.Get(kv{aID, bID}); ok {
+	if res, ok := vi.Cache.ForklessCause.Get(kv{aID, bID}); ok {
 		return res.(bool)
 	}
 
 	vi.Engine.InitBranchesInfo()
 	res := vi.forklessCause(aID, bID)
 
-	vi.cache.ForklessCause.Add(kv{aID, bID}, res, 1)
+	vi.Cache.ForklessCause.Add(kv{aID, bID}, res, 1)
 	return res
 }
 
@@ -42,7 +42,7 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 	// Get events by hash
 	a := vi.GetHighestBefore(aID)
 	if a == nil {
-		vi.errorHandler(fmt.Errorf("Event A=%s not found", aID.String()))
+		vi.ErrorHandler(fmt.Errorf("Event A=%s not found", aID.String()))
 		return false
 	}
 
@@ -57,11 +57,11 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 	// check A observes that {QUORUM} non-cheater-validators observe B
 	b := vi.GetLowestAfter(bID)
 	if b == nil {
-		vi.errorHandler(fmt.Errorf("Event B=%s not found", bID.String()))
+		vi.ErrorHandler(fmt.Errorf("Event B=%s not found", bID.String()))
 		return false
 	}
 
-	yes := vi.validators.NewCounter()
+	yes := vi.Validators.NewCounter()
 	// calculate forkless causing using the indexes
 	branchIDs := vi.BranchesInfo.BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
@@ -97,14 +97,14 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	// create the counters that measure the forkless cause progress
 	candidateParentsFCProgress := make([]*pos.WeightCounter, len(candidateParents))
 	for i, _ := range candidateParentsFCProgress {
-		candidateParentsFCProgress[i] = vi.validators.NewCounter() // initialise the counter for each candidate parent
+		candidateParentsFCProgress[i] = vi.Validators.NewCounter() // initialise the counter for each candidate parent
 	}
-	chosenParentsFCProgress := vi.validators.NewCounter() // initialise the counter for chosen parents only
+	chosenParentsFCProgress := vi.Validators.NewCounter() // initialise the counter for chosen parents only
 
 	// Get events by hash
 	aHB := vi.GetHighestBefore(aID)
 	if aHB == nil {
-		vi.errorHandler(fmt.Errorf("Event A=%s not found", aID.String()))
+		vi.ErrorHandler(fmt.Errorf("Event A=%s not found", aID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
 
@@ -112,7 +112,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	for i, _ := range candidateParents {
 		candidateParentsHB[i] = vi.GetHighestBefore(candidateParents[i])
 		if candidateParentsHB[i] == nil {
-			vi.errorHandler(fmt.Errorf("Candidate parent=%s not found", candidateParents[i].String()))
+			vi.ErrorHandler(fmt.Errorf("Candidate parent=%s not found", candidateParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
 	}
@@ -121,7 +121,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	for i, _ := range chosenParents {
 		chosenParentsHB[i] = vi.GetHighestBefore(chosenParents[i])
 		if chosenParentsHB[i] == nil {
-			vi.errorHandler(fmt.Errorf("Chosen parent=%s not found", chosenParents[i].String()))
+			vi.ErrorHandler(fmt.Errorf("Chosen parent=%s not found", chosenParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
 	}
@@ -156,7 +156,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 
 	bLA := vi.GetLowestAfter(bID)
 	if bLA == nil {
-		vi.errorHandler(fmt.Errorf("Event B=%s not found", bID.String()))
+		vi.ErrorHandler(fmt.Errorf("Event B=%s not found", bID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
 
@@ -200,7 +200,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	// aID may not contribute to forkless cause without the heads,
 	// but may contribute with the heads. HighestBefore and LowestAfter used above do not incorporate
 	// these potential new events, so ensure the contribution of aID's creator is checked and made here
-	aCreatorID := vi.getEvent(aID).Creator()
+	aCreatorID := vi.GetEvent(aID).Creator()
 	for _, FC := range candidateParentsFCProgress {
 		if FC.Sum() > 0 { // if anything in candidate event's subgraph observes bID, then the candidate must too
 			FC.Count(aCreatorID)

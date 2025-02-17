@@ -545,7 +545,7 @@ func testForksDetected(vi *Index, head dag.Event) (cheaters map[idx.ValidatorID]
 		}
 		visited.Add(id)
 
-		e := vi.getEvent(id)
+		e := vi.GetEvent(id)
 		slot := eventSlot{
 			seq:     e.Seq(),
 			creator: e.Creator(),
@@ -775,7 +775,7 @@ func TestRandomForks(t *testing.T) {
 					assertar.NoError(vi.Add(a))
 				}
 
-				vi.cache.ForklessCause.Purge() // disable cache
+				vi.Cache.ForklessCause.Purge() // disable cache
 				for _, a := range processedArr {
 					for _, b := range processedArr {
 						pair := kv{
