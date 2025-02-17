@@ -42,7 +42,7 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 	// Get events by hash
 	a := vi.GetHighestBefore(aID)
 	if a == nil {
-		vi.crit(fmt.Errorf("Event A=%s not found", aID.String()))
+		vi.errorHandler(fmt.Errorf("Event A=%s not found", aID.String()))
 		return false
 	}
 
@@ -57,7 +57,7 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 	// check A observes that {QUORUM} non-cheater-validators observe B
 	b := vi.GetLowestAfter(bID)
 	if b == nil {
-		vi.crit(fmt.Errorf("Event B=%s not found", bID.String()))
+		vi.errorHandler(fmt.Errorf("Event B=%s not found", bID.String()))
 		return false
 	}
 
@@ -104,7 +104,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	// Get events by hash
 	aHB := vi.GetHighestBefore(aID)
 	if aHB == nil {
-		vi.crit(fmt.Errorf("Event A=%s not found", aID.String()))
+		vi.errorHandler(fmt.Errorf("Event A=%s not found", aID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
 
@@ -112,7 +112,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	for i, _ := range candidateParents {
 		candidateParentsHB[i] = vi.GetHighestBefore(candidateParents[i])
 		if candidateParentsHB[i] == nil {
-			vi.crit(fmt.Errorf("Candidate parent=%s not found", candidateParents[i].String()))
+			vi.errorHandler(fmt.Errorf("Candidate parent=%s not found", candidateParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
 	}
@@ -121,7 +121,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	for i, _ := range chosenParents {
 		chosenParentsHB[i] = vi.GetHighestBefore(chosenParents[i])
 		if chosenParentsHB[i] == nil {
-			vi.crit(fmt.Errorf("Chosen parent=%s not found", chosenParents[i].String()))
+			vi.errorHandler(fmt.Errorf("Chosen parent=%s not found", chosenParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
 	}
@@ -156,7 +156,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 
 	bLA := vi.GetLowestAfter(bID)
 	if bLA == nil {
-		vi.crit(fmt.Errorf("Event B=%s not found", bID.String()))
+		vi.errorHandler(fmt.Errorf("Event B=%s not found", bID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
 

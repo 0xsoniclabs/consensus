@@ -9,7 +9,7 @@ func (vi *Index) getBytes(table kvdb.Store, id hash.Event) []byte {
 	key := id.Bytes()
 	b, err := table.Get(key)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 	return b
 }
@@ -18,7 +18,7 @@ func (vi *Index) setBytes(table kvdb.Store, id hash.Event, b []byte) {
 	key := id.Bytes()
 	err := table.Put(key, b)
 	if err != nil {
-		vi.crit(err)
+		vi.errorHandler(err)
 	}
 }
 

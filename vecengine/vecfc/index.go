@@ -28,7 +28,7 @@ type IndexConfig struct {
 type Index struct {
 	*vecengine.Engine
 
-	crit          func(error)
+	errorHandler  func(error)
 	validators    *pos.Validators
 	validatorIdxs map[idx.ValidatorID]idx.Validator
 
@@ -68,8 +68,8 @@ func LiteConfig() IndexConfig {
 // NewIndex creates Index instance.
 func NewIndex(crit func(error), config IndexConfig) *Index {
 	vi := &Index{
-		cfg:  config,
-		crit: crit,
+		cfg:          config,
+		errorHandler: crit,
 	}
 	vi.Engine = vecengine.NewIndex(crit, vi.GetEngineCallbacks())
 	vi.initCaches()
@@ -79,9 +79,9 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 
 func NewIndexWithEngine(crit func(error), config IndexConfig, engine *vecengine.Engine) *Index {
 	vi := &Index{
-		Engine: engine,
-		cfg:    config,
-		crit:   crit,
+		Engine:       engine,
+		cfg:          config,
+		errorHandler: crit,
 	}
 	vi.initCaches()
 
