@@ -6,7 +6,7 @@ import (
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/viterin/vek/vek32"
+	"github.com/kelindar/simd"
 )
 
 type (
@@ -26,7 +26,7 @@ type AtroposDecision struct {
 
 type RootVoteContext struct {
 	frameToDeliverOffset idx.Frame
-	voteMatrix           []float32
+	voteMatrix           []int32
 }
 
 type Election struct {
@@ -77,31 +77,46 @@ func (el *Election) VoteAndAggregate(
 	if frame <= el.frameToDeliver {
 		return []*AtroposDecision{}, nil
 	}
-	aggregationMatrix := make([]float32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
-	voteVector := vek32.Repeat(-1., int(el.validatorCount))
+	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
+	voteVector := make([]int32, el.validatorCount)
+	for i := range len(voteVector) {
+		voteVector[i] = -1
+	}
 
 	observedRoots := el.observedRoots(rootHash, frame-1)
-	observedRootsStake := float32(0)
+	observedRootsStake := int32(0)
 	for _, observedRoot := range observedRoots {
 		voteVector[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
-		observedRootsStake += float32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
+		observedRootsStake += int32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
 		if rootContext, ok := el.vote[frame-1][observedRoot.ValidatorID][observedRoot.RootHash]; ok {
 			nonDeliveredFramesOffset := (el.frameToDeliver - rootContext.frameToDeliverOffset) * el.validatorCount
-			vek32.Add_Inplace(aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
+			simd.AddInt32s(aggregationMatrix, aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
 		}
 	}
 	el.decide(frame, aggregationMatrix, observedRootsStake)
+
 	aggregationMatrix = normalize(aggregationMatrix)
 	aggregationMatrix = append(aggregationMatrix, voteVector...)
-	vek32.MulNumber_Inplace(aggregationMatrix, float32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
+	for i := range len(aggregationMatrix) {
+		aggregationMatrix[i] *= int32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId]))
+	}
 	el.vote[frame][validatorId][rootHash].voteMatrix = aggregationMatrix
 	return el.getDeliveryReadyAtropoi(), nil
 }
 
-func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []float32, observedRootsStake float32) {
-	Q := (4.*float32(el.validators.TotalWeight()) - 3*observedRootsStake) / 3
-	yesDecisions := vek32.GteNumber(aggregationMatr, Q)
-	noDecisions := vek32.LteNumber(aggregationMatr, -Q)
+func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, observedRootsStake int32) {
+	accumulation := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsStake)
+	Q_wide := accumulation / 3
+	if Q_wide%3 != 0 {
+		Q_wide++
+	}
+	Q := int32(Q_wide)
+	yesDecisions := make([]bool, len(aggregationMatr))
+	noDecisions := make([]bool, len(aggregationMatr))
+	for i := range len(yesDecisions) {
+		yesDecisions[i] = aggregationMatr[i] >= Q
+		noDecisions[i] = aggregationMatr[i] <= -Q
+	}
 
 	for frame := range el.vote {
 		if frame < el.frameToDeliver || frame >= aggregatingFrame-1 {
@@ -123,14 +138,14 @@ func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []float32
 }
 
 // elect picks the final atropos event once it's frame and validator number have been finalized
-// by the "upper frame" root votes'. This is trivial in case of non-forking roots as such
-// events are uniquely identified by (frame, validator).
+// by the "upper frame" root votes'. This is trivial in case of non-forking events as such
+// roots are uniquely identified by (frame, validator).
 // In the case of a fork, a tiebreaker algorithms has to be run.
 func (el *Election) elect(frame idx.Frame, validatorCandidate idx.ValidatorID) hash.Event {
 	candidateMap := el.vote[frame][validatorCandidate]
 	atroposHash := getAnyKey(candidateMap)
 	// tiebreaker can simply pick the first available root that is forkless caused by any event
-	// (in this case we check for frame + 1 as they did the initial vote).
+	// (in this case we check for votes from frame + 1 as that's the frame which initially voted).
 	// Due to forkless cause semantics, only one such root can exist with specified frame and validator number.
 	if len(candidateMap) > 1 {
 		judgeRoots := el.getFrameRoots(frame + 1)
@@ -185,11 +200,14 @@ func (el *Election) cleanupDecidedFrame(frame idx.Frame) {
 }
 
 // normalize scales the aggregated stake matrix back to the cannonical [-1, 1] range
-func normalize(matrix []float32) []float32 {
-	kroneckerDeltaMask := vek32.GteNumber(matrix, 0.)
-	vek32.FromBool_Into(matrix, kroneckerDeltaMask)
-	vek32.MulNumber_Inplace(matrix, 2.)
-	vek32.SubNumber_Inplace(matrix, 1.)
+func normalize(matrix []int32) []int32 {
+	for i := range len(matrix) {
+		if matrix[i] >= 0 {
+			matrix[i] = 1
+		} else {
+			matrix[i] = -1
+		}
+	}
 	return matrix
 }
 
