@@ -2,6 +2,7 @@ package vecfc
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
@@ -63,9 +64,9 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 
 	yes := vi.Validators.NewCounter()
 	// calculate forkless causing using the indexes
-	branchIDs := vi.BranchesInfo.BranchIDCreatorIdxs
+	branchIDs := vi.BranchesInfo.BranchIDToValidatorIndex
 	for branchIDint, creatorIdx := range branchIDs {
-		branchID := idx.Validator(branchIDint)
+		branchID := vecengine.BranchID(branchIDint)
 
 		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
 		bLowestAfter := b.Get(branchID)   // lowest event from creator on branchID, which observes B
@@ -161,9 +162,9 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	}
 
 	// calculate forkless causing using the indexes
-	branchIDs := vi.BranchesInfo.BranchIDCreatorIdxs
+	branchIDs := vi.BranchesInfo.BranchIDToValidatorIndex
 	for branchIDint, creatorIdx := range branchIDs {
-		branchID := idx.Validator(branchIDint)
+		branchID := vecengine.BranchID(branchIDint)
 
 		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
 		bLowestAfter := bLA.Get(branchID)  // lowest event from creator on branchID, which observes B

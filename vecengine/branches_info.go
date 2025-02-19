@@ -5,11 +5,14 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/pos"
 )
 
+// ID of a branch
+type BranchID = uint32
+
 // BranchesInfo contains information about global branches of each validator
 type BranchesInfo struct {
-	BranchIDLastSeq     []idx.Event       // branchID -> highest e.Seq in the branch
-	BranchIDCreatorIdxs []idx.Validator   // branchID -> validator idx
-	BranchIDByCreators  [][]idx.Validator // validator idx -> list of branch IDs
+	BranchIDToHighestSeq         []idx.Event     // branchID -> highest e.Seq in the branch
+	BranchIDToValidatorIndex     []idx.Validator // branchID -> validator idx
+	ValidatorIndexToBranchIDList [][]BranchID    // validator idx -> list of branch IDs
 }
 
 // InitBranchesInfo loads BranchesInfo from store
@@ -26,24 +29,24 @@ func (vi *Engine) InitBranchesInfo() {
 
 func newInitialBranchesInfo(validators *pos.Validators) *BranchesInfo {
 	branchIDCreators := validators.SortedIDs()
-	branchIDCreatorIdxs := make([]idx.Validator, len(branchIDCreators))
+	branchIDToValidatorIndex := make([]idx.Validator, len(branchIDCreators))
 	for i := range branchIDCreators {
-		branchIDCreatorIdxs[i] = idx.Validator(i)
+		branchIDToValidatorIndex[i] = idx.Validator(i)
 	}
 
-	branchIDLastSeq := make([]idx.Event, len(branchIDCreatorIdxs))
-	branchIDByCreators := make([][]idx.Validator, validators.Len())
-	for i := range branchIDByCreators {
-		branchIDByCreators[i] = make([]idx.Validator, 1, validators.Len()/2+1)
-		branchIDByCreators[i][0] = idx.Validator(i)
+	branchIDToHighestSeq := make([]idx.Event, len(branchIDToValidatorIndex))
+	ValidatorIndexToBranchIDList := make([][]BranchID, validators.Len())
+	for i := range ValidatorIndexToBranchIDList {
+		ValidatorIndexToBranchIDList[i] = make([]BranchID, 1, validators.Len()/2+1)
+		ValidatorIndexToBranchIDList[i][0] = BranchID(i)
 	}
 	return &BranchesInfo{
-		BranchIDLastSeq:     branchIDLastSeq,
-		BranchIDCreatorIdxs: branchIDCreatorIdxs,
-		BranchIDByCreators:  branchIDByCreators,
+		BranchIDToHighestSeq:         branchIDToHighestSeq,
+		BranchIDToValidatorIndex:     branchIDToValidatorIndex,
+		ValidatorIndexToBranchIDList: ValidatorIndexToBranchIDList,
 	}
 }
 
 func (vi *Engine) AtLeastOneFork() bool {
-	return idx.Validator(len(vi.BranchesInfo.BranchIDCreatorIdxs)) > vi.Validators.Len()
+	return idx.Validator(len(vi.BranchesInfo.BranchIDToValidatorIndex)) > vi.Validators.Len()
 }

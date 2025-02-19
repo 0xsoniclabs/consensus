@@ -2,6 +2,7 @@ package vecfc
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecengine"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -609,7 +610,7 @@ func TestRandomForksSanity(t *testing.T) {
 		ee := events[node]
 		highestBefore := vi.GetMergedHighestBefore(ee[len(ee)-1].ID())
 		for n, cheater := range nodes {
-			branchSeq := highestBefore.Get(idxs[cheater])
+			branchSeq := highestBefore.Get(vecengine.BranchID(idxs[cheater]))
 			isCheater := n < len(cheaters)
 			assertar.Equal(isCheater, branchSeq.IsForkDetected(), cheater)
 			if isCheater {
@@ -736,7 +737,7 @@ func TestRandomForks(t *testing.T) {
 
 				for _, cheater := range nodes {
 					expectedCheater := expectedCheaters[cheater]
-					branchSeq := highestBefore.Get(idxs[cheater])
+					branchSeq := highestBefore.Get(vecengine.BranchID(idxs[cheater]))
 					assertar.Equal(expectedCheater, branchSeq.IsForkDetected(), e.String())
 					if expectedCheater {
 						assertar.Equal(idx.Event(0), branchSeq.Seq, e.String())

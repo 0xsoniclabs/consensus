@@ -3,6 +3,7 @@ package dagidx
 import (
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
 type Seq interface {
@@ -12,7 +13,7 @@ type Seq interface {
 
 type HighestBeforeSeq interface {
 	Size() int
-	Get(i idx.Validator) Seq
+	Get(i vecengine.BranchID) Seq
 }
 
 type ForklessCause interface {

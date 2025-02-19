@@ -7,6 +7,7 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/lachesis"
+	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
 var _ lachesis.Consensus = (*Lachesis)(nil)
@@ -59,7 +60,7 @@ func (p *Lachesis) applyAtropos(decidedFrame idx.Frame, atropos hash.Event) *pos
 	// cheaters are ordered deterministically
 	cheaters := make([]idx.ValidatorID, 0, validators.Len())
 	for creatorIdx, creator := range validators.SortedIDs() {
-		if atroposVecClock.Get(idx.Validator(creatorIdx)).IsForkDetected() {
+		if atroposVecClock.Get(vecengine.BranchID(creatorIdx)).IsForkDetected() {
 			cheaters = append(cheaters, creator)
 		}
 	}

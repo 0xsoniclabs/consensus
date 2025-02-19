@@ -1,6 +1,7 @@
 package ancestor
 
 import (
+	"github.com/0xsoniclabs/consensus/vecengine"
 	"math"
 	"sort"
 
@@ -88,7 +89,7 @@ func (h *QuorumIndexer) ProcessEvent(event dag.Event, selfEvent bool) {
 	creatorIdx := h.validators.GetIdx(event.Creator())
 	// update global matrix
 	for validatorIdx := idx.Validator(0); validatorIdx < h.validators.Len(); validatorIdx++ {
-		seq := seqOf(vecClock.Get(validatorIdx))
+		seq := seqOf(vecClock.Get(vecengine.BranchID(validatorIdx)))
 		h.globalMatrix.Row(validatorIdx)[creatorIdx] = seq
 		if selfEvent {
 			h.selfParentSeqs[validatorIdx] = seq
@@ -132,8 +133,8 @@ func (h *QuorumIndexer) GetMetricOf(parents hash.Events) Metric {
 		//find the Highest of all the parents
 		var update idx.Event
 		for i, _ := range parents {
-			if seqOf(vecClock[i].Get(validatorIdx)) > update {
-				update = seqOf(vecClock[i].Get(validatorIdx))
+			if seqOf(vecClock[i].Get(vecengine.BranchID(validatorIdx))) > update {
+				update = seqOf(vecClock[i].Get(vecengine.BranchID(validatorIdx)))
 			}
 		}
 		current := h.selfParentSeqs[validatorIdx]

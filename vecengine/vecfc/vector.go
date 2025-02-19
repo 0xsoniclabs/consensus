@@ -2,6 +2,7 @@ package vecfc
 
 import (
 	"encoding/binary"
+	"github.com/0xsoniclabs/consensus/vecengine"
 	"math"
 
 	"github.com/0xsoniclabs/consensus/inter/idx"
@@ -25,33 +26,33 @@ type (
 )
 
 // NewLowestAfterSeq creates new LowestAfterSeq vector.
-func NewLowestAfterSeq(size idx.Validator) *LowestAfterSeq {
+func NewLowestAfterSeq(size int) *LowestAfterSeq {
 	b := make(LowestAfterSeq, size*4)
 	return &b
 }
 
 // NewHighestBeforeSeq creates new HighestBeforeSeq vector.
-func NewHighestBeforeSeq(size idx.Validator) *HighestBeforeSeq {
+func NewHighestBeforeSeq(size int) *HighestBeforeSeq {
 	b := make(HighestBeforeSeq, size*8)
 	return &b
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b LowestAfterSeq) Get(i idx.Validator) idx.Event {
-	for i >= b.Size() {
+func (b LowestAfterSeq) Get(i vecengine.BranchID) idx.Event {
+	for int(i) >= b.Size() {
 		return 0
 	}
 	return idx.Event(binary.LittleEndian.Uint32(b[i*4 : (i+1)*4]))
 }
 
 // Size of the vector clock
-func (b LowestAfterSeq) Size() idx.Validator {
-	return idx.Validator(len(b)) / 4
+func (b LowestAfterSeq) Size() int {
+	return len(b) / 4
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *LowestAfterSeq) Set(i idx.Validator, seq idx.Event) {
-	for i >= b.Size() {
+func (b *LowestAfterSeq) Set(i vecengine.BranchID, seq idx.Event) {
+	for int(i) >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0}...)
 	}
@@ -65,7 +66,7 @@ func (b HighestBeforeSeq) Size() int {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b HighestBeforeSeq) Get(i idx.Validator) BranchSeq {
+func (b HighestBeforeSeq) Get(i vecengine.BranchID) BranchSeq {
 	for int(i) >= b.Size() {
 		return BranchSeq{}
 	}
@@ -79,7 +80,7 @@ func (b HighestBeforeSeq) Get(i idx.Validator) BranchSeq {
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *HighestBeforeSeq) Set(i idx.Validator, seq BranchSeq) {
+func (b *HighestBeforeSeq) Set(i vecengine.BranchID, seq BranchSeq) {
 	for int(i) >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)

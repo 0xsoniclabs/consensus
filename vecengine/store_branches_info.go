@@ -72,17 +72,17 @@ func (vi *Engine) getBranchesInfo() *BranchesInfo {
 }
 
 // SetEventBranchID stores the event's global branch ID
-func (vi *Engine) SetEventBranchID(id hash.Event, branchID idx.Validator) {
-	vi.setBytes(vi.Table.EventBranch, id, branchID.Bytes())
+func (vi *Engine) SetEventBranchID(id hash.Event, branchID BranchID) {
+	vi.setBytes(vi.Table.EventBranch, id, idx.Validator(branchID).Bytes()) // Cast done because idx.Validator has Bytes() method.
 }
 
 // GetEventBranchID reads the event's global branch ID
-func (vi *Engine) GetEventBranchID(id hash.Event) idx.Validator {
+func (vi *Engine) GetEventBranchID(id hash.Event) BranchID {
 	b := vi.getBytes(vi.Table.EventBranch, id)
 	if b == nil {
 		vi.ErrorHandler(errors.New("failed to read event's branch ID (inconsistent DB)"))
 		return 0
 	}
-	branchID := idx.BytesToValidator(b)
+	branchID := BranchID(idx.BytesToValidator(b))
 	return branchID
 }

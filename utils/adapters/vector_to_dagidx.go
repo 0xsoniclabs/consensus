@@ -4,6 +4,7 @@ import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/vecengine"
 	vecfc2 "github.com/0xsoniclabs/consensus/vecengine/vecfc"
 )
 
@@ -26,7 +27,7 @@ func (b *BranchSeq) MinSeq() idx.Event {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b VectorSeqToDagIndexSeq) Get(i idx.Validator) dagidx.Seq {
+func (b VectorSeqToDagIndexSeq) Get(i vecengine.BranchID) dagidx.Seq {
 	seq := b.HighestBeforeSeq.Get(i)
 	return &BranchSeq{seq}
 }

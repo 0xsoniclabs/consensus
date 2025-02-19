@@ -3,7 +3,6 @@ package vecfc
 import (
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/table"
@@ -101,10 +100,10 @@ func (vi *Index) CreateEngineCallbacks() vecengine.Callbacks {
 		SetLowestAfter: func(event hash.Event, b vecengine.LowestAfterI) {
 			vi.SetLowestAfter(event, b.(*LowestAfterSeq))
 		},
-		NewHighestBefore: func(size idx.Validator) vecengine.HighestBeforeI {
+		NewHighestBefore: func(size int) vecengine.HighestBeforeI {
 			return NewHighestBeforeSeq(size)
 		},
-		NewLowestAfter: func(size idx.Validator) vecengine.LowestAfterI {
+		NewLowestAfter: func(size int) vecengine.LowestAfterI {
 			return NewLowestAfterSeq(size)
 		},
 		OnDropNotFlushed: vi.onDropNotFlushed,
