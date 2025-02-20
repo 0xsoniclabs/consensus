@@ -77,12 +77,12 @@ func (el *Election) VoteAndAggregate(
 		return []*AtroposDecision{}, nil
 	}
 	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
-	voteVector := initInt32WithConst(-1, int(el.validatorCount))
+	directVoteVector := initInt32WithConst(-1, int(el.validatorCount))
 
 	observedRoots := el.observedRoots(rootHash, frame-1)
 	observedRootsStake := int32(0)
 	for _, observedRoot := range observedRoots {
-		voteVector[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
+		directVoteVector[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
 		observedRootsStake += int32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
 		if rootContext, ok := el.vote[frame-1][observedRoot.ValidatorID][observedRoot.RootHash]; ok {
 			nonDeliveredFramesOffset := (el.frameToDeliver - rootContext.frameToDeliverOffset) * el.validatorCount
@@ -92,7 +92,7 @@ func (el *Election) VoteAndAggregate(
 	el.decide(frame, aggregationMatrix, observedRootsStake)
 
 	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
-	aggregationMatrix = append(aggregationMatrix, voteVector...)
+	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
 	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
 	el.vote[frame][validatorId][rootHash].voteMatrix = aggregationMatrix
 	return el.getDeliveryReadyAtropoi(), nil
@@ -102,10 +102,7 @@ func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, 
 	// Q = ceil((4*TotalStake - 3*observedRootsStake)/3)
 	// numerator (Q_0) can exceed the int32 limits before division
 	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsStake)
-	Q := int32(Q_0 / 3)
-	if Q_0%3 != 0 {
-		Q++
-	}
+	Q := int32((Q_0 + 3 - 1) / 3)
 	yesDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
 	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
 
