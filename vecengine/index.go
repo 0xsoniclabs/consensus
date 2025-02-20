@@ -187,10 +187,8 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 			if myVecs.before.IsForkDetected(n) {
 				continue
 			}
-			for _, branchID1 := range vi.BranchesInfo.ValidatorIndexToBranchIDList[n] {
-				for _, branchID2 := range vi.BranchesInfo.ValidatorIndexToBranchIDList[n] {
-					a := branchID1
-					b := branchID2
+			for _, a := range vi.BranchesInfo.ValidatorIndexToBranchIDList[n] {
+				for _, b := range vi.BranchesInfo.ValidatorIndexToBranchIDList[n] {
 					if a == b {
 						continue
 					}
