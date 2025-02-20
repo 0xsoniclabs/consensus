@@ -102,7 +102,7 @@ func (vi *Engine) fillGlobalBranchID(e dag.Event, meIdx idx.Validator) (BranchID
 	if len(vi.BranchesInfo.BranchIDToValidatorIndex) != len(vi.BranchesInfo.BranchIDToHighestSeq) {
 		return 0, errors.New("inconsistent BranchIDCreators len (inconsistent DB)")
 	}
-	if idx.Validator(len(vi.BranchesInfo.BranchIDToValidatorIndex)) < vi.Validators.Len() {
+	if len(vi.BranchesInfo.BranchIDToValidatorIndex) < int(vi.Validators.Len()) {
 		return 0, errors.New("inconsistent BranchIDCreators len (inconsistent DB)")
 	}
 
