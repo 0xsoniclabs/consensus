@@ -6,7 +6,6 @@ import (
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/kelindar/simd"
 )
 
 type (
@@ -78,10 +77,7 @@ func (el *Election) VoteAndAggregate(
 		return []*AtroposDecision{}, nil
 	}
 	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
-	voteVector := make([]int32, el.validatorCount)
-	for i := range len(voteVector) {
-		voteVector[i] = -1
-	}
+	voteVector := initInt32WithConst(-1, int(el.validatorCount))
 
 	observedRoots := el.observedRoots(rootHash, frame-1)
 	observedRootsStake := int32(0)
@@ -90,33 +86,28 @@ func (el *Election) VoteAndAggregate(
 		observedRootsStake += int32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
 		if rootContext, ok := el.vote[frame-1][observedRoot.ValidatorID][observedRoot.RootHash]; ok {
 			nonDeliveredFramesOffset := (el.frameToDeliver - rootContext.frameToDeliverOffset) * el.validatorCount
-			simd.AddInt32s(aggregationMatrix, aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
+			addInt32Vecs(aggregationMatrix, aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
 		}
 	}
 	el.decide(frame, aggregationMatrix, observedRootsStake)
 
-	aggregationMatrix = normalize(aggregationMatrix)
+	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
 	aggregationMatrix = append(aggregationMatrix, voteVector...)
-	for i := range len(aggregationMatrix) {
-		aggregationMatrix[i] *= int32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId]))
-	}
+	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
 	el.vote[frame][validatorId][rootHash].voteMatrix = aggregationMatrix
 	return el.getDeliveryReadyAtropoi(), nil
 }
 
 func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, observedRootsStake int32) {
-	accumulation := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsStake)
-	Q_wide := accumulation / 3
-	if Q_wide%3 != 0 {
-		Q_wide++
+	// Q = ceil((4*TotalStake - 3*observedRootsStake)/3)
+	// numerator (Q_0) can exceed the int32 limits before division
+	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsStake)
+	Q := int32(Q_0 / 3)
+	if Q_0%3 != 0 {
+		Q++
 	}
-	Q := int32(Q_wide)
-	yesDecisions := make([]bool, len(aggregationMatr))
-	noDecisions := make([]bool, len(aggregationMatr))
-	for i := range len(yesDecisions) {
-		yesDecisions[i] = aggregationMatr[i] >= Q
-		noDecisions[i] = aggregationMatr[i] <= -Q
-	}
+	yesDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
+	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
 
 	for frame := range el.vote {
 		if frame < el.frameToDeliver || frame >= aggregatingFrame-1 {
@@ -144,9 +135,9 @@ func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, 
 func (el *Election) elect(frame idx.Frame, validatorCandidate idx.ValidatorID) hash.Event {
 	candidateMap := el.vote[frame][validatorCandidate]
 	atroposHash := getAnyKey(candidateMap)
-	// tiebreaker can simply pick the first available root that is forkless caused by any event
-	// (in this case we check for votes from frame + 1 as that's the frame which initially voted).
-	// Due to forkless cause semantics, only one such root can exist with specified frame and validator number.
+	// tiebreaker can simply pick the first encountered root that is forkless caused by any event.
+	// It is easiest to look for any vote (forkless cause) by frame + 1 roots.
+	// Due to forkless cause semantics, only one forking root can exist with specified frame and validator number.
 	if len(candidateMap) > 1 {
 		judgeRoots := el.getFrameRoots(frame + 1)
 		for atroposCandidateHash := range candidateMap {
@@ -197,18 +188,6 @@ func (el *Election) prepareNewElectorRoot(frame idx.Frame, validatorId idx.Valid
 
 func (el *Election) cleanupDecidedFrame(frame idx.Frame) {
 	delete(el.vote, frame)
-}
-
-// normalize scales the aggregated stake matrix back to the cannonical [-1, 1] range
-func normalize(matrix []int32) []int32 {
-	for i := range len(matrix) {
-		if matrix[i] >= 0 {
-			matrix[i] = 1
-		} else {
-			matrix[i] = -1
-		}
-	}
-	return matrix
 }
 
 func getAnyKey(vote map[hash.Event]*RootVoteContext) hash.Event {
