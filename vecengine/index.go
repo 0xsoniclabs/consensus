@@ -123,7 +123,7 @@ func (vi *Engine) fillGlobalBranchID(e dag.Event, meIdx idx.Validator) (BranchID
 		if vi.BranchesInfo.BranchIDToHighestSeq[selfParentBranchID]+1 == e.Seq() {
 			vi.BranchesInfo.BranchIDToHighestSeq[selfParentBranchID] = e.Seq()
 			// OK, not a new fork
-			return BranchID(selfParentBranchID), nil
+			return selfParentBranchID, nil
 		}
 	}
 
