@@ -89,18 +89,21 @@ func ingestEvent(testLachesis *CoreLachesis, eventStore *EventStore, event *dbEv
 	testEvent.SetID([24]byte(event.hash[8:]))
 	eventStore.SetEvent(testEvent)
 
-	return processLocalEvent(testLachesis, testEvent)
+	return processLocalEvent(testLachesis, testEvent, event.frame)
 }
 
 // processLocalEvent simulates a flattened (without redudantant indexing and frame (re)calculations)
 // event lifecycle in local computation intensive consensus components - DAG indexing, frame calculation, election
 // Conditions and order in which the components are invoked are identical to production Consensus behaviour
-func processLocalEvent(testLachesis *CoreLachesis, event *tdag.TestEvent) error {
+func processLocalEvent(testLachesis *CoreLachesis, event *tdag.TestEvent, targetFrame idx.Frame) error {
 	if err := testLachesis.dagIndexer.Add(event); err != nil {
 		return fmt.Errorf("error wihile indexing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
 	if err := testLachesis.Lachesis.Build(event); err != nil {
 		return fmt.Errorf("error wihile building event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
+	}
+	if targetFrame != event.Frame() {
+		return fmt.Errorf("incorrect frame recalculated for event: [validator: %d, seq: %d], expected: %d, got: %d", event.Creator(), event.Seq(), targetFrame, event.Frame())
 	}
 	selfParentFrame := testLachesis.getSelfParentFrame(event)
 	if selfParentFrame != event.Frame() {
@@ -229,6 +232,10 @@ func appointParents(conn *sql.DB, eventMap map[hash.Event]*dbEvent, epoch idx.Ep
 			)
 		}
 		event.parents = append(event.parents, parentHash)
+		// ensure the self parent is first in the slice
+		if eventMap[parentHash].validatorId == event.validatorId {
+			event.parents[0], event.parents[len(event.parents)-1] = event.parents[len(event.parents)-1], event.parents[0]
+		}
 	}
 	return nil
 }
