@@ -12,7 +12,7 @@ func TestRegressionData_FantomNetwork(t *testing.T) {
 }
 
 func TestRegressionData_SonicNetwork(t *testing.T) {
-	testRegressionData(t, "testdata/events-8000-8004.db")
+	testRegressionData(t, "testdata/events-8000-partial.db")
 }
 
 func testRegressionData(t *testing.T, dbPath string) {
