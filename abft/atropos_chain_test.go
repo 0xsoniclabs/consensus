@@ -7,8 +7,16 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestRegressionData_AtroposChainMatches(t *testing.T) {
-	conn, err := sql.Open("sqlite3", "testdata/events-5577.db")
+func TestRegressionData_FantomNetwork(t *testing.T) {
+	testRegressionData(t, "testdata/events-5577.db")
+}
+
+func TestRegressionData_SonicNetwork(t *testing.T) {
+	testRegressionData(t, "testdata/events-8000-partial.db")
+}
+
+func testRegressionData(t *testing.T, dbPath string) {
+	conn, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		t.Fatal(err)
 	}
