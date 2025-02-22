@@ -1,4 +1,4 @@
-package vecfc
+package vecengine
 
 import (
 	"encoding/binary"
