@@ -1,9 +1,8 @@
-package vecfc
+package vecengine
 
 import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
 func (b *LowestAfterSeq) InitWithEvent(i idx.Validator, e dag.Event) {
@@ -46,7 +45,7 @@ func (b *HighestBeforeSeq) SetForkDetected(i idx.Validator) {
 	b.Set(i, forkDetectedSeq)
 }
 
-func (self *HighestBeforeSeq) CollectFrom(_other vecengine.HighestBeforeI, num idx.Validator) {
+func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num idx.Validator) {
 	other := _other.(*HighestBeforeSeq)
 	for branchID := idx.Validator(0); branchID < num; branchID++ {
 		hisSeq := other.Get(branchID)
@@ -78,7 +77,7 @@ func (self *HighestBeforeSeq) CollectFrom(_other vecengine.HighestBeforeI, num i
 	}
 }
 
-func (self *HighestBeforeSeq) GatherFrom(to idx.Validator, _other vecengine.HighestBeforeI, from []idx.Validator) {
+func (self *HighestBeforeSeq) GatherFrom(to idx.Validator, _other HighestBeforeI, from []idx.Validator) {
 	other := _other.(*HighestBeforeSeq)
 	// read all branches to find highest event
 	highestBranchSeq := BranchSeq{}

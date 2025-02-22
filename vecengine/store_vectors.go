@@ -1,4 +1,4 @@
-package vecfc
+package vecengine
 
 import (
 	"github.com/0xsoniclabs/consensus/hash"

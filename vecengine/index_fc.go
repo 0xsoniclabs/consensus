@@ -1,4 +1,4 @@
-package vecfc
+package vecengine
 
 import (
 	"github.com/0xsoniclabs/consensus/hash"
@@ -9,7 +9,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb/table"
 	"github.com/0xsoniclabs/consensus/utils/cachescale"
 	"github.com/0xsoniclabs/consensus/utils/simplewlru"
-	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
 // IndexCacheConfig - config for cache sizes of Engine
@@ -26,7 +25,7 @@ type IndexConfig struct {
 
 // Index is a data to detect forkless-cause condition, calculate median timestamp, detect forks.
 type Index struct {
-	*vecengine.Engine
+	*Engine
 
 	crit          func(error)
 	validators    *pos.Validators
@@ -71,13 +70,13 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 		cfg:  config,
 		crit: crit,
 	}
-	vi.Engine = vecengine.NewIndex(crit, vi.GetEngineCallbacks())
+	vi.Engine = NewIndex(crit, vi.GetEngineCallbacks())
 	vi.initCaches()
 
 	return vi
 }
 
-func NewIndexWithEngine(crit func(error), config IndexConfig, engine *vecengine.Engine) *Index {
+func NewIndexWithEngine(crit func(error), config IndexConfig, engine *Engine) *Index {
 	vi := &Index{
 		Engine: engine,
 		cfg:    config,
@@ -106,24 +105,24 @@ func (vi *Index) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, get
 	vi.onDropNotFlushed()
 }
 
-func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
-	return vecengine.Callbacks{
-		GetHighestBefore: func(event hash.Event) vecengine.HighestBeforeI {
+func (vi *Index) GetEngineCallbacks() Callbacks {
+	return Callbacks{
+		GetHighestBefore: func(event hash.Event) HighestBeforeI {
 			return vi.GetHighestBefore(event)
 		},
-		GetLowestAfter: func(event hash.Event) vecengine.LowestAfterI {
+		GetLowestAfter: func(event hash.Event) LowestAfterI {
 			return vi.GetLowestAfter(event)
 		},
-		SetHighestBefore: func(event hash.Event, b vecengine.HighestBeforeI) {
+		SetHighestBefore: func(event hash.Event, b HighestBeforeI) {
 			vi.SetHighestBefore(event, b.(*HighestBeforeSeq))
 		},
-		SetLowestAfter: func(event hash.Event, b vecengine.LowestAfterI) {
+		SetLowestAfter: func(event hash.Event, b LowestAfterI) {
 			vi.SetLowestAfter(event, b.(*LowestAfterSeq))
 		},
-		NewHighestBefore: func(size idx.Validator) vecengine.HighestBeforeI {
+		NewHighestBefore: func(size idx.Validator) HighestBeforeI {
 			return NewHighestBeforeSeq(size)
 		},
-		NewLowestAfter: func(size idx.Validator) vecengine.LowestAfterI {
+		NewLowestAfter: func(size idx.Validator) LowestAfterI {
 			return NewLowestAfterSeq(size)
 		},
 		OnDropNotFlushed: vi.onDropNotFlushed,
