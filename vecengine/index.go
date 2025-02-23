@@ -3,6 +3,8 @@ package vecengine
 import (
 	"errors"
 	"fmt"
+	"github.com/0xsoniclabs/consensus/utils/cachescale"
+	"github.com/0xsoniclabs/consensus/utils/simplewlru"
 
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/dag"
@@ -13,15 +15,16 @@ import (
 )
 
 type Callbacks struct {
-	GetHighestBefore func(hash.Event) HighestBeforeI
-	GetLowestAfter   func(hash.Event) LowestAfterI
-	SetHighestBefore func(hash.Event, HighestBeforeI)
-	SetLowestAfter   func(hash.Event, LowestAfterI)
-	NewHighestBefore func(idx.Validator) HighestBeforeI
-	NewLowestAfter   func(idx.Validator) LowestAfterI
+	GetHighestBefore func(hash.Event) HighestBeforeSeq
+	GetLowestAfter   func(hash.Event) LowestAfterSeq
+	SetHighestBefore func(hash.Event, HighestBeforeSeq)
+	SetLowestAfter   func(hash.Event, LowestAfterSeq)
+	NewHighestBefore func(idx.Validator) HighestBeforeSeq
+	NewLowestAfter   func(idx.Validator) LowestAfterSeq
 	OnDropNotFlushed func()
 }
 
+// Index is a data to detect forkless-cause condition, calculate median timestamp, detect forks.
 type Engine struct {
 	crit          func(error)
 	validators    *pos.Validators
@@ -34,32 +37,33 @@ type Engine struct {
 	callback Callbacks
 
 	vecDb kvdb.FlushableKVStore
+
 	table struct {
-		EventBranch  kvdb.Store `table:"b"`
-		BranchesInfo kvdb.Store `table:"B"`
+		EventBranch      kvdb.Store `table:"b"`
+		BranchesInfo     kvdb.Store `table:"B"`
+		HighestBeforeSeq kvdb.Store `table:"S"`
+		LowestAfterSeq   kvdb.Store `table:"s"`
 	}
+
+	cache struct {
+		HighestBeforeSeq *simplewlru.Cache
+		LowestAfterSeq   *simplewlru.Cache
+		ForklessCause    *simplewlru.Cache
+	}
+
+	cfg IndexConfig
 }
 
-// NewIndex creates Engine instance.
-func NewIndex(crit func(error), callbacks Callbacks) *Engine {
+// NewIndex creates Index instance.
+func NewIndex(crit func(error), config IndexConfig) *Engine {
 	vi := &Engine{
-		crit:     crit,
-		callback: callbacks,
+		cfg:  config,
+		crit: crit,
 	}
+	vi.callback = vi.GetEngineCallbacks()
+	vi.initCaches()
 
 	return vi
-}
-
-// Reset resets buffers.
-func (vi *Engine) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, getEvent func(hash.Event) dag.Event) {
-	// use wrapper to be able to drop failed events by dropping cache
-	vi.getEvent = getEvent
-	vi.vecDb = db
-	vi.validators = validators
-	vi.validatorIdxs = validators.Idxs()
-	vi.DropNotFlushed()
-
-	table.MigrateTables(&vi.table, vi.vecDb)
 }
 
 // Add calculates vector clocks for the event and saves into DB.
@@ -90,7 +94,7 @@ func (vi *Engine) DropNotFlushed() {
 	}
 }
 
-func (vi *Engine) setForkDetected(before HighestBeforeI, branchID idx.Validator) {
+func (vi *Engine) setForkDetected(before HighestBeforeSeq, branchID idx.Validator) {
 	creatorIdx := vi.bi.BranchIDCreatorIdxs[branchID]
 	for _, branchID := range vi.bi.BranchIDByCreators[creatorIdx] {
 		before.SetForkDetected(branchID)
@@ -149,7 +153,7 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	}
 
 	// pre-load parents into RAM for quick access
-	parentsVecs := make([]HighestBeforeI, len(e.Parents()))
+	parentsVecs := make([]HighestBeforeSeq, len(e.Parents()))
 	parentsBranchIDs := make([]idx.Validator, len(e.Parents()))
 	for i, p := range e.Parents() {
 		parentsBranchIDs[i] = vi.GetEventBranchID(p)
@@ -231,7 +235,7 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	return myVecs, nil
 }
 
-func (vi *Engine) GetMergedHighestBefore(id hash.Event) HighestBeforeI {
+func (vi *Engine) GetMergedHighestBefore(id hash.Event) *HighestBeforeSeq {
 	vi.InitBranchesInfo()
 
 	if vi.AtLeastOneFork() {
@@ -243,7 +247,85 @@ func (vi *Engine) GetMergedHighestBefore(id hash.Event) HighestBeforeI {
 			mergedBefore.GatherFrom(idx.Validator(creatorIdx), scatteredBefore, branches)
 		}
 
-		return mergedBefore
+		return &mergedBefore
 	}
-	return vi.callback.GetHighestBefore(id)
+
+	highestBefore := vi.callback.GetHighestBefore(id)
+	return &highestBefore
+}
+
+func (vi *Engine) initCaches() {
+	vi.cache.ForklessCause, _ = simplewlru.New(uint(vi.cfg.Caches.ForklessCausePairs), vi.cfg.Caches.ForklessCausePairs)
+	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
+	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
+}
+
+func (vi *Engine) GetEngineCallbacks() Callbacks {
+	return Callbacks{
+		GetHighestBefore: func(event hash.Event) HighestBeforeSeq {
+			return *vi.GetHighestBefore(event)
+		},
+		GetLowestAfter: func(event hash.Event) LowestAfterSeq {
+			return *vi.GetLowestAfter(event)
+		},
+		SetHighestBefore: func(event hash.Event, b HighestBeforeSeq) {
+			vi.SetHighestBefore(event, &b)
+		},
+		SetLowestAfter: func(event hash.Event, b LowestAfterSeq) {
+			vi.SetLowestAfter(event, &b)
+		},
+		NewHighestBefore: func(size idx.Validator) HighestBeforeSeq {
+			return *NewHighestBeforeSeq(size)
+		},
+		NewLowestAfter: func(size idx.Validator) LowestAfterSeq {
+			return *NewLowestAfterSeq(size)
+		},
+		OnDropNotFlushed: vi.onDropNotFlushed,
+	}
+}
+
+// Reset resets buffers.
+func (vi *Engine) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, getEvent func(hash.Event) dag.Event) {
+	vi.getEvent = getEvent
+	vi.vecDb = db
+	vi.validators = validators
+	vi.validatorIdxs = validators.Idxs()
+	vi.DropNotFlushed()
+	table.MigrateTables(&vi.table, vi.vecDb)
+	vi.getEvent = getEvent
+	vi.cache.ForklessCause.Purge()
+	vi.onDropNotFlushed()
+}
+
+// IndexCacheConfig - config for cache sizes of Engine
+type IndexCacheConfig struct {
+	ForklessCausePairs   int
+	HighestBeforeSeqSize uint
+	LowestAfterSeqSize   uint
+}
+
+// IndexConfig - Engine config (cache sizes)
+type IndexConfig struct {
+	Caches IndexCacheConfig
+}
+
+// DefaultConfig returns default index config
+func DefaultConfig(scale cachescale.Func) IndexConfig {
+	return IndexConfig{
+		Caches: IndexCacheConfig{
+			ForklessCausePairs:   scale.I(20000),
+			HighestBeforeSeqSize: scale.U(160 * 1024),
+			LowestAfterSeqSize:   scale.U(160 * 1024),
+		},
+	}
+}
+
+// LiteConfig returns default index config for tests
+func LiteConfig() IndexConfig {
+	return DefaultConfig(cachescale.Ratio{Base: 100, Target: 1})
+}
+
+func (vi *Engine) onDropNotFlushed() {
+	vi.cache.HighestBeforeSeq.Purge()
+	vi.cache.LowestAfterSeq.Purge()
 }
