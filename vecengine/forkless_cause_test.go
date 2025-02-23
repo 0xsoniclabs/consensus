@@ -2,6 +2,7 @@ package vecengine
 
 import (
 	"fmt"
+	vecflushable2 "github.com/0xsoniclabs/consensus/vecflushable"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
-	"github.com/0xsoniclabs/consensus/vecengine/vecflushable"
 )
 
 func tCrit(err error) { panic(err) }
@@ -67,7 +67,7 @@ func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 	}
 
 	vi := NewIndex(tCrit, LiteConfig())
-	vi.Reset(validators, vecflushable.Wrap(db, 10000000), getEvent)
+	vi.Reset(validators, vecflushable2.Wrap(db, 10000000), getEvent)
 
 	tdag.ForEachRandEvent(nodes, 10, 2, nil, tdag.ForEachEvent{
 		Process: func(e dag.Event, name string) {
@@ -158,7 +158,7 @@ func testForklessCaused(t *testing.T, dagAscii string) {
 	}
 
 	vi := NewIndex(tCrit, LiteConfig())
-	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
+	vi.Reset(validators, vecflushable2.Wrap(memorydb.New(), vecflushable2.TestSizeLimit), getEvent)
 
 	_, _, named := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
 		Process: func(e dag.Event, name string) {
@@ -232,7 +232,7 @@ func TestForklessCausedRandom(t *testing.T) {
 		// underlying db
 		dbProducer := func() kvdb.FlushableKVStore {
 			db, _ := tempLevelDB()
-			return vecflushable.Wrap(db, vecflushable.TestSizeLimit)
+			return vecflushable2.Wrap(db, vecflushable2.TestSizeLimit)
 		}
 		testForklessCausedRandom(t, dbProducer)
 	})
@@ -501,7 +501,7 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 	}
 
 	vi := NewIndex(tCrit, LiteConfig())
-	vi.Reset(validators, vecflushable.Wrap(dbProducer(), vecflushable.TestSizeLimit), getEvent)
+	vi.Reset(validators, vecflushable2.Wrap(dbProducer(), vecflushable2.TestSizeLimit), getEvent)
 
 	// push
 	for _, e := range ordered {
@@ -583,7 +583,7 @@ func TestRandomForksSanity(t *testing.T) {
 	}
 
 	vi := NewIndex(tCrit, LiteConfig())
-	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
+	vi.Reset(validators, vecflushable2.Wrap(memorydb.New(), vecflushable2.TestSizeLimit), getEvent)
 
 	// Many forks from each node in large graph, so probability of not seeing a fork is negligible
 	events := tdag.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, tdag.ForEachEvent{
@@ -710,7 +710,7 @@ func TestRandomForks(t *testing.T) {
 			}
 
 			vi := NewIndex(tCrit, LiteConfig())
-			vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
+			vi.Reset(validators, vecflushable2.Wrap(memorydb.New(), vecflushable2.TestSizeLimit), getEvent)
 
 			_ = tdag.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, tdag.ForEachEvent{
 				Process: func(e dag.Event, name string) {

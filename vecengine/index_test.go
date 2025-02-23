@@ -2,6 +2,7 @@ package vecengine
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecflushable"
 	"io/ioutil"
 	"testing"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
-	"github.com/0xsoniclabs/consensus/vecengine/vecflushable"
 )
 
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {
