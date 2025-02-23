@@ -534,7 +534,7 @@ type eventSlot struct {
 }
 
 // naive implementation of fork detection, O(n)
-func testForksDetected(vi *Index, head dag.Event) (cheaters map[idx.ValidatorID]bool, err error) {
+func testForksDetected(vi *Engine, head dag.Event) (cheaters map[idx.ValidatorID]bool, err error) {
 	cheaters = map[idx.ValidatorID]bool{}
 	visited := hash.EventsSet{}
 	detected := map[eventSlot]int{}
