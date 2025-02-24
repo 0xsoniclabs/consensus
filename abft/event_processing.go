@@ -142,10 +142,10 @@ func (p *Orderer) calcFrameIdx(e dag.Event) (selfParentFrame, frame idx.Frame) {
 	if e.SelfParent() == nil {
 		return 0, 1
 	}
-	selfParentFrame = p.input.GetEvent(*e.SelfParent()).Frame()
+	selfParentFrame = p.Input.GetEvent(*e.SelfParent()).Frame()
 	frame = selfParentFrame
 	for _, parent := range e.Parents() {
-		frame = max(frame, p.input.GetEvent(parent).Frame())
+		frame = max(frame, p.Input.GetEvent(parent).Frame())
 	}
 
 	if p.forklessCausedByQuorumOn(e, frame) {
@@ -158,5 +158,5 @@ func (p *Orderer) getSelfParentFrame(e dag.Event) idx.Frame {
 	if e.SelfParent() == nil {
 		return 0
 	}
-	return p.input.GetEvent(*e.SelfParent()).Frame()
+	return p.Input.GetEvent(*e.SelfParent()).Frame()
 }
