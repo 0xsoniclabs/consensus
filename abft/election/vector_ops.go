@@ -3,6 +3,9 @@ package election
 import "github.com/kelindar/simd"
 
 func addInt32Vecs(dst []int32, src1 []int32, src2 []int32) {
+	if len(src1) == 0 {
+		return
+	}
 	simd.AddInt32s(dst, src1, src2)
 }
 
