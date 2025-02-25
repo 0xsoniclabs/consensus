@@ -96,7 +96,7 @@ func ingestEvent(testLachesis *CoreLachesis, eventStore *EventStore, event *dbEv
 // event lifecycle in local computation intensive consensus components - DAG indexing, frame calculation, election
 // Conditions and order in which the components are invoked are identical to production Consensus behaviour
 func processLocalEvent(testLachesis *CoreLachesis, event *tdag.TestEvent, targetFrame idx.Frame) error {
-	if err := testLachesis.dagIndexer.Add(event); err != nil {
+	if err := testLachesis.DagIndexer.Add(event); err != nil {
 		return fmt.Errorf("error wihile indexing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
 	if err := testLachesis.Lachesis.Build(event); err != nil {

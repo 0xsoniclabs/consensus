@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/0xsoniclabs/consensus/abft"
 	"github.com/0xsoniclabs/consensus/emitter/ancestor"
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/dag"
@@ -180,14 +181,14 @@ func simulate(weights []pos.Weight, QIParentCount int, randParentCount int, offl
 	nodes := tdag.GenNodes(numValidators)
 	validators := pos.ArrayToValidators(nodes, weights)
 
-	var input *EventStore
-	var lch *CoreLachesis
+	var input *abft.EventStore
+	var lch *abft.CoreLachesis
 	var dagIndexer ancestor.DagIndex
-	inputs := make([]EventStore, numValidators)
-	lchs := make([]CoreLachesis, numValidators)
+	inputs := make([]abft.EventStore, numValidators)
+	lchs := make([]abft.CoreLachesis, numValidators)
 	fcIndexers := make([]*ancestor.FCIndexer, numValidators)
 	for i := 0; i < numValidators; i++ {
-		lch, _, input, dagIndexer = NewCoreLachesis(nodes, weights)
+		lch, _, input, dagIndexer = abft.NewCoreLachesis(nodes, weights)
 		lchs[i] = *lch
 		inputs[i] = *input
 		fcIndexers[i] = ancestor.NewFCIndexer(validators, dagIndexer, nodes[i])
@@ -272,7 +273,7 @@ func simulate(weights []pos.Weight, QIParentCount int, randParentCount int, offl
 					process[i] = true
 					//check if all parents are in the DAG
 					for _, parent := range buffEvent.Parents() {
-						if lchs[receiveNode].input.GetEvent(parent) == nil {
+						if lchs[receiveNode].Input.GetEvent(parent) == nil {
 							// a parent is not yet in the DAG, so don't process this event yet
 							process[i] = false
 							break
@@ -497,14 +498,14 @@ func updateHeads(newEvent dag.Event, heads *dag.Events) {
 	*heads = append(*heads, newEvent) //add newEvent to heads
 }
 
-func processEvent(input EventStore, lchs *CoreLachesis, e *QITestEvent, fcIndexer *ancestor.FCIndexer, heads *dag.Events, self idx.ValidatorID, time int) (frame idx.Frame) {
+func processEvent(input abft.EventStore, lchs *abft.CoreLachesis, e *QITestEvent, fcIndexer *ancestor.FCIndexer, heads *dag.Events, self idx.ValidatorID, time int) (frame idx.Frame) {
 	input.SetEvent(e)
 
-	lchs.dagIndexer.Add(e)
+	lchs.DagIndexer.Add(e)
 	lchs.Lachesis.Build(e)
 	lchs.Lachesis.Process(e)
 
-	lchs.dagIndexer.Flush()
+	lchs.DagIndexer.Flush()
 	// HighestBefore based fc indexer needs to process the event
 	fcIndexer.ProcessEvent(&e.BaseEvent)
 
