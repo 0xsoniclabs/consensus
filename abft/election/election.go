@@ -38,7 +38,7 @@ type Election struct {
 	validatorIDMap map[idx.ValidatorID]idx.Validator
 	validatorCount idx.Frame
 
-	atroposDeliveryBuffer heapBuffer
+	atroposDeliveryBuffer *atroposHeap
 	frameToDeliver        idx.Frame
 }
 
@@ -58,8 +58,7 @@ func New(
 }
 
 func (el *Election) ResetEpoch(frameToDeliver idx.Frame, validators *pos.Validators) {
-	el.atroposDeliveryBuffer = make(heapBuffer, 0)
-	heap.Init(&el.atroposDeliveryBuffer)
+	el.atroposDeliveryBuffer = NewAtroposHeap()
 	el.frameToDeliver = frameToDeliver
 	el.validators = validators
 	el.vote = make(map[idx.Frame]map[idx.ValidatorID]map[hash.Event]*RootVoteContext)
@@ -80,28 +79,31 @@ func (el *Election) VoteAndAggregate(
 	directVoteVector := initInt32WithConst(-1, int(el.validatorCount))
 
 	observedRoots := el.observedRoots(rootHash, frame-1)
-	observedRootsStake := int32(0)
+	observedRootsWeight := int32(0)
 	for _, observedRoot := range observedRoots {
 		directVoteVector[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
-		observedRootsStake += int32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
+		observedRootsWeight += int32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
 		if rootContext, ok := el.vote[frame-1][observedRoot.ValidatorID][observedRoot.RootHash]; ok {
 			nonDeliveredFramesOffset := (el.frameToDeliver - rootContext.frameToDeliverOffset) * el.validatorCount
 			addInt32Vecs(aggregationMatrix, aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
 		}
 	}
-	el.decide(frame, aggregationMatrix, observedRootsStake)
+	el.decide(frame, aggregationMatrix, observedRootsWeight)
 
 	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
 	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
 	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
 	el.vote[frame][validatorId][rootHash].voteMatrix = aggregationMatrix
-	return el.getDeliveryReadyAtropoi(), nil
+
+	atropoi := el.atroposDeliveryBuffer.getDeliveryReadyAtropoi(el.frameToDeliver)
+	el.frameToDeliver += idx.Frame(len(atropoi))
+	return atropoi, nil
 }
 
-func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, observedRootsStake int32) {
-	// Q = ceil((4*TotalStake - 3*observedRootsStake)/3)
+func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, observedRootsWeight int32) {
+	// Q = ceil((4*TotalValidatorWeight - 3*observedRootsWeight)/3)
 	// numerator (Q_0) can exceed the int32 limits before division
-	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsStake)
+	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsWeight)
 	Q := int32((Q_0 + 3 - 1) / 3)
 	yesDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
 	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
@@ -114,7 +116,7 @@ func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, 
 			voteMatrixOffset := (frame-el.frameToDeliver)*el.validatorCount + idx.Frame(el.validators.GetIdx(candidateValidator))
 			if yesDecisions[voteMatrixOffset] {
 				atroposHash := el.elect(frame, candidateValidator)
-				heap.Push(&el.atroposDeliveryBuffer, &AtroposDecision{frame, atroposHash})
+				heap.Push(el.atroposDeliveryBuffer, &AtroposDecision{frame, atroposHash})
 				el.cleanupDecidedFrame(frame)
 				break
 			}
@@ -131,7 +133,12 @@ func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, 
 // In the case of a fork, a tiebreaker algorithms has to be run.
 func (el *Election) elect(frame idx.Frame, validatorCandidate idx.ValidatorID) hash.Event {
 	candidateMap := el.vote[frame][validatorCandidate]
-	atroposHash := getAnyKey(candidateMap)
+	// get any hash identifed by (frame, validatorCandidate) tuple
+	// for non-forking scenarios, only a single such root is possible
+	atroposHash := hash.Event{}
+	for hash := range candidateMap {
+		atroposHash = hash
+	}
 	// tiebreaker can simply pick the first encountered root that is forkless caused by any event.
 	// It is easiest to look for any vote (forkless cause) by frame + 1 roots.
 	// Due to forkless cause semantics, only one forking root can exist with specified frame and validator number.
@@ -159,20 +166,6 @@ func (el *Election) observedRoots(root hash.Event, frame idx.Frame) []RootContex
 	return observedRoots
 }
 
-// getDeliveryReadyAtropoi pops and returns only continuous sequences of decided atropoi
-// that begin with `frameToDeliver` frame number
-// example 1: frameToDeliver = 100, heapBuffer = [100, 101, 102] -> deliveredAtropoi = [100, 101, 102], heapBuffer = []
-// example 2: frameToDeliver = 100, heapBuffer = [101, 102] -> deliveredAtropoi = [], heapBuffer = [101, 102]
-// example 3: frameToDeliver = 100, heapBuffer = [100, 101, 104, 105] -> deliveredAtropoi = [100, 101], heapBuffer=[104, 105]
-func (el *Election) getDeliveryReadyAtropoi() []*AtroposDecision {
-	atropoi := make([]*AtroposDecision, 0)
-	for len(el.atroposDeliveryBuffer) > 0 && el.atroposDeliveryBuffer[0].Frame == el.frameToDeliver {
-		atropoi = append(atropoi, heap.Pop(&el.atroposDeliveryBuffer).(*AtroposDecision))
-		el.frameToDeliver++
-	}
-	return atropoi
-}
-
 func (el *Election) prepareNewElectorRoot(frame idx.Frame, validatorId idx.ValidatorID, root hash.Event) {
 	if _, ok := el.vote[frame]; !ok {
 		el.vote[frame] = make(map[idx.ValidatorID]map[hash.Event]*RootVoteContext)
@@ -185,11 +178,4 @@ func (el *Election) prepareNewElectorRoot(frame idx.Frame, validatorId idx.Valid
 
 func (el *Election) cleanupDecidedFrame(frame idx.Frame) {
 	delete(el.vote, frame)
-}
-
-func getAnyKey(vote map[hash.Event]*RootVoteContext) hash.Event {
-	for k := range vote {
-		return k
-	}
-	return hash.Event{}
 }

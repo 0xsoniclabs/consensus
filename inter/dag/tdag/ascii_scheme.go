@@ -1,7 +1,6 @@
 package tdag
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"strconv"
 	"strings"
@@ -178,11 +177,7 @@ func ASCIIschemeForEach(
 				}
 			}
 			// calc hash of the event, after it's fully built
-			hasher := sha256.New()
-			hasher.Write(e.Bytes())
-			var id [24]byte
-			copy(id[:], hasher.Sum(nil)[:24])
-			e.SetID(id)
+			e.SetID(CalcHashForTestEvent(e))
 			// save event
 			events[creator] = append(events[creator], e)
 			names[name] = e
