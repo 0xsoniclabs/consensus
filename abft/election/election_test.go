@@ -33,9 +33,8 @@ type testExpected struct {
 }
 
 func TestProcessRoot(t *testing.T) {
-
 	t.Run("4 equalWeights notDecided", func(t *testing.T) {
-		testProcessRoot(t,
+		testVoteAndAggregate(t,
 			nil,
 			weights{
 				"nodeA": 2,
@@ -55,11 +54,11 @@ func TestProcessRoot(t *testing.T) {
 	║     ║     ║     ║
 	a3_3══╬═════╬═════╣
 	║     ║     ║     ║
-	`)
+	`, map[string]string{"a1_1": "a1_1_fork", "b_1_1": "b1_1_fork"})
 	})
 
 	t.Run("4 equalWeights", func(t *testing.T) {
-		testProcessRoot(t,
+		testVoteAndAggregate(t,
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "c1_1",
@@ -83,11 +82,11 @@ func TestProcessRoot(t *testing.T) {
 			║     ║     ║     ║
 			a3_3══╬═════╬═════╣
 			║     ║     ║     ║
-			`)
+			`, map[string]string{"c1_1": "c1_1_fork"})
 	})
 
 	t.Run("4 equalWeights missingRoot", func(t *testing.T) {
-		testProcessRoot(t,
+		testVoteAndAggregate(t,
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "c1_1",
@@ -109,11 +108,11 @@ func TestProcessRoot(t *testing.T) {
 		║     ║     ║     ║
 		a3_3══╬═════╣     ║
 		║     ║     ║     ║
-		`)
+		`, map[string]string{})
 	})
 
 	t.Run("4 differentWeights", func(t *testing.T) {
-		testProcessRoot(t,
+		testVoteAndAggregate(t,
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "a1_1",
@@ -137,11 +136,11 @@ func TestProcessRoot(t *testing.T) {
 		║     ║     ║     ║
 		╠═════b3_3══╬═════╣
 		║     ║     ║     ║
-		`)
+		`, map[string]string{"a1_1": "a1_1_fork", "d1_1": "d1_1_fork"})
 	})
 
 	t.Run("4 differentWeights 4rounds", func(t *testing.T) {
-		testProcessRoot(t,
+		testVoteAndAggregate(t,
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "a1_1",
@@ -170,7 +169,31 @@ func TestProcessRoot(t *testing.T) {
 	║╚═══─╫╩════c3_3══╣
 	║     ║     ║     ║
 	║╚═══─╫╩═══─╫─════+d3_3
-	`)
+	`, map[string]string{"a1_1": "a1_1_fork"})
+	})
+
+	t.Run("4 equalWeights notDecided", func(t *testing.T) {
+		testVoteAndAggregate(t,
+			nil,
+			weights{
+				"nodeA": 2,
+				"nodeB": 1,
+				"nodeC": 1,
+				"nodeD": 1,
+			}, `
+	a1_1  b1_1  c1_1  d1_1
+	║     ║     ║     ║
+	a2_2══╬═════╣     ║
+	║     ║     ║     ║
+	║╚════b2_2══╣     ║
+	║     ║     ║     ║
+	║     ║╚════c2_2══╣
+	║     ║     ║     ║
+	║     ║╚═══─╫╩════d2_2
+	║     ║     ║     ║
+	a3_3══╬═════╬═════╣
+	║     ║     ║     ║
+	`, map[string]string{"a1_1": "a1_1_fork", "d1_1": "d1_1_fork"})
 	})
 
 }
@@ -180,58 +203,39 @@ type slot struct {
 	validatorID idx.ValidatorID
 }
 
-func testProcessRoot(
+type testState struct {
+	ordered    tdag.TestEvents
+	frameRoots map[idx.Frame][]RootContext
+	vertices   map[hash.Event]slot
+	edges      map[fakeEdge]bool
+}
+
+func testVoteAndAggregate(
 	t *testing.T,
 	expected *testExpected,
 	weights weights,
 	dagAscii string,
+	forks map[string]string,
 ) {
 	t.Helper()
 	assertar := assert.New(t)
 
-	// events:
-	ordered := make(tdag.TestEvents, 0)
-	frameRoots := make(map[idx.Frame][]RootContext)
-	vertices := make(map[hash.Event]slot)
-	edges := make(map[fakeEdge]bool)
+	state := testState{
+		ordered:    make(tdag.TestEvents, 0),
+		frameRoots: make(map[idx.Frame][]RootContext),
+		vertices:   make(map[hash.Event]slot),
+		edges:      make(map[fakeEdge]bool),
+	}
 
 	nodes, _, _ := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
 		Process: func(_root dag.Event, name string) {
 			root := _root.(*tdag.TestEvent)
-			// store all the events
-			ordered = append(ordered, root)
-
-			slot := slot{
-				frame:       frameOf(name),
-				validatorID: root.Creator(),
-			}
-			vertices[root.ID()] = slot
-
-			hsh := root.ID()
-			frameRoots[frameOf(name)] = append(
-				frameRoots[frameOf(name)],
-				RootContext{
-					RootHash:    hsh,
-					ValidatorID: slot.validatorID,
-				},
-			)
-
-			// build edges to be able to fake forkless cause fn
-			noPrev := false
-			if strings.HasPrefix(name, "+") {
-				noPrev = true
-			}
-			from := root.ID()
-			for _, observed := range root.Parents() {
-				if root.IsSelfParent(observed) && noPrev {
-					continue
-				}
-				to := observed
-				edge := fakeEdge{
-					from: from,
-					to:   to,
-				}
-				edges[edge] = true
+			indexTestEvent(&state, root, false)
+			if forkedRootName, ok := forks[name]; ok {
+				forkedRoot := *root
+				forkedRoot.Name = forkedRootName
+				forkedRoot.SetID(tdag.CalcHashForTestEvent(&forkedRoot))
+				indexTestEvent(&state, &forkedRoot, true)
 			}
 		},
 	})
@@ -247,25 +251,25 @@ func testProcessRoot(
 			from: a,
 			to:   b,
 		}
-		return edges[edge]
+		return state.edges[edge]
 	}
 	getFrameRootsFn := func(f idx.Frame) []RootContext {
-		return frameRoots[f]
+		return state.frameRoots[f]
 	}
 
 	// re-order events randomly, preserving parents order
-	unordered := make(tdag.TestEvents, len(ordered))
-	for i, j := range rand.Perm(len(ordered)) {
-		unordered[i] = ordered[j]
+	unordered := make(tdag.TestEvents, len(state.ordered))
+	for i, j := range rand.Perm(len(state.ordered)) {
+		unordered[i] = state.ordered[j]
 	}
-	ordered = unordered.ByParents()
+	state.ordered = unordered.ByParents()
 
 	el := New(1, validators, forklessCauseFn, getFrameRootsFn)
 
 	// processing:
-	for _, root := range ordered {
+	for _, root := range state.ordered {
 		rootHash := root.ID()
-		rootSlot, ok := vertices[rootHash]
+		rootSlot, ok := state.vertices[rootHash]
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
@@ -295,4 +299,46 @@ func frameOf(dsc string) idx.Frame {
 		panic(err)
 	}
 	return idx.Frame(h)
+}
+
+func indexTestEvent(state *testState, root *tdag.TestEvent, isFork bool) {
+	state.ordered = append(state.ordered, root)
+	slt := slot{
+		frame:       frameOf(root.Name),
+		validatorID: root.Creator(),
+	}
+	state.vertices[root.ID()] = slt
+	hsh := root.ID()
+	state.frameRoots[frameOf(root.Name)] = append(
+		state.frameRoots[frameOf(root.Name)],
+		RootContext{
+			RootHash:    hsh,
+			ValidatorID: slt.validatorID,
+		},
+	)
+	if !isFork {
+		noPrev := false
+		if strings.HasPrefix(root.Name, "+") {
+			noPrev = true
+		}
+		from := root.ID()
+		for _, observed := range root.Parents() {
+			if root.IsSelfParent(observed) && noPrev {
+				continue
+			}
+			to := observed
+			edge := fakeEdge{
+				from: from,
+				to:   to,
+			}
+			state.edges[edge] = true
+		}
+	} else {
+		selfParent := root.SelfParent()
+		if selfParent != nil {
+			root.SetParents(hash.Events{*selfParent})
+		} else {
+			root.SetParents(hash.Events{})
+		}
+	}
 }
