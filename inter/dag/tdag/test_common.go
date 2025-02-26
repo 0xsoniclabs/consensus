@@ -165,6 +165,14 @@ func GenRandEvents(
 	return ForEachRandEvent(nodes, eventCount, parentCount, r, ForEachEvent{})
 }
 
+func CalcHashForTestEvent(event *TestEvent) [24]byte {
+	hasher := sha256.New()
+	hasher.Write(event.Bytes())
+	var id [24]byte
+	copy(id[:], hasher.Sum(nil)[:24])
+	return id
+}
+
 func delPeerIndex(events map[idx.ValidatorID]dag.Events) (res dag.Events) {
 	for _, ee := range events {
 		res = append(res, ee...)
