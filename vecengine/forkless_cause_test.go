@@ -607,7 +607,7 @@ func TestRandomForksSanity(t *testing.T) {
 	idxs := validatorsBuilder.Build().Idxs()
 	for _, node := range nodes {
 		ee := events[node]
-		highestBefore := vi.GetMergedHighestBefore(ee[len(ee)-1].ID())
+		highestBefore := vi.GetMergedHighestBefore(ee[len(ee)-1].ID()).(*HighestBeforeSeq)
 		for n, cheater := range nodes {
 			branchSeq := highestBefore.Get(idxs[cheater])
 			isCheater := n < len(cheaters)
