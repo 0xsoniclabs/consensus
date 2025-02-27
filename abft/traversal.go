@@ -17,7 +17,7 @@ func (p *Orderer) dfsSubgraph(head hash.Event, filter eventFilterFn) error {
 	for pwalk := &head; pwalk != nil; pwalk = stack.Pop() {
 		walk := *pwalk
 
-		event := p.input.GetEvent(walk)
+		event := p.Input.GetEvent(walk)
 		if event == nil {
 			return errors.New("event not found " + walk.String())
 		}
