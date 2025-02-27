@@ -45,7 +45,8 @@ func (b *HighestBeforeSeq) SetForkDetected(i idx.Validator) {
 	b.Set(i, forkDetectedSeq)
 }
 
-func (self *HighestBeforeSeq) CollectFrom(other HighestBeforeSeq, num idx.Validator) {
+func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num idx.Validator) {
+	other := _other.(*HighestBeforeSeq)
 	for branchID := idx.Validator(0); branchID < num; branchID++ {
 		hisSeq := other.Get(branchID)
 		if hisSeq.Seq == 0 && !hisSeq.IsForkDetected() {
@@ -76,7 +77,8 @@ func (self *HighestBeforeSeq) CollectFrom(other HighestBeforeSeq, num idx.Valida
 	}
 }
 
-func (self *HighestBeforeSeq) GatherFrom(to idx.Validator, other HighestBeforeSeq, from []idx.Validator) {
+func (self *HighestBeforeSeq) GatherFrom(to idx.Validator, _other HighestBeforeI, from []idx.Validator) {
+	other := _other.(*HighestBeforeSeq)
 	// read all branches to find highest event
 	highestBranchSeq := BranchSeq{}
 	for _, branchID := range from {

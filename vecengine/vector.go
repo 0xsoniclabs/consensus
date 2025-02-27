@@ -2,13 +2,30 @@ package vecengine
 
 import (
 	"encoding/binary"
+	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"math"
 )
 
+type LowestAfterI interface {
+	InitWithEvent(i idx.Validator, e dag.Event)
+	Visit(i idx.Validator, e dag.Event) bool
+}
+
+type HighestBeforeI interface {
+	InitWithEvent(i idx.Validator, e dag.Event)
+	IsEmpty(i idx.Validator) bool
+	IsForkDetected(i idx.Validator) bool
+	Seq(i idx.Validator) idx.Event
+	MinSeq(i idx.Validator) idx.Event
+	SetForkDetected(i idx.Validator)
+	CollectFrom(other HighestBeforeI, branches idx.Validator)
+	GatherFrom(to idx.Validator, other HighestBeforeI, from []idx.Validator)
+}
+
 type allVecs struct {
-	after  LowestAfterSeq
-	before HighestBeforeSeq
+	after  LowestAfterI
+	before HighestBeforeI
 }
 
 /*

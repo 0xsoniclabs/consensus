@@ -15,13 +15,13 @@ import (
 )
 
 type Callbacks struct {
-	GetHighestBefore func(hash.Event) HighestBeforeSeq
-	GetLowestAfter   func(hash.Event) LowestAfterSeq
-	SetHighestBefore func(hash.Event, HighestBeforeSeq)
-	SetLowestAfter   func(hash.Event, LowestAfterSeq)
-	NewHighestBefore func(idx.Validator) HighestBeforeSeq
-	NewLowestAfter   func(idx.Validator) LowestAfterSeq
-	OnDropNotFlushed func()
+	GetHighestBefore func(*Engine, hash.Event) HighestBeforeI
+	GetLowestAfter   func(*Engine, hash.Event) LowestAfterI
+	SetHighestBefore func(*Engine, hash.Event, HighestBeforeI)
+	SetLowestAfter   func(*Engine, hash.Event, LowestAfterI)
+	NewHighestBefore func(*Engine, idx.Validator) HighestBeforeI
+	NewLowestAfter   func(*Engine, idx.Validator) LowestAfterI
+	OnDropNotFlushed func(*Engine)
 }
 
 // Index is a data to detect forkless-cause condition, calculate median timestamp, detect forks.
@@ -55,12 +55,12 @@ type Engine struct {
 }
 
 // NewIndex creates Index instance.
-func NewIndex(crit func(error), config IndexConfig) *Engine {
+func NewIndex(crit func(error), config IndexConfig, callbacks Callbacks) *Engine {
 	vi := &Engine{
-		cfg:  config,
-		crit: crit,
+		cfg:      config,
+		crit:     crit,
+		callback: callbacks,
 	}
-	vi.callback = vi.GetEngineCallbacks()
 	vi.initCaches()
 
 	return vi
@@ -89,12 +89,12 @@ func (vi *Engine) DropNotFlushed() {
 	if vi.vecDb.NotFlushedPairs() != 0 {
 		vi.vecDb.DropNotFlushed()
 		if vi.callback.OnDropNotFlushed != nil {
-			vi.callback.OnDropNotFlushed()
+			vi.callback.OnDropNotFlushed(vi)
 		}
 	}
 }
 
-func (vi *Engine) setForkDetected(before HighestBeforeSeq, branchID idx.Validator) {
+func (vi *Engine) setForkDetected(before HighestBeforeI, branchID idx.Validator) {
 	creatorIdx := vi.bi.BranchIDCreatorIdxs[branchID]
 	for _, branchID := range vi.bi.BranchIDByCreators[creatorIdx] {
 		before.SetForkDetected(branchID)
@@ -143,8 +143,8 @@ func (vi *Engine) fillGlobalBranchID(e dag.Event, meIdx idx.Validator) (idx.Vali
 func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	meIdx := vi.validatorIdxs[e.Creator()]
 	myVecs := allVecs{
-		before: vi.callback.NewHighestBefore(idx.Validator(len(vi.bi.BranchIDCreatorIdxs))),
-		after:  vi.callback.NewLowestAfter(idx.Validator(len(vi.bi.BranchIDCreatorIdxs))),
+		before: vi.callback.NewHighestBefore(vi, idx.Validator(len(vi.bi.BranchIDCreatorIdxs))),
+		after:  vi.callback.NewLowestAfter(vi, idx.Validator(len(vi.bi.BranchIDCreatorIdxs))),
 	}
 
 	meBranchID, err := vi.fillGlobalBranchID(e, meIdx)
@@ -153,11 +153,11 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	}
 
 	// pre-load parents into RAM for quick access
-	parentsVecs := make([]HighestBeforeSeq, len(e.Parents()))
+	parentsVecs := make([]HighestBeforeI, len(e.Parents()))
 	parentsBranchIDs := make([]idx.Validator, len(e.Parents()))
 	for i, p := range e.Parents() {
 		parentsBranchIDs[i] = vi.GetEventBranchID(p)
-		parentsVecs[i] = vi.callback.GetHighestBefore(p)
+		parentsVecs[i] = vi.callback.GetHighestBefore(vi, p)
 		if parentsVecs[i] == nil {
 			return myVecs, fmt.Errorf("processed out of order, parent not found (inconsistent DB), parent=%s", p.String())
 		}
@@ -213,11 +213,11 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 
 	// graph traversal starting from e, but excluding e
 	onWalk := func(walk hash.Event) (godeeper bool) {
-		wLowestAfterSeq := vi.callback.GetLowestAfter(walk)
+		wLowestAfterSeq := vi.callback.GetLowestAfter(vi, walk)
 
 		// update LowestAfter vector of the old event, because newly-connected event observes it
 		if wLowestAfterSeq.Visit(meBranchID, e) {
-			vi.callback.SetLowestAfter(walk, wLowestAfterSeq)
+			vi.callback.SetLowestAfter(vi, walk, wLowestAfterSeq)
 			return true
 		}
 		return false
@@ -228,30 +228,28 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	}
 
 	// store calculated vectors
-	vi.callback.SetHighestBefore(e.ID(), myVecs.before)
-	vi.callback.SetLowestAfter(e.ID(), myVecs.after)
+	vi.callback.SetHighestBefore(vi, e.ID(), myVecs.before)
+	vi.callback.SetLowestAfter(vi, e.ID(), myVecs.after)
 	vi.SetEventBranchID(e.ID(), meBranchID)
 
 	return myVecs, nil
 }
 
-func (vi *Engine) GetMergedHighestBefore(id hash.Event) *HighestBeforeSeq {
+func (vi *Engine) GetMergedHighestBefore(id hash.Event) HighestBeforeI {
 	vi.InitBranchesInfo()
 
 	if vi.AtLeastOneFork() {
-		scatteredBefore := vi.callback.GetHighestBefore(id)
+		scatteredBefore := vi.callback.GetHighestBefore(vi, id)
 
-		mergedBefore := vi.callback.NewHighestBefore(vi.validators.Len())
+		mergedBefore := vi.callback.NewHighestBefore(vi, vi.validators.Len())
 
 		for creatorIdx, branches := range vi.bi.BranchIDByCreators {
 			mergedBefore.GatherFrom(idx.Validator(creatorIdx), scatteredBefore, branches)
 		}
 
-		return &mergedBefore
+		return mergedBefore
 	}
-
-	highestBefore := vi.callback.GetHighestBefore(id)
-	return &highestBefore
+	return vi.callback.GetHighestBefore(vi, id)
 }
 
 func (vi *Engine) initCaches() {
@@ -260,27 +258,27 @@ func (vi *Engine) initCaches() {
 	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
 }
 
-func (vi *Engine) GetEngineCallbacks() Callbacks {
+func GetEngineCallbacks() Callbacks {
 	return Callbacks{
-		GetHighestBefore: func(event hash.Event) HighestBeforeSeq {
-			return *vi.GetHighestBefore(event)
+		GetHighestBefore: func(vi *Engine, event hash.Event) HighestBeforeI {
+			return vi.GetHighestBefore(event)
 		},
-		GetLowestAfter: func(event hash.Event) LowestAfterSeq {
-			return *vi.GetLowestAfter(event)
+		GetLowestAfter: func(vi *Engine, event hash.Event) LowestAfterI {
+			return vi.GetLowestAfter(event)
 		},
-		SetHighestBefore: func(event hash.Event, b HighestBeforeSeq) {
-			vi.SetHighestBefore(event, &b)
+		SetHighestBefore: func(vi *Engine, event hash.Event, b HighestBeforeI) {
+			vi.SetHighestBefore(event, b.(*HighestBeforeSeq))
 		},
-		SetLowestAfter: func(event hash.Event, b LowestAfterSeq) {
-			vi.SetLowestAfter(event, &b)
+		SetLowestAfter: func(vi *Engine, event hash.Event, b LowestAfterI) {
+			vi.SetLowestAfter(event, b.(*LowestAfterSeq))
 		},
-		NewHighestBefore: func(size idx.Validator) HighestBeforeSeq {
-			return *NewHighestBeforeSeq(size)
+		NewHighestBefore: func(vi *Engine, size idx.Validator) HighestBeforeI {
+			return NewHighestBeforeSeq(size)
 		},
-		NewLowestAfter: func(size idx.Validator) LowestAfterSeq {
-			return *NewLowestAfterSeq(size)
+		NewLowestAfter: func(vi *Engine, size idx.Validator) LowestAfterI {
+			return NewLowestAfterSeq(size)
 		},
-		OnDropNotFlushed: vi.onDropNotFlushed,
+		OnDropNotFlushed: func(vi *Engine) { vi.onDropNotFlushed() },
 	}
 }
 
