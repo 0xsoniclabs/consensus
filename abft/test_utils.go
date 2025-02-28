@@ -82,7 +82,7 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 	input := NewEventStore()
 
 	config := LiteConfig()
-	dagIndexer := &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks())}
+	dagIndexer := &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks)}
 	lch := NewIndexedLachesis(store, input, dagIndexer, crit, config)
 
 	extended := &CoreLachesis{

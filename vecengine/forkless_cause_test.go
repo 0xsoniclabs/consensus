@@ -66,7 +66,7 @@ func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 		}()
 	}
 
-	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(db, 10000000), getEvent)
 
 	tdag.ForEachRandEvent(nodes, 10, 2, nil, tdag.ForEachEvent{
@@ -157,7 +157,7 @@ func testForklessCaused(t *testing.T, dagAscii string) {
 		return events[id]
 	}
 
-	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 	_, _, named := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
@@ -500,7 +500,7 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 		return events[id]
 	}
 
-	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(dbProducer(), vecflushable.TestSizeLimit), getEvent)
 
 	// push
@@ -582,7 +582,7 @@ func TestRandomForksSanity(t *testing.T) {
 		return processed[id]
 	}
 
-	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 	// Many forks from each node in large graph, so probability of not seeing a fork is negligible
@@ -709,7 +709,7 @@ func TestRandomForks(t *testing.T) {
 				return processed[id]
 			}
 
-			vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks())
+			vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 			vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 			_ = tdag.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, tdag.ForEachEvent{
