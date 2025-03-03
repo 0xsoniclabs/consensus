@@ -1,6 +1,7 @@
 package election
 
 import (
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/consensus/utils"
 )
 
 type fakeEdge struct {
@@ -242,7 +242,11 @@ func testVoteAndAggregate(
 
 	validatorsBuilder := pos.NewBuilder()
 	for _, node := range nodes {
-		validatorsBuilder.Set(node, weights[utils.NameOf(node)])
+		nodeName := hash.GetNodeName(node)
+		if len(nodeName) == 0 {
+			nodeName = fmt.Sprintf("%d", node)
+		}
+		validatorsBuilder.Set(node, weights[nodeName])
 	}
 	validators := validatorsBuilder.Build()
 
