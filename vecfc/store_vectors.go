@@ -2,7 +2,7 @@ package vecfc
 
 import (
 	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 func (vi *Index) getBytes(table kvdb.Store, id hash.Event) []byte {

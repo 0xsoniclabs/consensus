@@ -5,11 +5,11 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/consensus/kvdb"
-	"github.com/0xsoniclabs/consensus/kvdb/table"
 	"github.com/0xsoniclabs/consensus/utils/cachescale"
 	"github.com/0xsoniclabs/consensus/utils/simplewlru"
 	"github.com/0xsoniclabs/consensus/vecengine"
+	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/kvdb/table"
 )
 
 // IndexCacheConfig - config for cache sizes of Engine
