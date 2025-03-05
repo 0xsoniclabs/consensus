@@ -37,23 +37,6 @@ func (vi *Engine) getRlp(table kvdb.Store, key []byte, to interface{}) interface
 	return to
 }
 
-func (vi *Engine) getBytes(table kvdb.Store, id hash.Event) []byte {
-	key := id.Bytes()
-	b, err := table.Get(key)
-	if err != nil {
-		vi.crit(err)
-	}
-	return b
-}
-
-func (vi *Engine) setBytes(table kvdb.Store, id hash.Event, b []byte) {
-	key := id.Bytes()
-	err := table.Put(key, b)
-	if err != nil {
-		vi.crit(err)
-	}
-}
-
 func (vi *Engine) setBranchesInfo(info *BranchesInfo) {
 	key := []byte("c")
 
