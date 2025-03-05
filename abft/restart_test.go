@@ -2,6 +2,7 @@ package abft
 
 import (
 	"errors"
+	"github.com/0xsoniclabs/consensus/vecengine"
 	"math"
 	"math/rand"
 	"testing"
@@ -16,7 +17,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
-	"github.com/0xsoniclabs/consensus/vecfc"
 )
 
 func TestRestart_1(t *testing.T) {
@@ -183,7 +183,7 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 				return memorydb.New()
 			}
 
-			restored := NewIndexedLachesis(store, prev.Input, &adapters.VectorToDagIndexer{Index: vecfc.NewIndex(prev.crit, vecfc.LiteConfig())}, prev.crit, prev.config)
+			restored := NewIndexedLachesis(store, prev.Input, &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(prev.crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks)}, prev.crit, prev.config)
 			assertar.NoError(restored.Bootstrap(prev.callback))
 
 			lchs[RESTORED].IndexedLachesis = restored

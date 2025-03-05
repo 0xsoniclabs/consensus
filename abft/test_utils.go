@@ -2,6 +2,7 @@ package abft
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecengine"
 	"math/rand"
 
 	"github.com/0xsoniclabs/consensus/hash"
@@ -12,7 +13,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
-	"github.com/0xsoniclabs/consensus/vecfc"
 )
 
 type dbEvent struct {
@@ -82,7 +82,7 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 	input := NewEventStore()
 
 	config := LiteConfig()
-	dagIndexer := &adapters.VectorToDagIndexer{Index: vecfc.NewIndex(crit, vecfc.LiteConfig())}
+	dagIndexer := &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks)}
 	lch := NewIndexedLachesis(store, input, dagIndexer, crit, config)
 
 	extended := &CoreLachesis{

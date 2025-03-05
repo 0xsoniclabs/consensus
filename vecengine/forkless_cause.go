@@ -1,4 +1,4 @@
-package vecfc
+package vecengine
 
 import (
 	"fmt"
@@ -26,19 +26,19 @@ type kv struct {
 // unless more than 1/3W are Byzantine.
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
-func (vi *Index) ForklessCause(aID, bID hash.Event) bool {
+func (vi *Engine) ForklessCause(aID, bID hash.Event) bool {
 	if res, ok := vi.cache.ForklessCause.Get(kv{aID, bID}); ok {
 		return res.(bool)
 	}
 
-	vi.Engine.InitBranchesInfo()
+	vi.InitBranchesInfo()
 	res := vi.forklessCause(aID, bID)
 
 	vi.cache.ForklessCause.Add(kv{aID, bID}, res, 1)
 	return res
 }
 
-func (vi *Index) forklessCause(aID, bID hash.Event) bool {
+func (vi *Engine) forklessCause(aID, bID hash.Event) bool {
 	// Get events by hash
 	a := vi.GetHighestBefore(aID)
 	if a == nil {
@@ -47,8 +47,8 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 	}
 
 	// check A doesn't observe any forks from B
-	if vi.Engine.AtLeastOneFork() {
-		bBranchID := vi.Engine.GetEventBranchID(bID)
+	if vi.AtLeastOneFork() {
+		bBranchID := vi.GetEventBranchID(bID)
 		if a.Get(bBranchID).IsForkDetected() { // B is observed as cheater by A
 			return false
 		}
@@ -63,7 +63,7 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 
 	yes := vi.validators.NewCounter()
 	// calculate forkless causing using the indexes
-	branchIDs := vi.Engine.BranchesInfo().BranchIDCreatorIdxs
+	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := idx.Validator(branchIDint)
 
@@ -82,7 +82,7 @@ func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 	return yes.HasQuorum()
 }
 
-func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, chosenParents hash.Events) (*pos.WeightCounter, []*pos.WeightCounter) {
+func (vi *Engine) ForklessCauseProgress(aID, bID hash.Event, candidateParents, chosenParents hash.Events) (*pos.WeightCounter, []*pos.WeightCounter) {
 	// This function is used to determine progress of event bID in forkless causing aID.
 	// It may be used to determine progress toward the forkless cause condition for an event not in vi, but whose parents are in vi.
 	// To do so, aID should be the self-parent while chosenParents should be the parents of the not-yet-created event.
@@ -127,8 +127,8 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	}
 
 	// check A doesn't observe any forks from B
-	if vi.Engine.AtLeastOneFork() {
-		bBranchID := vi.Engine.GetEventBranchID(bID)
+	if vi.AtLeastOneFork() {
+		bBranchID := vi.GetEventBranchID(bID)
 		if aHB.Get(bBranchID).IsForkDetected() { // B is observed as cheater by A
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
@@ -136,8 +136,8 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 
 	// check chosenParents don't observe any forks from B
 	for i := 0; i < len(chosenParentsHB); i++ {
-		if vi.Engine.AtLeastOneFork() {
-			bBranchID := vi.Engine.GetEventBranchID(bID)
+		if vi.AtLeastOneFork() {
+			bBranchID := vi.GetEventBranchID(bID)
 			if chosenParentsHB[i].Get(bBranchID).IsForkDetected() { // B is observed as cheater by a chosen parent
 				return chosenParentsFCProgress, candidateParentsFCProgress
 			}
@@ -146,8 +146,8 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 
 	// check candidateParents don't observe any forks from B
 	for i := 0; i < len(candidateParentsHB); i++ {
-		if vi.Engine.AtLeastOneFork() {
-			bBranchID := vi.Engine.GetEventBranchID(bID)
+		if vi.AtLeastOneFork() {
+			bBranchID := vi.GetEventBranchID(bID)
 			if candidateParentsHB[i].Get(bBranchID).IsForkDetected() { // B is observed as cheater by a candidate parent
 				return chosenParentsFCProgress, candidateParentsFCProgress
 			}
@@ -161,7 +161,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, ch
 	}
 
 	// calculate forkless causing using the indexes
-	branchIDs := vi.Engine.BranchesInfo().BranchIDCreatorIdxs
+	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := idx.Validator(branchIDint)
 

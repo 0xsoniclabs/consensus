@@ -1,7 +1,8 @@
-package vecfc
+package vecengine
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecflushable"
 	"io/ioutil"
 	"testing"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
-	"github.com/0xsoniclabs/consensus/vecengine/vecflushable"
 )
 
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {
@@ -74,7 +74,7 @@ func benchmark_Index_Add(b *testing.B, dbProducer func() kvdb.FlushableKVStore) 
 	i := 0
 	for {
 		b.StopTimer()
-		vecClock := NewIndex(func(err error) { panic(err) }, LiteConfig())
+		vecClock := NewIndex(func(err error) { panic(err) }, LiteConfig(), GetEngineCallbacks)
 		vecClock.Reset(validators, dbProducer(), getEvent)
 		b.StartTimer()
 		for _, e := range ordered {

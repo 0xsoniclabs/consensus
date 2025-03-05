@@ -1,7 +1,8 @@
-package vecfc
+package vecengine
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecflushable"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
-	"github.com/0xsoniclabs/consensus/vecengine/vecflushable"
 )
 
 func tCrit(err error) { panic(err) }
@@ -66,7 +66,7 @@ func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 		}()
 	}
 
-	vi := NewIndex(tCrit, LiteConfig())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(db, 10000000), getEvent)
 
 	tdag.ForEachRandEvent(nodes, 10, 2, nil, tdag.ForEachEvent{
@@ -157,7 +157,7 @@ func testForklessCaused(t *testing.T, dagAscii string) {
 		return events[id]
 	}
 
-	vi := NewIndex(tCrit, LiteConfig())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 	_, _, named := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
@@ -500,7 +500,7 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 		return events[id]
 	}
 
-	vi := NewIndex(tCrit, LiteConfig())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(dbProducer(), vecflushable.TestSizeLimit), getEvent)
 
 	// push
@@ -534,7 +534,7 @@ type eventSlot struct {
 }
 
 // naive implementation of fork detection, O(n)
-func testForksDetected(vi *Index, head dag.Event) (cheaters map[idx.ValidatorID]bool, err error) {
+func testForksDetected(vi *Engine, head dag.Event) (cheaters map[idx.ValidatorID]bool, err error) {
 	cheaters = map[idx.ValidatorID]bool{}
 	visited := hash.EventsSet{}
 	detected := map[eventSlot]int{}
@@ -582,7 +582,7 @@ func TestRandomForksSanity(t *testing.T) {
 		return processed[id]
 	}
 
-	vi := NewIndex(tCrit, LiteConfig())
+	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 	// Many forks from each node in large graph, so probability of not seeing a fork is negligible
@@ -607,7 +607,7 @@ func TestRandomForksSanity(t *testing.T) {
 	idxs := validatorsBuilder.Build().Idxs()
 	for _, node := range nodes {
 		ee := events[node]
-		highestBefore := vi.GetMergedHighestBefore(ee[len(ee)-1].ID())
+		highestBefore := vi.GetMergedHighestBefore(ee[len(ee)-1].ID()).(*HighestBeforeSeq)
 		for n, cheater := range nodes {
 			branchSeq := highestBefore.Get(idxs[cheater])
 			isCheater := n < len(cheaters)
@@ -709,7 +709,7 @@ func TestRandomForks(t *testing.T) {
 				return processed[id]
 			}
 
-			vi := NewIndex(tCrit, LiteConfig())
+			vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 			vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 			_ = tdag.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, tdag.ForEachEvent{
