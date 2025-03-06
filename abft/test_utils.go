@@ -73,14 +73,7 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 			validators[v] = weights[i]
 		}
 	}
-
-	openEDB := func(epoch idx.Epoch) kvdb.Store {
-		return memorydb.New()
-	}
-	crit := func(err error) {
-		panic(err)
-	}
-	store := NewStore(memorydb.New(), openEDB, crit, LiteStoreConfig())
+	store := NewLiteStore()
 
 	err := store.ApplyGenesis(&Genesis{
 		Validators: validators.Build(),
@@ -93,6 +86,9 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 	input := NewEventStore()
 
 	config := LiteConfig()
+	crit := func(err error) {
+		panic(err)
+	}
 	dagIndexer := &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks)}
 	lch := NewIndexedLachesis(store, input, dagIndexer, crit, config)
 
@@ -179,4 +175,14 @@ func (s *EventStore) GetEvent(h hash.Event) dag.Event {
 func (s *EventStore) HasEvent(h hash.Event) bool {
 	_, ok := s.db[h]
 	return ok
+}
+
+func NewLiteStore() *Store {
+	openEDB := func(epoch idx.Epoch) kvdb.Store {
+		return memorydb.New()
+	}
+	crit := func(err error) {
+		panic(err)
+	}
+	return NewStore(memorydb.New(), openEDB, crit, LiteStoreConfig())
 }
