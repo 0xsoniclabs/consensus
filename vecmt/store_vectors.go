@@ -1,0 +1,85 @@
+package vecmt
+
+import (
+	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/kvdb"
+)
+
+func (vi *Index) getBytes(table kvdb.Store, id hash.Event) []byte {
+	key := id.Bytes()
+	b, err := table.Get(key)
+	if err != nil {
+		vi.crit(err)
+	}
+	return b
+}
+
+func (vi *Index) setBytes(table kvdb.Store, id hash.Event, b []byte) {
+	key := id.Bytes()
+	err := table.Put(key, b)
+	if err != nil {
+		vi.crit(err)
+	}
+}
+
+// GetHighestBefore reads the vector from DB
+func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
+	var vSeq *HighestBeforeSeq
+	if vSeqVal, ok := vi.cache.HighestBeforeSeq.Get(id); ok {
+		vSeq = vSeqVal.(*HighestBeforeSeq) // Assertion needed because of raw bytes.
+	} else {
+		temp := HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
+		vSeq = &temp
+	}
+
+	var vTime *HighestBeforeTime
+	if vTimeVal, ok := vi.cache.HighestBeforeTime.Get(id); ok {
+		vTime = vTimeVal.(*HighestBeforeTime) // Assertion needed because of raw bytes.
+	} else {
+		temp := HighestBeforeTime(vi.getBytes(vi.table.HighestBeforeTime, id))
+		vTime = &temp
+		if vTime != nil {
+			vi.cache.HighestBeforeTime.Add(id, &vTime, uint(len(*vTime)))
+		}
+	}
+
+	vi.cache.HighestBeforeSeq.Add(id, vSeq, uint(len(*vSeq)))
+	return &HighestBefore{
+		VSeq:  vSeq,
+		VTime: vTime,
+	}
+}
+
+// GetLowestAfter reads the vector from DB
+func (vi *Index) GetLowestAfter(id hash.Event) *LowestAfter {
+	if bVal, okGet := vi.cache.LowestAfterSeq.Get(id); okGet {
+		return bVal.(*LowestAfter) // Cast needed because simplewlru uses raw interface{}.
+	}
+
+	b := LowestAfter(vi.getBytes(vi.table.LowestAfterSeq, id))
+	if b == nil {
+		return nil
+	}
+	vi.cache.LowestAfterSeq.Add(id, &b, uint(len(b)))
+	return &b
+}
+
+// SetHighestBefore stores the vectors into DB
+func (vi *Index) SetHighestBefore(id hash.Event, vec *HighestBefore) {
+	vi.setBytes(vi.table.HighestBeforeTime, id, *vec.VTime)
+	vi.cache.HighestBeforeTime.Add(id, vec.VTime, uint(len(*vec.VTime)))
+	vi.setBytes(vi.table.HighestBeforeSeq, id, *vec.VSeq)
+	vi.cache.HighestBeforeSeq.Add(id, vec.VSeq, uint(len(*vec.VSeq)))
+}
+
+// SetLowestAfter stores the vector into DB
+func (vi *Index) SetLowestAfter(id hash.Event, seq *LowestAfterSeq) {
+	vi.setBytes(vi.table.LowestAfterSeq, id, *seq)
+	vi.cache.LowestAfterSeq.Add(id, seq, uint(len(*seq)))
+}
+
+func (vi *Index) OnDropNotFlushed() {
+	vi.cache.HighestBeforeSeq.Purge()
+	vi.cache.LowestAfterSeq.Purge()
+	vi.cache.HighestBeforeTime.Purge()
+}

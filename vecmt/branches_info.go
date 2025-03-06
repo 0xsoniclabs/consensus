@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package vecengine
+package vecmt
 
 import (
 	"github.com/0xsoniclabs/consensus/inter/idx"
@@ -23,13 +23,13 @@ type BranchesInfo struct {
 }
 
 // InitBranchesInfo loads BranchesInfo from store
-func (vi *Engine) InitBranchesInfo() {
-	if vi.bi == nil {
+func (vi *Index) InitBranchesInfo() {
+	if vi.branchesInfo == nil {
 		// if not cached
-		vi.bi = vi.getBranchesInfo()
-		if vi.bi == nil {
+		vi.branchesInfo = vi.getBranchesInfo()
+		if vi.branchesInfo == nil {
 			// first run
-			vi.bi = newInitialBranchesInfo(vi.validators)
+			vi.branchesInfo = newInitialBranchesInfo(vi.validators)
 		}
 	}
 }
@@ -54,10 +54,10 @@ func newInitialBranchesInfo(validators *pos.Validators) *BranchesInfo {
 	}
 }
 
-func (vi *Engine) AtLeastOneFork() bool {
-	return idx.Validator(len(vi.bi.BranchIDCreatorIdxs)) > vi.validators.Len()
+func (vi *Index) AtLeastOneFork() bool {
+	return idx.Validator(len(vi.branchesInfo.BranchIDCreatorIdxs)) > vi.validators.Len()
 }
 
-func (vi *Engine) BranchesInfo() *BranchesInfo {
-	return vi.bi
+func (vi *Index) BranchesInfo() *BranchesInfo {
+	return vi.branchesInfo
 }

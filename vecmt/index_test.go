@@ -1,31 +1,19 @@
-// Copyright (c) 2025 Fantom Foundation
-//
-// Use of this software is governed by the Business Source License included
-// in the LICENSE file and at fantom.foundation/bsl11.
-//
-// Change Date: 2028-4-16
-//
-// On the date above, in accordance with the Business Source License, use of
-// this software will be governed by the GNU Lesser General Public License v3.
-
-package vecengine
+package vecmt
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb/flushable"
+	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
+	"github.com/0xsoniclabs/consensus/vecflushable"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"io/ioutil"
 	"testing"
-
-	"github.com/0xsoniclabs/consensus/vecflushable"
-
-	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/consensus/kvdb"
-	"github.com/0xsoniclabs/consensus/kvdb/flushable"
-	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 )
 
@@ -85,7 +73,7 @@ func benchmark_Index_Add(b *testing.B, dbProducer func() kvdb.FlushableKVStore) 
 	i := 0
 	for {
 		b.StopTimer()
-		vecClock := NewIndex(func(err error) { panic(err) }, LiteConfig(), GetEngineCallbacks)
+		vecClock := NewIndex(func(err error) { panic(err) }, LiteConfig())
 		vecClock.Reset(validators, dbProducer(), getEvent)
 		b.StartTimer()
 		for _, e := range ordered {
@@ -113,4 +101,74 @@ func tempLevelDB() (kvdb.Store, error) {
 	disk := leveldb.NewProducer(dir, cache16mb)
 	ldb, _ := disk.OpenDB("0")
 	return ldb, nil
+}
+
+var (
+	testASCIIScheme = `
+a1.0   b1.0   c1.0   d1.0   e1.0
+║      ║      ║      ║      ║
+║      ╠──────╫───── d2.0   ║
+║      ║      ║      ║      ║
+║      b2.1 ──╫──────╣      e2.1
+║      ║      ║      ║      ║
+║      ╠──────╫───── d3.1   ║
+a2.1 ──╣      ║      ║      ║
+║      ║      ║      ║      ║
+║      b3.2 ──╣      ║      ║
+║      ║      ║      ║      ║
+║      ╠──────╫───── d4.2   ║
+║      ║      ║      ║      ║
+║      ╠───── c2.2   ║      e3.2
+║      ║      ║      ║      ║
+`
+)
+
+type eventWithCreationTime struct {
+	dag.Event
+	creationTime Timestamp
+}
+
+func (e *eventWithCreationTime) CreationTime() Timestamp {
+	return e.creationTime
+}
+
+func BenchmarkIndex_Add(b *testing.B) {
+	b.StopTimer()
+	ordered := make(dag.Events, 0)
+	nodes, _, _ := tdag.ASCIIschemeForEach(testASCIIScheme, tdag.ForEachEvent{
+		Process: func(e dag.Event, name string) {
+			ordered = append(ordered, e)
+		},
+	})
+	validatorsBuilder := pos.NewBuilder()
+	for _, peer := range nodes {
+		validatorsBuilder.Set(peer, 1)
+	}
+	validators := validatorsBuilder.Build()
+	events := make(map[hash.Event]dag.Event)
+	getEvent := func(id hash.Event) dag.Event {
+		return events[id]
+	}
+	for _, e := range ordered {
+		events[e.ID()] = e
+	}
+
+	vecClock := NewIndex(func(err error) { panic(err) }, LiteConfig())
+	vecClock.Reset(validators, memorydb.New(), getEvent)
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		vecClock.Reset(validators, memorydb.New(), getEvent)
+		b.StartTimer()
+		for _, e := range ordered {
+			err := vecClock.Add(&eventWithCreationTime{e, Timestamp(e.Seq())})
+			if err != nil {
+				panic(err)
+			}
+			i++
+			if i >= b.N {
+				break
+			}
+		}
+	}
 }

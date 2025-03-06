@@ -1,43 +1,11 @@
-// Copyright (c) 2025 Fantom Foundation
-//
-// Use of this software is governed by the Business Source License included
-// in the LICENSE file and at fantom.foundation/bsl11.
-//
-// Change Date: 2028-4-16
-//
-// On the date above, in accordance with the Business Source License, use of
-// this software will be governed by the GNU Lesser General Public License v3.
-
-package vecengine
+package vecmt
 
 import (
 	"encoding/binary"
 	"math"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 )
-
-type LowestAfterI interface {
-	InitWithEvent(i idx.Validator, e dag.Event)
-	Visit(i idx.Validator, e dag.Event) bool
-}
-
-type HighestBeforeI interface {
-	InitWithEvent(i idx.Validator, e dag.Event)
-	IsEmpty(i idx.Validator) bool
-	IsForkDetected(i idx.Validator) bool
-	Seq(i idx.Validator) idx.Event
-	MinSeq(i idx.Validator) idx.Event
-	SetForkDetected(i idx.Validator)
-	CollectFrom(other HighestBeforeI, branches idx.Validator)
-	GatherFrom(to idx.Validator, other HighestBeforeI, from []idx.Validator)
-}
-
-type allVecs struct {
-	after  LowestAfterI
-	before HighestBeforeI
-}
 
 /*
  * Use binary form for optimization, to avoid serialization. As a result, DB cache works as elements cache.
@@ -66,6 +34,33 @@ func NewLowestAfterSeq(size idx.Validator) *LowestAfterSeq {
 func NewHighestBeforeSeq(size idx.Validator) *HighestBeforeSeq {
 	b := make(HighestBeforeSeq, size*8)
 	return &b
+}
+
+type (
+	// HighestBeforeTime is a vector of highest events (their CreationTime) which are observed by source event
+	HighestBeforeTime []byte
+
+	HighestBefore struct {
+		VSeq  *HighestBeforeSeq
+		VTime *HighestBeforeTime
+	}
+
+	LowestAfter = LowestAfterSeq
+)
+
+// NewHighestBefore creates new HighestBefore vector.
+func NewHighestBefore(size idx.Validator) *HighestBefore {
+	vSeq := make(HighestBeforeSeq, size*8)
+	vTime := make(HighestBeforeTime, size*8)
+	return &HighestBefore{
+		VSeq:  &vSeq,
+		VTime: &vTime,
+	}
+}
+
+type allVecs struct {
+	after  *LowestAfter
+	before *HighestBefore
 }
 
 // Get i's position in the byte-encoded vector clock
@@ -131,4 +126,26 @@ var (
 // IsForkDetected returns true if observed fork by a creator (in combination of branches)
 func (seq BranchSeq) IsForkDetected() bool {
 	return seq == forkDetectedSeq
+}
+
+// Get i's position in the byte-encoded vector clock
+func (b HighestBeforeTime) Get(i idx.Validator) Timestamp {
+	for i >= b.Size() {
+		return 0
+	}
+	return Timestamp(binary.LittleEndian.Uint64(b[i*8 : (i+1)*8]))
+}
+
+// Set i's position in the byte-encoded vector clock
+func (b *HighestBeforeTime) Set(i idx.Validator, time Timestamp) {
+	for i >= b.Size() {
+		// append zeros if exceeds size
+		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
+	}
+	binary.LittleEndian.PutUint64((*b)[i*8:(i+1)*8], uint64(time))
+}
+
+// Size of the vector clock
+func (b HighestBeforeTime) Size() idx.Validator {
+	return idx.Validator(len(b) / 8)
 }

@@ -12,11 +12,10 @@ package abft
 
 import (
 	"errors"
+	"github.com/0xsoniclabs/consensus/vecmt"
 	"math"
 	"math/rand"
 	"testing"
-
-	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/stretchr/testify/assert"
 
@@ -194,7 +193,7 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 				return memorydb.New()
 			}
 
-			restored := NewIndexedLachesis(store, prev.Input, &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(prev.crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks)}, prev.crit, prev.config)
+			restored := NewIndexedLachesis(store, prev.Input, &adapters.VectorToDagIndexer{Index: vecmt.NewIndex(prev.crit, vecmt.LiteConfig())}, prev.crit, prev.config)
 			assertar.NoError(restored.Bootstrap(prev.callback))
 
 			lchs[RESTORED].IndexedLachesis = restored

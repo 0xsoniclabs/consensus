@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package vecengine
+package vecmt
 
 import (
 	"errors"
@@ -20,7 +20,7 @@ import (
 // DfsSubgraph iterates all the event which are observed by head, and accepted by a filter
 // Excluding head
 // filter MAY BE called twice for the same event.
-func (vi *Engine) DfsSubgraph(head dag.Event, walk func(hash.Event) (godeeper bool)) error {
+func (vi *Index) DfsSubgraph(head dag.Event, walk func(hash.Event) (godeeper bool)) error {
 	stack := make(hash.EventsStack, 0, vi.validators.Len()*5)
 
 	// first element

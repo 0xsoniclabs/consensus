@@ -8,11 +8,10 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package vecengine
+package vecmt
 
 import (
 	"fmt"
-
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
@@ -36,7 +35,7 @@ type kv struct {
 // unless more than 1/3W are Byzantine.
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
-func (vi *Engine) ForklessCause(aID, bID hash.Event) bool {
+func (vi *Index) ForklessCause(aID, bID hash.Event) bool {
 	if res, ok := vi.cache.ForklessCause.Get(kv{aID, bID}); ok {
 		return res.(bool)
 	}
@@ -48,9 +47,9 @@ func (vi *Engine) ForklessCause(aID, bID hash.Event) bool {
 	return res
 }
 
-func (vi *Engine) forklessCause(aID, bID hash.Event) bool {
+func (vi *Index) forklessCause(aID, bID hash.Event) bool {
 	// Get events by hash
-	a := vi.GetHighestBefore(aID)
+	a := vi.GetHighestBefore(aID).VSeq
 	if a == nil {
 		vi.crit(fmt.Errorf("Event A=%s not found", aID.String()))
 		return false
@@ -92,7 +91,7 @@ func (vi *Engine) forklessCause(aID, bID hash.Event) bool {
 	return yes.HasQuorum()
 }
 
-func (vi *Engine) ForklessCauseProgress(aID, bID hash.Event, candidateParents, chosenParents hash.Events) (*pos.WeightCounter, []*pos.WeightCounter) {
+func (vi *Index) ForklessCauseProgress(aID, bID hash.Event, candidateParents, chosenParents hash.Events) (*pos.WeightCounter, []*pos.WeightCounter) {
 	// This function is used to determine progress of event bID in forkless causing aID.
 	// It may be used to determine progress toward the forkless cause condition for an event not in vi, but whose parents are in vi.
 	// To do so, aID should be the self-parent while chosenParents should be the parents of the not-yet-created event.
@@ -112,7 +111,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID hash.Event, candidateParents, c
 	chosenParentsFCProgress := vi.validators.NewCounter() // initialise the counter for chosen parents only
 
 	// Get events by hash
-	aHB := vi.GetHighestBefore(aID)
+	aHB := vi.GetHighestBefore(aID).VSeq
 	if aHB == nil {
 		vi.crit(fmt.Errorf("Event A=%s not found", aID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
@@ -120,7 +119,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID hash.Event, candidateParents, c
 
 	candidateParentsHB := make([]*HighestBeforeSeq, len(candidateParents))
 	for i, _ := range candidateParents {
-		candidateParentsHB[i] = vi.GetHighestBefore(candidateParents[i])
+		candidateParentsHB[i] = vi.GetHighestBefore(candidateParents[i]).VSeq
 		if candidateParentsHB[i] == nil {
 			vi.crit(fmt.Errorf("Candidate parent=%s not found", candidateParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
@@ -129,7 +128,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID hash.Event, candidateParents, c
 
 	chosenParentsHB := make([]*HighestBeforeSeq, len(chosenParents))
 	for i, _ := range chosenParents {
-		chosenParentsHB[i] = vi.GetHighestBefore(chosenParents[i])
+		chosenParentsHB[i] = vi.GetHighestBefore(chosenParents[i]).VSeq
 		if chosenParentsHB[i] == nil {
 			vi.crit(fmt.Errorf("Chosen parent=%s not found", chosenParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress

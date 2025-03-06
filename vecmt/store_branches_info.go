@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package vecengine
+package vecmt
 
 import (
 	"errors"
@@ -20,7 +20,7 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
-func (vi *Engine) setRlp(table kvdb.Store, key []byte, val interface{}) {
+func (vi *Index) setRlp(table kvdb.Store, key []byte, val interface{}) {
 	buf, err := rlp.EncodeToBytes(val)
 	if err != nil {
 		vi.crit(err)
@@ -31,7 +31,7 @@ func (vi *Engine) setRlp(table kvdb.Store, key []byte, val interface{}) {
 	}
 }
 
-func (vi *Engine) getRlp(table kvdb.Store, key []byte, to interface{}) interface{} {
+func (vi *Index) getRlp(table kvdb.Store, key []byte, to interface{}) interface{} {
 	buf, err := table.Get(key)
 	if err != nil {
 		vi.crit(err)
@@ -47,13 +47,13 @@ func (vi *Engine) getRlp(table kvdb.Store, key []byte, to interface{}) interface
 	return to
 }
 
-func (vi *Engine) setBranchesInfo(info *BranchesInfo) {
+func (vi *Index) setBranchesInfo(info *BranchesInfo) {
 	key := []byte("c")
 
 	vi.setRlp(vi.table.BranchesInfo, key, info)
 }
 
-func (vi *Engine) getBranchesInfo() *BranchesInfo {
+func (vi *Index) getBranchesInfo() *BranchesInfo {
 	key := []byte("c")
 
 	w, exists := vi.getRlp(vi.table.BranchesInfo, key, &BranchesInfo{}).(*BranchesInfo)
@@ -65,12 +65,12 @@ func (vi *Engine) getBranchesInfo() *BranchesInfo {
 }
 
 // SetEventBranchID stores the event's global branch ID
-func (vi *Engine) SetEventBranchID(id hash.Event, branchID idx.Validator) {
+func (vi *Index) SetEventBranchID(id hash.Event, branchID idx.Validator) {
 	vi.setBytes(vi.table.EventBranch, id, branchID.Bytes())
 }
 
 // GetEventBranchID reads the event's global branch ID
-func (vi *Engine) GetEventBranchID(id hash.Event) idx.Validator {
+func (vi *Index) GetEventBranchID(id hash.Event) idx.Validator {
 	b := vi.getBytes(vi.table.EventBranch, id)
 	if b == nil {
 		vi.crit(errors.New("failed to read event's branch ID (inconsistent DB)"))
