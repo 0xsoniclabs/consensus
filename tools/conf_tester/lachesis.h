@@ -1,28 +1,12 @@
-/////////////////////////////////////////////////////////////////////////////
-// Consensus Simulator (Research Prototype)
-/////////////////////////////////////////////////////////////////////////////
-// (c) 2024 Sonic Labs / Sonic Research
-/////////////////////////////////////////////////////////////////////////////
-// A simple simulator for the Lachesis protocol that assumes correct
-// validators only.
-// The network is perfect and the transfer of events to other nodes
-// can be controlled precisely to simulate potential time delays
-// for sending/receiving events.
-// The output contain events in the simulation that can be used as an input
-// tracer for a subsequent run.
+// Copyright (c) 2025 Fantom Foundation
 //
-// There are two types of simulation events:
-//   1) Creation of a new event in a processor
-//      C <pid> <parent-pid> ....
-//   2) Receive the next event from a sender/creator of the event
-//      R <received-pid> <sender-pid>
-// A trace is initialised with
-//      N <number-of-processor> <stake1> <stake2> ... <stake n>
-// The output of the simulation is written as dot files.
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at fantom.foundation/bsl11.
 //
-// The C++ code is written in a style so that it can be converted to a TLA+
-// model at a later stage.
-/////////////////////////////////////////////////////////////////////////////
+// Change Date: 2028-4-16
+//
+// On the date above, in accordance with the Business Source License, use of
+// this software will be governed by the GNU Lesser General Public License v3.
 
 #pragma once
 
