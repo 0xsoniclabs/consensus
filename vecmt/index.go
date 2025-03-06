@@ -31,7 +31,6 @@ type IndexConfig struct {
 // Index is a data to detect forkless-cause condition, calculate median timestamp, detect forks.
 type Index struct {
 	*vecengine.Engine
-	baseCallbacks vecengine.Callbacks
 
 	crit          func(error)
 	validators    *pos.Validators
@@ -81,7 +80,6 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 	engine := vecengine.NewIndex(crit, config.Fc, func(e *vecengine.Engine) vecengine.Callbacks { return vi.GetEngineCallbacks() })
 
 	vi.Engine = engine
-	vi.baseCallbacks = vecengine.GetEngineCallbacks(vi.Engine)
 	vi.initCaches()
 
 	return vi
@@ -118,22 +116,22 @@ func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
 			return vi.GetHighestBefore(event)
 		},
 		GetLowestAfter: func(event hash.Event) vecengine.LowestAfterI {
-			return vi.baseCallbacks.GetLowestAfter(event)
+			return vecengine.GetEngineCallbacks(vi.Engine).GetLowestAfter(event)
 		},
 		SetHighestBefore: func(event hash.Event, b vecengine.HighestBeforeI) {
 			vi.SetHighestBefore(event, b.(*HighestBefore))
 		},
 		SetLowestAfter: func(event hash.Event, i vecengine.LowestAfterI) {
-			vi.baseCallbacks.SetLowestAfter(event, i)
+			vecengine.GetEngineCallbacks(vi.Engine).SetLowestAfter(event, i)
 		},
 		NewHighestBefore: func(size idx.Validator) vecengine.HighestBeforeI {
 			return NewHighestBefore(size)
 		},
 		NewLowestAfter: func(size idx.Validator) vecengine.LowestAfterI {
-			return vi.baseCallbacks.NewLowestAfter(size)
+			return vecengine.GetEngineCallbacks(vi.Engine).NewLowestAfter(size)
 		},
 		OnDropNotFlushed: func() {
-			vi.baseCallbacks.OnDropNotFlushed()
+			vecengine.GetEngineCallbacks(vi.Engine).OnDropNotFlushed()
 			vi.onDropNotFlushed()
 		},
 	}
