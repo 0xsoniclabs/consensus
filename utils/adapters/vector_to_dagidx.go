@@ -13,15 +13,15 @@ package adapters
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/dagidx"
-	"github.com/0xsoniclabs/consensus/vecengine"
+	"github.com/0xsoniclabs/consensus/dagindexer"
 )
 
 type VectorSeqToDagIndexSeq struct {
-	*vecengine.HighestBeforeSeq
+	*dagindexer.HighestBeforeSeq
 }
 
 type BranchSeq struct {
-	vecengine.BranchSeq
+	dagindexer.BranchSeq
 }
 
 // Seq is a maximum observed e.Seq in the branch
@@ -41,9 +41,9 @@ func (b VectorSeqToDagIndexSeq) Get(i consensus.ValidatorIndex) dagidx.Seq {
 }
 
 type VectorToDagIndexer struct {
-	*vecengine.Engine
+	*dagindexer.Index
 }
 
 func (v *VectorToDagIndexer) GetMergedHighestBefore(id consensus.EventHash) dagidx.HighestBeforeSeq {
-	return VectorSeqToDagIndexSeq{v.Engine.GetMergedHighestBefore(id).(*vecengine.HighestBeforeSeq)}
+	return VectorSeqToDagIndexSeq{v.Index.GetMergedHighestBefore(id).VSeq}
 }

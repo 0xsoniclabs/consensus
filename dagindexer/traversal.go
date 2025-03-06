@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package vecengine
+package dagindexer
 
 import (
 	"errors"
@@ -19,7 +19,7 @@ import (
 // DfsSubgraph iterates all the event which are observed by head, and accepted by a filter
 // Excluding head
 // filter MAY BE called twice for the same event.
-func (vi *Engine) DfsSubgraph(head consensus.Event, walk func(consensus.EventHash) (godeeper bool)) error {
+func (vi *Index) DfsSubgraph(head consensus.Event, walk func(consensus.EventHash) (godeeper bool)) error {
 	stack := make(consensus.EventHashStack, 0, vi.validators.Len()*5)
 
 	// first element

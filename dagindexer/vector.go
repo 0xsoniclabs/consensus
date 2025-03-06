@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package vecengine
+package dagindexer
 
 import (
 	"encoding/binary"
@@ -16,27 +16,6 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 )
-
-type LowestAfterI interface {
-	InitWithEvent(i consensus.ValidatorIndex, e consensus.Event)
-	Visit(i consensus.ValidatorIndex, e consensus.Event) bool
-}
-
-type HighestBeforeI interface {
-	InitWithEvent(i consensus.ValidatorIndex, e consensus.Event)
-	IsEmpty(i consensus.ValidatorIndex) bool
-	IsForkDetected(i consensus.ValidatorIndex) bool
-	Seq(i consensus.ValidatorIndex) consensus.Seq
-	MinSeq(i consensus.ValidatorIndex) consensus.Seq
-	SetForkDetected(i consensus.ValidatorIndex)
-	CollectFrom(other HighestBeforeI, branches consensus.ValidatorIndex)
-	GatherFrom(to consensus.ValidatorIndex, other HighestBeforeI, from []consensus.ValidatorIndex)
-}
-
-type allVecs struct {
-	after  LowestAfterI
-	before HighestBeforeI
-}
 
 /*
  * Use binary form for optimization, to avoid serialization. As a result, DB cache works as elements cache.
@@ -65,6 +44,33 @@ func NewLowestAfterSeq(size consensus.ValidatorIndex) *LowestAfterSeq {
 func NewHighestBeforeSeq(size consensus.ValidatorIndex) *HighestBeforeSeq {
 	b := make(HighestBeforeSeq, size*8)
 	return &b
+}
+
+type (
+	// HighestBeforeTime is a vector of highest events (their CreationTime) which are observed by source event
+	HighestBeforeTime []byte
+
+	HighestBefore struct {
+		VSeq  *HighestBeforeSeq
+		VTime *HighestBeforeTime
+	}
+
+	LowestAfter = LowestAfterSeq
+)
+
+// NewHighestBefore creates new HighestBefore vector.
+func NewHighestBefore(size idx.Validator) *HighestBefore {
+	vSeq := make(HighestBeforeSeq, size*8)
+	vTime := make(HighestBeforeTime, size*8)
+	return &HighestBefore{
+		VSeq:  &vSeq,
+		VTime: &vTime,
+	}
+}
+
+type allVecs struct {
+	after  *LowestAfter
+	before *HighestBefore
 }
 
 // Get i's position in the byte-encoded vector clock
@@ -130,4 +136,26 @@ var (
 // IsForkDetected returns true if observed fork by a creator (in combination of branches)
 func (seq BranchSeq) IsForkDetected() bool {
 	return seq == forkDetectedSeq
+}
+
+// Get i's position in the byte-encoded vector clock
+func (b HighestBeforeTime) Get(i consensus.ValidatorIndex) Timestamp {
+	for i >= b.Size() {
+		return 0
+	}
+	return Timestamp(binary.LittleEndian.Uint64(b[i*8 : (i+1)*8]))
+}
+
+// Set i's position in the byte-encoded vector clock
+func (b *HighestBeforeTime) Set(i consensus.ValidatorIndex, time Timestamp) {
+	for i >= b.Size() {
+		// append zeros if exceeds size
+		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
+	}
+	binary.LittleEndian.PutUint64((*b)[i*8:(i+1)*8], uint64(time))
+}
+
+// Size of the vector clock
+func (b HighestBeforeTime) Size() consensus.ValidatorIndex {
+	return consensus.ValidatorIndex(len(b) / 8)
 }
