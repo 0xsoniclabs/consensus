@@ -13,6 +13,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
+// Lamport timestamp
+type Timestamp = uint64
+
 // IndexCacheConfig - config for cache sizes of Engine
 type IndexCacheConfig struct {
 	HighestBeforeTimeSize uint

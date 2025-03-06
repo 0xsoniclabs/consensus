@@ -8,8 +8,6 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
 	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
-
-	"github.com/0xsoniclabs/sonic/inter"
 )
 
 var (
@@ -34,10 +32,10 @@ a2.1 ──╣      ║      ║      ║
 
 type eventWithCreationTime struct {
 	dag.Event
-	creationTime inter.Timestamp
+	creationTime Timestamp
 }
 
-func (e *eventWithCreationTime) CreationTime() inter.Timestamp {
+func (e *eventWithCreationTime) CreationTime() Timestamp {
 	return e.creationTime
 }
 
@@ -70,7 +68,7 @@ func BenchmarkIndex_Add(b *testing.B) {
 		vecClock.Reset(validators, memorydb.New(), getEvent)
 		b.StartTimer()
 		for _, e := range ordered {
-			err := vecClock.Add(&eventWithCreationTime{e, inter.Timestamp(e.Seq())})
+			err := vecClock.Add(&eventWithCreationTime{e, Timestamp(e.Seq())})
 			if err != nil {
 				panic(err)
 			}

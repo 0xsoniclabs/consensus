@@ -7,18 +7,16 @@ import (
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-
-	"github.com/0xsoniclabs/sonic/inter"
 )
 
 // medianTimeIndex is a handy index for the MedianTime() func
 type medianTimeIndex struct {
 	weight       pos.Weight
-	creationTime inter.Timestamp
+	creationTime Timestamp
 }
 
 // MedianTime calculates weighted median of claimed time within highest observed events.
-func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Timestamp {
+func (vi *Index) MedianTime(id hash.Event, defaultTime Timestamp) Timestamp {
 	vi.Engine.InitBranchesInfo()
 	// Get event by hash
 	before := vi.GetMergedHighestBefore(id)
@@ -59,7 +57,7 @@ func (vi *Index) MedianTime(id hash.Event, defaultTime inter.Timestamp) inter.Ti
 	// Calculate weighted median
 	halfWeight := honestTotalWeight / 2
 	var currWeight pos.Weight
-	var median inter.Timestamp
+	var median Timestamp
 	for _, highest := range highests {
 		currWeight += highest.weight
 		if currWeight >= halfWeight {

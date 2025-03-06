@@ -12,8 +12,6 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
 	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
-
-	"github.com/0xsoniclabs/sonic/inter"
 )
 
 func TestMedianTimeOnIndex(t *testing.T) {
@@ -46,7 +44,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 		before.VTime.Set(4, 10)
 
 		vi.SetHighestBefore(e, before)
-		assertar.Equal(inter.Timestamp(1), vi.MedianTime(e, 1))
+		assertar.Equal(Timestamp(1), vi.MedianTime(e, 1))
 	}
 
 	{ // fork seen = true
@@ -70,7 +68,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 		before.VTime.Set(4, 10)
 
 		vi.SetHighestBefore(e, before)
-		assertar.Equal(inter.Timestamp(10), vi.MedianTime(e, 1))
+		assertar.Equal(Timestamp(10), vi.MedianTime(e, 1))
 	}
 
 	{ // normal
@@ -94,7 +92,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 		before.VTime.Set(4, 15)
 
 		vi.SetHighestBefore(e, before)
-		assertar.Equal(inter.Timestamp(12), vi.MedianTime(e, 1))
+		assertar.Equal(Timestamp(12), vi.MedianTime(e, 1))
 	}
 
 }
@@ -124,37 +122,37 @@ func TestMedianTimeOnDAG(t *testing.T) {
 `
 
 	weights := []pos.Weight{3, 4, 2, 1}
-	genesisTime := inter.Timestamp(1)
-	creationTimes := map[string]inter.Timestamp{
-		"nodeA001": inter.Timestamp(111),
-		"nodeB001": inter.Timestamp(112),
-		"nodeC001": inter.Timestamp(13),
-		"nodeD001": inter.Timestamp(14),
-		"nodeA002": inter.Timestamp(120),
-		"nodeD002": inter.Timestamp(20),
-		"nodeA012": inter.Timestamp(120),
-		"nodeA003": inter.Timestamp(20),
-		"nodeB002": inter.Timestamp(20),
-		"nodeC002": inter.Timestamp(35),
+	genesisTime := Timestamp(1)
+	creationTimes := map[string]Timestamp{
+		"nodeA001": Timestamp(111),
+		"nodeB001": Timestamp(112),
+		"nodeC001": Timestamp(13),
+		"nodeD001": Timestamp(14),
+		"nodeA002": Timestamp(120),
+		"nodeD002": Timestamp(20),
+		"nodeA012": Timestamp(120),
+		"nodeA003": Timestamp(20),
+		"nodeB002": Timestamp(20),
+		"nodeC002": Timestamp(35),
 	}
-	medianTimes := map[string]inter.Timestamp{
+	medianTimes := map[string]Timestamp{
 		"nodeA001": genesisTime,
 		"nodeB001": genesisTime,
-		"nodeC001": inter.Timestamp(13),
+		"nodeC001": Timestamp(13),
 		"nodeD001": genesisTime,
-		"nodeA002": inter.Timestamp(112),
+		"nodeA002": Timestamp(112),
 		"nodeD002": genesisTime,
 		"nodeA012": genesisTime,
-		"nodeA003": inter.Timestamp(20),
-		"nodeB002": inter.Timestamp(20),
-		"nodeC002": inter.Timestamp(35),
+		"nodeA003": Timestamp(20),
+		"nodeB002": Timestamp(20),
+		"nodeC002": Timestamp(35),
 	}
 	t.Run("testMedianTimeOnDAG", func(t *testing.T) {
 		testMedianTime(t, dagAscii, weights, creationTimes, medianTimes, genesisTime)
 	})
 }
 
-func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]inter.Timestamp, medianTimes map[string]inter.Timestamp, genesis inter.Timestamp) {
+func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]Timestamp, medianTimes map[string]Timestamp, genesis Timestamp) {
 	assertar := assert.New(t)
 
 	var ordered dag.Events
