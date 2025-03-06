@@ -13,7 +13,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-// Lamport timestamp
+// UNIX nanoseconds timestamp
 type Timestamp = uint64
 
 // IndexCacheConfig - config for cache sizes of Engine
