@@ -5,8 +5,6 @@ import (
 
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/vecengine"
-
-	"github.com/0xsoniclabs/sonic/inter"
 )
 
 /*
@@ -38,15 +36,15 @@ func NewHighestBeforeTime(size idx.Validator) *HighestBeforeTime {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b HighestBeforeTime) Get(i idx.Validator) inter.Timestamp {
+func (b HighestBeforeTime) Get(i idx.Validator) Timestamp {
 	for i >= b.Size() {
 		return 0
 	}
-	return inter.Timestamp(binary.LittleEndian.Uint64(b[i*8 : (i+1)*8]))
+	return Timestamp(binary.LittleEndian.Uint64(b[i*8 : (i+1)*8]))
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *HighestBeforeTime) Set(i idx.Validator, time inter.Timestamp) {
+func (b *HighestBeforeTime) Set(i idx.Validator, time Timestamp) {
 	for i >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)

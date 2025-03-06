@@ -4,12 +4,10 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/vecengine"
-
-	"github.com/0xsoniclabs/sonic/inter"
 )
 
 type CreationTimer interface {
-	CreationTime() inter.Timestamp
+	CreationTime() Timestamp
 }
 
 func (b *HighestBefore) InitWithEvent(i idx.Validator, e dag.Event) {
@@ -74,7 +72,7 @@ func (hb *HighestBefore) GatherFrom(to idx.Validator, _other vecengine.HighestBe
 	other := _other.(*HighestBefore)
 	// read all branches to find highest event
 	highestBranchSeq := vecengine.BranchSeq{}
-	highestBranchTime := inter.Timestamp(0)
+	highestBranchTime := Timestamp(0)
 	for _, branchID := range from {
 		vseq := other.VSeq.Get(branchID)
 		vtime := other.VTime.Get(branchID)
