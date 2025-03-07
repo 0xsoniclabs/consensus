@@ -26,11 +26,11 @@ var _ Func = (*Ratio)(nil)
 var Identity = Ratio{1, 1}
 
 func (r Ratio) U64(v uint64) uint64 {
-	multipliedValue := v * r.Target
-	if multipliedValue%r.Base == 0 {
-		return multipliedValue / r.Base
+	muled := v * r.Target
+	if muled%r.Base == 0 {
+		return muled / r.Base
 	}
-	return multipliedValue/r.Base + 1
+	return muled/r.Base + 1
 }
 
 func (r Ratio) F32(v float32) float32 {
