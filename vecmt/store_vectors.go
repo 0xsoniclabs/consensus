@@ -2,7 +2,9 @@ package vecmt
 
 import (
 	"github.com/0xsoniclabs/consensus/hash"
+	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
 func (vi *Index) getBytes(table kvdb.Store, id hash.Event) []byte {
@@ -44,10 +46,13 @@ func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 	}
 }
 
+func (vi *Index) GetLowestAfter(event hash.Event) vecengine.LowestAfterI {
+	return vi.Engine.GetLowestAfter(event)
+}
+
 // SetHighestBeforeTime stores the vector into DB
 func (vi *Index) SetHighestBeforeTime(id hash.Event, vec *HighestBeforeTime) {
 	vi.setBytes(vi.table.HighestBeforeTime, id, *vec)
-
 	vi.cache.HighestBeforeTime.Add(id, vec, uint(len(*vec)))
 }
 
@@ -55,4 +60,17 @@ func (vi *Index) SetHighestBeforeTime(id hash.Event, vec *HighestBeforeTime) {
 func (vi *Index) SetHighestBefore(id hash.Event, vec *HighestBefore) {
 	vi.Engine.SetHighestBefore(id, vec.VSeq)
 	vi.SetHighestBeforeTime(id, vec.VTime)
+}
+
+func (vi *Index) SetLowestAfter(event hash.Event, i vecengine.LowestAfterI) {
+	vi.Engine.SetLowestAfter(event, i.(*vecengine.LowestAfterSeq))
+}
+
+func (vi *Index) NewHighestBefore(size idx.Validator) vecengine.HighestBeforeI {
+	return NewHighestBefore(size)
+}
+
+func (vi *Index) OnDropNotFlushed() {
+	vi.Engine.OnDropNotFlushed()
+	vi.onDropNotFlushed()
 }

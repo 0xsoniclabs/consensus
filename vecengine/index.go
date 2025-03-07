@@ -289,7 +289,7 @@ func GetEngineCallbacks(vi *Engine) Callbacks {
 		NewLowestAfter: func(size idx.Validator) LowestAfterI {
 			return NewLowestAfterSeq(size)
 		},
-		OnDropNotFlushed: func() { vi.onDropNotFlushed() },
+		OnDropNotFlushed: func() { vi.OnDropNotFlushed() },
 	}
 }
 
@@ -303,7 +303,7 @@ func (vi *Engine) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, ge
 	table.MigrateTables(&vi.table, vi.vecDb)
 	vi.getEvent = getEvent
 	vi.cache.ForklessCause.Purge()
-	vi.onDropNotFlushed()
+	vi.OnDropNotFlushed()
 }
 
 // IndexCacheConfig - config for cache sizes of Engine
@@ -334,7 +334,7 @@ func LiteConfig() IndexConfig {
 	return DefaultConfig(cachescale.Ratio{Base: 100, Target: 1})
 }
 
-func (vi *Engine) onDropNotFlushed() {
+func (vi *Engine) OnDropNotFlushed() {
 	vi.cache.HighestBeforeSeq.Purge()
 	vi.cache.LowestAfterSeq.Purge()
 }
