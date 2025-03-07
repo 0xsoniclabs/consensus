@@ -36,6 +36,8 @@ type Index struct {
 	validators    *pos.Validators
 	validatorIdxs map[idx.ValidatorID]idx.Validator
 
+	branchesInfo *vecengine.BranchesInfo
+
 	getEvent func(hash.Event) dag.Event
 
 	vecDb kvdb.Store
