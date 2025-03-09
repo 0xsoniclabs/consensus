@@ -20,7 +20,6 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
@@ -73,7 +72,7 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 			validators[v] = weights[i]
 		}
 	}
-	store := NewLiteStore()
+	store := NewMemStore()
 
 	err := store.ApplyGenesis(&Genesis{
 		Validators: validators.Build(),
@@ -175,14 +174,4 @@ func (s *EventStore) GetEvent(h hash.Event) dag.Event {
 func (s *EventStore) HasEvent(h hash.Event) bool {
 	_, ok := s.db[h]
 	return ok
-}
-
-func NewLiteStore() *Store {
-	openEDB := func(epoch idx.Epoch) kvdb.Store {
-		return memorydb.New()
-	}
-	crit := func(err error) {
-		panic(err)
-	}
-	return NewStore(memorydb.New(), openEDB, crit, LiteStoreConfig())
 }
