@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/utils"
+	"github.com/0xsoniclabs/consensus/utils/textcolumns"
 )
 
 func TestASCIIschemeToDAG(t *testing.T) {
@@ -109,7 +109,7 @@ func TestDAGtoASCIIschemeRand(t *testing.T) {
 		if !assertar.NoError(err) {
 			return
 		}
-		out := utils.TextColumns(scheme0, scheme1)
+		out := textcolumns.TextColumns(scheme0, scheme1)
 		t.Log(out)
 		return
 	}
@@ -402,7 +402,7 @@ func testDAGtoASCIIschemeOptimisation(t *testing.T, origScheme string, refs map[
 		return
 	}
 
-	out := utils.TextColumns(origScheme, genScheme)
+	out := textcolumns.TextColumns(origScheme, genScheme)
 	t.Log(out)
 
 	// step 3: ASCII --> DAG (again)
