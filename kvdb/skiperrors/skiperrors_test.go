@@ -16,8 +16,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
-	"github.com/0xsoniclabs/consensus/kvdb/table"
+	"github.com/0xsoniclabs/kvdb/memorydb"
+	"github.com/0xsoniclabs/kvdb/table"
 )
 
 func TestWrapper(t *testing.T) {

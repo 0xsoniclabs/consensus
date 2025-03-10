@@ -15,7 +15,7 @@ import (
 	"sync"
 
 	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 type fakeFS struct {
