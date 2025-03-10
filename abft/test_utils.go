@@ -20,7 +20,6 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
@@ -73,14 +72,7 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 			validators[v] = weights[i]
 		}
 	}
-
-	openEDB := func(epoch idx.Epoch) kvdb.Store {
-		return memorydb.New()
-	}
-	crit := func(err error) {
-		panic(err)
-	}
-	store := NewStore(memorydb.New(), openEDB, crit, LiteStoreConfig())
+	store := NewMemStore()
 
 	err := store.ApplyGenesis(&Genesis{
 		Validators: validators.Build(),
@@ -93,6 +85,9 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 	input := NewEventStore()
 
 	config := LiteConfig()
+	crit := func(err error) {
+		panic(err)
+	}
 	dagIndexer := &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks)}
 	lch := NewIndexedLachesis(store, input, dagIndexer, crit, config)
 
