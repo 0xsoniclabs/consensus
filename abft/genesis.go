@@ -23,32 +23,26 @@ type Genesis struct {
 	Validators *pos.Validators
 }
 
-// ApplyGenesis writes initial state.
 func (s *Store) ApplyGenesis(g *Genesis) error {
+	if ok, _ := s.table.LastDecidedState.Has([]byte(dsKey)); ok {
+		return fmt.Errorf("genesis already applied")
+	}
+	return s.switchGenesis(g)
+}
+
+func (s *Store) switchGenesis(g *Genesis) error {
 	if g == nil {
 		return fmt.Errorf("genesis config shouldn't be nil")
 	}
 	if g.Validators.Len() == 0 {
 		return fmt.Errorf("genesis validators shouldn't be empty")
 	}
-	if ok, _ := s.table.LastDecidedState.Has([]byte(dsKey)); ok {
-		return fmt.Errorf("genesis already applied")
-	}
-
-	s.applyGenesis(g.Epoch, g.Validators)
-	return nil
-}
-
-// applyGenesis switches epoch state to a new empty epoch.
-func (s *Store) applyGenesis(epoch idx.Epoch, validators *pos.Validators) {
 	es := &EpochState{}
 	ds := &LastDecidedState{}
-
-	es.Validators = validators
-	es.Epoch = epoch
+	es.Validators = g.Validators
+	es.Epoch = g.Epoch
 	ds.LastDecidedFrame = FirstFrame - 1
-
 	s.SetEpochState(es)
 	s.SetLastDecidedState(ds)
-
+	return nil
 }
