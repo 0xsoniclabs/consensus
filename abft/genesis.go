@@ -27,10 +27,10 @@ func (s *Store) ApplyGenesis(g *Genesis) error {
 	if ok, _ := s.table.LastDecidedState.Has([]byte(dsKey)); ok {
 		return fmt.Errorf("genesis already applied")
 	}
-	return s.switchGensis(g)
+	return s.switchGenesis(g)
 }
 
-func (s *Store) switchGensis(g *Genesis) error {
+func (s *Store) switchGenesis(g *Genesis) error {
 	if g == nil {
 		return fmt.Errorf("genesis config shouldn't be nil")
 	}
