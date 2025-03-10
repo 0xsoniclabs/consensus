@@ -2,7 +2,6 @@ package vecmt
 
 import (
 	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/vecengine"
 )
@@ -24,53 +23,64 @@ func (vi *Index) setBytes(table kvdb.Store, id hash.Event, b []byte) {
 	}
 }
 
-// GetHighestBeforeTime reads the vector from DB
-func (vi *Index) GetHighestBeforeTime(id hash.Event) *HighestBeforeTime {
-	if bVal, okGet := vi.cache.HighestBeforeTime.Get(id); okGet {
-		return bVal.(*HighestBeforeTime)
+// GetHighestBefore reads the vector from DB
+func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
+	var vSeq *vecengine.HighestBeforeSeq
+	if vSeqVal, ok := vi.cache.HighestBeforeSeq.Get(id); ok {
+		vSeq = vSeqVal.(*vecengine.HighestBeforeSeq)
+	} else {
+		temp := vecengine.HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
+		vSeq = &temp
 	}
 
-	b := HighestBeforeTime(vi.getBytes(vi.table.HighestBeforeTime, id))
+	var vTime *HighestBeforeTime
+	if vTimeVal, ok := vi.cache.HighestBeforeTime.Get(id); ok {
+		vTime = vTimeVal.(*HighestBeforeTime)
+	} else {
+		temp := HighestBeforeTime(vi.getBytes(vi.table.HighestBeforeTime, id))
+		vTime = &temp
+		if vTime != nil {
+			vi.cache.HighestBeforeTime.Add(id, &vTime, uint(len(*vTime)))
+		}
+	}
+
+	vi.cache.HighestBeforeSeq.Add(id, &vSeq, uint(len(*vSeq)))
+	return &HighestBefore{
+		VSeq:  vSeq,
+		VTime: vTime,
+	}
+}
+
+// GetLowestAfter reads the vector from DB
+func (vi *Index) GetLowestAfter(id hash.Event) *vecengine.LowestAfterSeq {
+	if bVal, okGet := vi.cache.LowestAfterSeq.Get(id); okGet {
+		return bVal.(*vecengine.LowestAfterSeq)
+	}
+
+	b := vecengine.LowestAfterSeq(vi.getBytes(vi.table.LowestAfterSeq, id))
 	if b == nil {
 		return nil
 	}
-	vi.cache.HighestBeforeTime.Add(id, &b, uint(len(b)))
+	vi.cache.LowestAfterSeq.Add(id, &b, uint(len(b)))
 	return &b
-}
-
-// GetHighestBefore reads the vector from DB
-func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
-	return &HighestBefore{
-		VSeq:  vi.Engine.GetHighestBefore(id),
-		VTime: vi.GetHighestBeforeTime(id),
-	}
-}
-
-func (vi *Index) GetLowestAfter(event hash.Event) vecengine.LowestAfterI {
-	return vi.Engine.GetLowestAfter(event)
-}
-
-// SetHighestBeforeTime stores the vector into DB
-func (vi *Index) SetHighestBeforeTime(id hash.Event, vec *HighestBeforeTime) {
-	vi.setBytes(vi.table.HighestBeforeTime, id, *vec)
-	vi.cache.HighestBeforeTime.Add(id, vec, uint(len(*vec)))
 }
 
 // SetHighestBefore stores the vectors into DB
 func (vi *Index) SetHighestBefore(id hash.Event, vec *HighestBefore) {
-	vi.Engine.SetHighestBefore(id, vec.VSeq)
-	vi.SetHighestBeforeTime(id, vec.VTime)
+	vi.setBytes(vi.table.HighestBeforeTime, id, *vec.VTime)
+	vi.cache.HighestBeforeTime.Add(id, vec, uint(len(*vec.VTime)))
+	vi.setBytes(vi.table.HighestBeforeSeq, id, *vec.VSeq)
+	vi.cache.HighestBeforeSeq.Add(id, vec.VSeq, uint(len(*vec.VSeq)))
 }
 
-func (vi *Index) SetLowestAfter(event hash.Event, i vecengine.LowestAfterI) {
-	vi.Engine.SetLowestAfter(event, i.(*vecengine.LowestAfterSeq))
-}
-
-func (vi *Index) NewHighestBefore(size idx.Validator) vecengine.HighestBeforeI {
-	return NewHighestBefore(size)
+// SetLowestAfter stores the vector into DB
+func (vi *Index) SetLowestAfter(id hash.Event, seq *vecengine.LowestAfterSeq) {
+	vi.setBytes(vi.table.LowestAfterSeq, id, *seq)
+	vi.cache.LowestAfterSeq.Add(id, seq, uint(len(*seq)))
 }
 
 func (vi *Index) OnDropNotFlushed() {
-	vi.Engine.OnDropNotFlushed()
-	vi.onDropNotFlushed()
+	vi.cache.HighestBeforeSeq.Purge()
+	vi.cache.LowestAfterSeq.Purge()
+	vi.cache.HighestBeforeTime.Purge()
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/table"
 	"github.com/0xsoniclabs/consensus/utils/cachescale"
+	"github.com/0xsoniclabs/consensus/utils/simplewlru"
 	"github.com/0xsoniclabs/consensus/utils/wlru"
-	"github.com/0xsoniclabs/consensus/vecengine"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
@@ -20,33 +20,42 @@ type Timestamp = uint64
 type IndexCacheConfig struct {
 	HighestBeforeTimeSize uint
 	DBCache               int
+	ForklessCausePairs    int
+	HighestBeforeSeqSize  uint
+	LowestAfterSeqSize    uint
 }
 
 // IndexConfig - Engine config (cache sizes)
 type IndexConfig struct {
-	Fc     vecengine.IndexConfig
 	Caches IndexCacheConfig
 }
 
 // Index is a data to detect forkless-cause condition, calculate median timestamp, detect forks.
 type Index struct {
-	*vecengine.Engine
+	//*vecengine.Engine
 
 	crit          func(error)
 	validators    *pos.Validators
 	validatorIdxs map[idx.ValidatorID]idx.Validator
 
-	branchesInfo *vecengine.BranchesInfo
+	branchesInfo *BranchesInfo
 
 	getEvent func(hash.Event) dag.Event
 
-	vecDb kvdb.Store
+	vecDb *VecFlushable
 	table struct {
 		HighestBeforeTime kvdb.Store `table:"T"`
+		EventBranch       kvdb.Store `table:"b"`
+		BranchesInfo      kvdb.Store `table:"B"`
+		HighestBeforeSeq  kvdb.Store `table:"S"`
+		LowestAfterSeq    kvdb.Store `table:"s"`
 	}
 
 	cache struct {
 		HighestBeforeTime *wlru.Cache
+		ForklessCause     *simplewlru.Cache
+		HighestBeforeSeq  *simplewlru.Cache
+		LowestAfterSeq    *simplewlru.Cache
 	}
 
 	cfg IndexConfig
@@ -55,20 +64,25 @@ type Index struct {
 // DefaultConfig returns default index config
 func DefaultConfig(scale cachescale.Func) IndexConfig {
 	return IndexConfig{
-		Fc: vecengine.DefaultConfig(scale),
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: scale.U(160 * 1024),
 			DBCache:               scale.I(10 * opt.MiB),
+			ForklessCausePairs:    scale.I(20000),
+			HighestBeforeSeqSize:  scale.U(160 * 1024),
+			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
 	}
 }
 
 // LiteConfig returns default index config for tests
 func LiteConfig() IndexConfig {
+	scale := cachescale.Ratio{Base: 100, Target: 1}
 	return IndexConfig{
-		Fc: vecengine.LiteConfig(),
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: 4 * 1024,
+			ForklessCausePairs:    scale.I(20000),
+			HighestBeforeSeqSize:  scale.U(160 * 1024),
+			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
 	}
 }
@@ -79,67 +93,76 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 		cfg:  config,
 		crit: crit,
 	}
-	engine := vecengine.NewIndex(crit, config.Fc, func(e *vecengine.Engine) vecengine.Callbacks { return vi.GetEngineCallbacks() })
 
-	vi.Engine = engine
 	vi.initCaches()
 
 	return vi
 }
 
+// Add calculates vector clocks for the event and saves into DB.
+func (vi *Index) Add(e dag.Event) error {
+	vi.InitBranchesInfo()
+	_, err := vi.fillEventVectors(e)
+	return err
+}
+
+// Flush writes vector clocks to persistent store.
+func (vi *Index) Flush() {
+	if vi.branchesInfo != nil {
+		vi.setBranchesInfo(vi.branchesInfo)
+	}
+	if err := vi.vecDb.Flush(); err != nil {
+		vi.crit(err)
+	}
+}
+
 func (vi *Index) initCaches() {
 	vi.cache.HighestBeforeTime, _ = wlru.New(vi.cfg.Caches.HighestBeforeTimeSize, int(vi.cfg.Caches.HighestBeforeTimeSize))
+	vi.cache.ForklessCause, _ = simplewlru.New(uint(vi.cfg.Caches.ForklessCausePairs), vi.cfg.Caches.ForklessCausePairs)
+	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
+	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
+}
+
+// DropNotFlushed not connected clocks. Call it if event has failed.
+func (vi *Index) DropNotFlushed() {
+	vi.branchesInfo = nil
+	if vi.vecDb.NotFlushedPairs() != 0 {
+		vi.vecDb.DropNotFlushed()
+		vi.OnDropNotFlushed()
+	}
 }
 
 // Reset resets buffers.
 func (vi *Index) Reset(validators *pos.Validators, db kvdb.Store, getEvent func(hash.Event) dag.Event) {
 	fdb := WrapByVecFlushable(db, vi.cfg.Caches.DBCache)
 	vi.vecDb = fdb
-	vi.Engine.Reset(validators, fdb, getEvent)
 	vi.getEvent = getEvent
 	vi.validators = validators
 	vi.validatorIdxs = validators.Idxs()
-	vi.onDropNotFlushed()
-
+	vi.DropNotFlushed()
 	table.MigrateTables(&vi.table, vi.vecDb)
+	vi.cache.ForklessCause.Purge()
+	vi.OnDropNotFlushed()
 }
 
 func (vi *Index) Close() error {
 	return vi.vecDb.Close()
 }
 
-func (vi *Index) onDropNotFlushed() {
-	vi.cache.HighestBeforeTime.Purge()
-}
-
-func (vi *Index) GetEngineCallbacks() vecengine.Callbacks {
-	return vecengine.Callbacks{
-		GetHighestBefore: func(event hash.Event) vecengine.HighestBeforeI {
-			return vi.GetHighestBefore(event)
-		},
-		GetLowestAfter: func(event hash.Event) vecengine.LowestAfterI {
-			return vecengine.GetEngineCallbacks(vi.Engine).GetLowestAfter(event)
-		},
-		SetHighestBefore: func(event hash.Event, b vecengine.HighestBeforeI) {
-			vi.SetHighestBefore(event, b.(*HighestBefore))
-		},
-		SetLowestAfter: func(event hash.Event, i vecengine.LowestAfterI) {
-			vecengine.GetEngineCallbacks(vi.Engine).SetLowestAfter(event, i)
-		},
-		NewHighestBefore: func(size idx.Validator) vecengine.HighestBeforeI {
-			return NewHighestBefore(size)
-		},
-		NewLowestAfter: func(size idx.Validator) vecengine.LowestAfterI {
-			return vecengine.GetEngineCallbacks(vi.Engine).NewLowestAfter(size)
-		},
-		OnDropNotFlushed: func() {
-			vecengine.GetEngineCallbacks(vi.Engine).OnDropNotFlushed()
-			vi.onDropNotFlushed()
-		},
-	}
-}
-
 // GetMergedHighestBefore returns HighestBefore vector clock without branches, where branches are merged into one
 func (vi *Index) GetMergedHighestBefore(id hash.Event) *HighestBefore {
-	return vi.Engine.GetMergedHighestBefore(id).(*HighestBefore)
+	vi.InitBranchesInfo()
+
+	if vi.AtLeastOneFork() {
+		scatteredBefore := vi.GetHighestBefore(id)
+
+		mergedBefore := NewHighestBefore(vi.validators.Len())
+
+		for creatorIdx, branches := range vi.branchesInfo.BranchIDByCreators {
+			mergedBefore.GatherFrom(idx.Validator(creatorIdx), scatteredBefore, branches)
+		}
+
+		return mergedBefore
+	}
+	return vi.GetHighestBefore(id)
 }
