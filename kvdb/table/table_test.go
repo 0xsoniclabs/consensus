@@ -22,10 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/0xsoniclabs/consensus/kvdb"
-	"github.com/0xsoniclabs/consensus/kvdb/flushable"
-	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
-	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
+	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/kvdb/flushable"
+	"github.com/0xsoniclabs/kvdb/leveldb"
+	"github.com/0xsoniclabs/kvdb/memorydb"
 )
 
 func tempLevelDB(name string) *leveldb.Database {

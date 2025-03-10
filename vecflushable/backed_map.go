@@ -13,7 +13,7 @@ package vecflushable
 import (
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 // TestSizeLimit is used as the limit in unit-test of packages that use vecflushable

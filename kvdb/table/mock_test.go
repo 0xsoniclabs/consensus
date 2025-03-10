@@ -14,7 +14,7 @@ package table
 import (
 	reflect "reflect"
 
-	kvdb "github.com/0xsoniclabs/consensus/kvdb"
+	kvdb "github.com/0xsoniclabs/kvdb"
 	gomock "github.com/golang/mock/gomock"
 )
 

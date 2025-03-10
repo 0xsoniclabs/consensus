@@ -13,7 +13,7 @@ package synced
 import (
 	"sync"
 
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 // iteratedReader wrapper around any kvdb.IteratedReader.
