@@ -22,7 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/0xsoniclabs/consensus/common/bigendian"
-	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
 type (
@@ -30,16 +29,16 @@ type (
 	// It is a hash of EventHash.
 	EventHash Hash
 
-	// OrderedEvents is a sortable slice of event hashes.
-	OrderedEvents []EventHash
+	// OrderedEventHashes is a sortable slice of event hashes.
+	OrderedEventHashes []EventHash
 
 	// EventHashes is a slice of event hashes.
 	EventHashes []EventHash
 
-	EventsStack []EventHash
+	EventHashStack []EventHash
 
-	// EventsSet provides additional methods of event hash index.
-	EventsSet map[EventHash]struct{}
+	// EventHashSet provides additional methods of event hash index.
+	EventHashSet map[EventHash]struct{}
 )
 
 var (
@@ -93,13 +92,13 @@ func (h EventHash) Hex() string {
 }
 
 // Lamport returns [4:8] bytes, which store event's Lamport.
-func (h EventHash) Lamport() idx.Lamport {
-	return idx.BytesToLamport(h[4:8])
+func (h EventHash) Lamport() Lamport {
+	return BytesToLamport(h[4:8])
 }
 
 // Epoch returns [0:4] bytes, which store event's Epoch.
-func (h EventHash) Epoch() idx.Epoch {
-	return idx.BytesToEpoch(h[0:4])
+func (h EventHash) Epoch() Epoch {
+	return BytesToEpoch(h[0:4])
 }
 
 // String returns human readable string representation.
@@ -131,15 +130,15 @@ func (h *EventHash) IsZero() bool {
  */
 
 // NewEventsSet makes event hash index.
-func NewEventsSet(h ...EventHash) EventsSet {
-	hh := EventsSet{}
+func NewEventsSet(h ...EventHash) EventHashSet {
+	hh := EventHashSet{}
 	hh.Add(h...)
 	return hh
 }
 
 // Copy copies events to a new structure.
-func (hh EventsSet) Copy() EventsSet {
-	ee := make(EventsSet, len(hh))
+func (hh EventHashSet) Copy() EventHashSet {
+	ee := make(EventHashSet, len(hh))
 	for k, v := range hh {
 		ee[k] = v
 	}
@@ -148,7 +147,7 @@ func (hh EventsSet) Copy() EventsSet {
 }
 
 // String returns human readable string representation.
-func (hh EventsSet) String() string {
+func (hh EventHashSet) String() string {
 	ss := make([]string, 0, len(hh))
 	for h := range hh {
 		ss = append(ss, h.String())
@@ -157,7 +156,7 @@ func (hh EventsSet) String() string {
 }
 
 // Slice returns whole index as slice.
-func (hh EventsSet) Slice() EventHashes {
+func (hh EventHashSet) Slice() EventHashes {
 	arr := make(EventHashes, len(hh))
 	i := 0
 	for h := range hh {
@@ -168,21 +167,21 @@ func (hh EventsSet) Slice() EventHashes {
 }
 
 // Add appends hash to the index.
-func (hh EventsSet) Add(hash ...EventHash) {
+func (hh EventHashSet) Add(hash ...EventHash) {
 	for _, h := range hash {
 		hh[h] = struct{}{}
 	}
 }
 
 // Erase erase hash from the index.
-func (hh EventsSet) Erase(hash ...EventHash) {
+func (hh EventHashSet) Erase(hash ...EventHash) {
 	for _, h := range hash {
 		delete(hh, h)
 	}
 }
 
 // Contains returns true if hash is in.
-func (hh EventsSet) Contains(hash EventHash) bool {
+func (hh EventHashSet) Contains(hash EventHash) bool {
 	_, ok := hh[hash]
 	return ok
 }
@@ -213,8 +212,8 @@ func (hh EventHashes) String() string {
 }
 
 // Set returns whole index as a EventsSet.
-func (hh EventHashes) Set() EventsSet {
-	set := make(EventsSet, len(hh))
+func (hh EventHashes) Set() EventHashSet {
+	set := make(EventHashSet, len(hh))
 	for _, h := range hh {
 		set[h] = struct{}{}
 	}
@@ -231,17 +230,17 @@ func (hh *EventHashes) Add(hash ...EventHash) {
  */
 
 // Push event ID on top
-func (s *EventsStack) Push(v EventHash) {
+func (s *EventHashStack) Push(v EventHash) {
 	*s = append(*s, v)
 }
 
 // PushAll event IDs on top
-func (s *EventsStack) PushAll(vv EventHashes) {
+func (s *EventHashStack) PushAll(vv EventHashes) {
 	*s = append(*s, vv...)
 }
 
 // Pop event ID from top. Erases element.
-func (s *EventsStack) Pop() *EventHash {
+func (s *EventHashStack) Pop() *EventHash {
 	l := len(*s)
 	if l == 0 {
 		return nil
@@ -258,7 +257,7 @@ func (s *EventsStack) Pop() *EventHash {
  */
 
 // String returns string representation.
-func (hh OrderedEvents) String() string {
+func (hh OrderedEventHashes) String() string {
 	buf := &strings.Builder{}
 
 	out := func(s string) {
@@ -276,14 +275,14 @@ func (hh OrderedEvents) String() string {
 	return buf.String()
 }
 
-func (hh OrderedEvents) Len() int      { return len(hh) }
-func (hh OrderedEvents) Swap(i, j int) { hh[i], hh[j] = hh[j], hh[i] }
-func (hh OrderedEvents) Less(i, j int) bool {
+func (hh OrderedEventHashes) Len() int      { return len(hh) }
+func (hh OrderedEventHashes) Swap(i, j int) { hh[i], hh[j] = hh[j], hh[i] }
+func (hh OrderedEventHashes) Less(i, j int) bool {
 	return bytes.Compare(hh[i].Bytes(), hh[j].Bytes()) < 0
 }
 
 // ByEpochAndLamport sorts events by epoch first, by lamport second, by ID third
-func (hh OrderedEvents) ByEpochAndLamport() {
+func (hh OrderedEventHashes) ByEpochAndLamport() {
 	sort.Sort(hh)
 }
 
@@ -305,12 +304,12 @@ func Of(data ...[]byte) (hash Hash) {
  */
 
 // FakePeer generates random fake peer id for testing purpose.
-func FakePeer() idx.ValidatorID {
-	return idx.BytesToValidatorID(FakeHash().Bytes()[:4])
+func FakePeer() ValidatorID {
+	return BytesToValidatorID(FakeHash().Bytes()[:4])
 }
 
 // FakeEpoch gives fixed value of fake epoch for testing purpose.
-func FakeEpoch() idx.Epoch {
+func FakeEpoch() Epoch {
 	return 123456
 }
 
