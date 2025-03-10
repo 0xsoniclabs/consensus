@@ -8,6 +8,17 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package common
+package consensus
 
-// non-test Go file for go cover tool
+import (
+	"fmt"
+)
+
+type Metric struct {
+	Num  Seq
+	Size uint64
+}
+
+func (m Metric) String() string {
+	return fmt.Sprintf("{Num=%d,Size=%d}", m.Num, m.Size)
+}

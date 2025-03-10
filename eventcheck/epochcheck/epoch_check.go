@@ -13,9 +13,7 @@ package epochcheck
 import (
 	"errors"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 var (
@@ -27,7 +25,7 @@ var (
 
 // Reader returns currents epoch and its validators group.
 type Reader interface {
-	GetEpochValidators() (*pos.Validators, idx.Epoch)
+	GetEpochValidators() (*consensus.Validators, consensus.Epoch)
 }
 
 // Checker which require only current epoch info
@@ -42,7 +40,7 @@ func New(reader Reader) *Checker {
 }
 
 // Validate event
-func (v *Checker) Validate(e dag.Event) error {
+func (v *Checker) Validate(e consensus.Event) error {
 	// check epoch first, because validators group is returned only for the current epoch
 	validators, epoch := v.reader.GetEpochValidators()
 	if e.Epoch() != epoch {

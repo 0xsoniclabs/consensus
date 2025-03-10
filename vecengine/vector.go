@@ -14,24 +14,23 @@ import (
 	"encoding/binary"
 	"math"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 type LowestAfterI interface {
-	InitWithEvent(i idx.Validator, e dag.Event)
-	Visit(i idx.Validator, e dag.Event) bool
+	InitWithEvent(i consensus.ValidatorIndex, e consensus.Event)
+	Visit(i consensus.ValidatorIndex, e consensus.Event) bool
 }
 
 type HighestBeforeI interface {
-	InitWithEvent(i idx.Validator, e dag.Event)
-	IsEmpty(i idx.Validator) bool
-	IsForkDetected(i idx.Validator) bool
-	Seq(i idx.Validator) idx.Event
-	MinSeq(i idx.Validator) idx.Event
-	SetForkDetected(i idx.Validator)
-	CollectFrom(other HighestBeforeI, branches idx.Validator)
-	GatherFrom(to idx.Validator, other HighestBeforeI, from []idx.Validator)
+	InitWithEvent(i consensus.ValidatorIndex, e consensus.Event)
+	IsEmpty(i consensus.ValidatorIndex) bool
+	IsForkDetected(i consensus.ValidatorIndex) bool
+	Seq(i consensus.ValidatorIndex) consensus.Seq
+	MinSeq(i consensus.ValidatorIndex) consensus.Seq
+	SetForkDetected(i consensus.ValidatorIndex)
+	CollectFrom(other HighestBeforeI, branches consensus.ValidatorIndex)
+	GatherFrom(to consensus.ValidatorIndex, other HighestBeforeI, from []consensus.ValidatorIndex)
 }
 
 type allVecs struct {
@@ -51,38 +50,38 @@ type (
 
 	// BranchSeq encodes Seq and MinSeq into 8 bytes
 	BranchSeq struct {
-		Seq    idx.Event
-		MinSeq idx.Event
+		Seq    consensus.Seq
+		MinSeq consensus.Seq
 	}
 )
 
 // NewLowestAfterSeq creates new LowestAfterSeq vector.
-func NewLowestAfterSeq(size idx.Validator) *LowestAfterSeq {
+func NewLowestAfterSeq(size consensus.ValidatorIndex) *LowestAfterSeq {
 	b := make(LowestAfterSeq, size*4)
 	return &b
 }
 
 // NewHighestBeforeSeq creates new HighestBeforeSeq vector.
-func NewHighestBeforeSeq(size idx.Validator) *HighestBeforeSeq {
+func NewHighestBeforeSeq(size consensus.ValidatorIndex) *HighestBeforeSeq {
 	b := make(HighestBeforeSeq, size*8)
 	return &b
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b LowestAfterSeq) Get(i idx.Validator) idx.Event {
+func (b LowestAfterSeq) Get(i consensus.ValidatorIndex) consensus.Seq {
 	for i >= b.Size() {
 		return 0
 	}
-	return idx.Event(binary.LittleEndian.Uint32(b[i*4 : (i+1)*4]))
+	return consensus.Seq(binary.LittleEndian.Uint32(b[i*4 : (i+1)*4]))
 }
 
 // Size of the vector clock
-func (b LowestAfterSeq) Size() idx.Validator {
-	return idx.Validator(len(b)) / 4
+func (b LowestAfterSeq) Size() consensus.ValidatorIndex {
+	return consensus.ValidatorIndex(len(b)) / 4
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *LowestAfterSeq) Set(i idx.Validator, seq idx.Event) {
+func (b *LowestAfterSeq) Set(i consensus.ValidatorIndex, seq consensus.Seq) {
 	for i >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0}...)
@@ -97,7 +96,7 @@ func (b HighestBeforeSeq) Size() int {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b HighestBeforeSeq) Get(i idx.Validator) BranchSeq {
+func (b HighestBeforeSeq) Get(i consensus.ValidatorIndex) BranchSeq {
 	for int(i) >= b.Size() {
 		return BranchSeq{}
 	}
@@ -105,13 +104,13 @@ func (b HighestBeforeSeq) Get(i idx.Validator) BranchSeq {
 	seq2 := binary.LittleEndian.Uint32(b[i*8+4 : i*8+8])
 
 	return BranchSeq{
-		Seq:    idx.Event(seq1),
-		MinSeq: idx.Event(seq2),
+		Seq:    consensus.Seq(seq1),
+		MinSeq: consensus.Seq(seq2),
 	}
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *HighestBeforeSeq) Set(i idx.Validator, seq BranchSeq) {
+func (b *HighestBeforeSeq) Set(i consensus.ValidatorIndex, seq BranchSeq) {
 	for int(i) >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
@@ -124,7 +123,7 @@ var (
 	// forkDetectedSeq is a special marker of observed fork by a creator
 	forkDetectedSeq = BranchSeq{
 		Seq:    0,
-		MinSeq: idx.Event(math.MaxInt32),
+		MinSeq: consensus.Seq(math.MaxInt32),
 	}
 )
 

@@ -18,10 +18,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
@@ -30,46 +27,46 @@ const (
 )
 
 func TestLachesisRandom_1(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{1}, 0)
+	testLachesisRandom(t, []consensus.Weight{1}, 0)
 }
 
 func TestLachesisRandom_big1(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{math.MaxUint32 / 2}, 0)
+	testLachesisRandom(t, []consensus.Weight{math.MaxUint32 / 2}, 0)
 }
 
 func TestLachesisRandom_big2(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{math.MaxUint32 / 4, math.MaxUint32 / 4}, 0)
+	testLachesisRandom(t, []consensus.Weight{math.MaxUint32 / 4, math.MaxUint32 / 4}, 0)
 }
 
 func TestLachesisRandom_big3(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{math.MaxUint32 / 8, math.MaxUint32 / 8, math.MaxUint32 / 4}, 0)
+	testLachesisRandom(t, []consensus.Weight{math.MaxUint32 / 8, math.MaxUint32 / 8, math.MaxUint32 / 4}, 0)
 }
 
 func TestLachesisRandom_4(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{1, 2, 3, 4}, 0)
+	testLachesisRandom(t, []consensus.Weight{1, 2, 3, 4}, 0)
 }
 
 func TestLachesisRandom_3_1(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{1, 1, 1, 1}, 1)
+	testLachesisRandom(t, []consensus.Weight{1, 1, 1, 1}, 1)
 }
 
 func TestLachesisRandom_67_33(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{33, 67}, 1)
+	testLachesisRandom(t, []consensus.Weight{33, 67}, 1)
 }
 
 func TestLachesisRandom_67_33_4(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{11, 11, 11, 67}, 3)
+	testLachesisRandom(t, []consensus.Weight{11, 11, 11, 67}, 3)
 }
 
 func TestLachesisRandom_67_33_5(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{11, 11, 11, 33, 34}, 3)
+	testLachesisRandom(t, []consensus.Weight{11, 11, 11, 33, 34}, 3)
 }
 
 func TestLachesisRandom_2_8_10(t *testing.T) {
-	testLachesisRandom(t, []pos.Weight{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}, 3)
+	testLachesisRandom(t, []consensus.Weight{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}, 3)
 }
 
-func testLachesisRandom(t *testing.T, weights []pos.Weight, cheatersCount int) {
+func testLachesisRandom(t *testing.T, weights []consensus.Weight, cheatersCount int) {
 	t.Helper()
 	testLachesisRandomAndReset(t, weights, false, cheatersCount, false)
 	testLachesisRandomAndReset(t, weights, false, cheatersCount, true)
@@ -78,12 +75,12 @@ func testLachesisRandom(t *testing.T, weights []pos.Weight, cheatersCount int) {
 }
 
 // TestLachesis 's possibility to get consensus in general on any event order.
-func testLachesisRandomAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool, cheatersCount int, reset bool) {
+func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutateWeights bool, cheatersCount int, reset bool) {
 	t.Helper()
 	assertar := assert.New(t)
 
 	const lchCount = 3
-	nodes := tdag.GenNodes(len(weights))
+	nodes := consensus.GenNodes(len(weights))
 
 	lchs := make([]*CoreLachesis, 0, lchCount)
 	inputs := make([]*EventStore, 0, lchCount)
@@ -101,8 +98,8 @@ func testLachesisRandomAndReset(t *testing.T, weights []pos.Weight, mutateWeight
 	// seal epoch on decided frame == maxEpochBlocks
 	for _, _lch := range lchs {
 		lch := _lch // capture
-		lch.applyBlock = func(block *lachesis.Block) *pos.Validators {
-			if lch.store.GetLastDecidedFrame()+1 == idx.Frame(maxEpochBlocks) {
+		lch.applyBlock = func(block *lachesis.Block) *consensus.Validators {
+			if lch.store.GetLastDecidedFrame()+1 == consensus.Frame(maxEpochBlocks) {
 				// seal epoch
 				if mutateWeights {
 					return mutateValidators(lch.store.GetValidators())
@@ -114,16 +111,16 @@ func testLachesisRandomAndReset(t *testing.T, weights []pos.Weight, mutateWeight
 	}
 
 	// create events on lch0
-	ordered := map[idx.Epoch]dag.Events{}
+	ordered := map[consensus.Epoch]consensus.Events{}
 	parentCount := 5
 	if parentCount > len(nodes) {
 		parentCount = len(nodes)
 	}
-	epochStates := map[idx.Epoch]*EpochState{}
+	epochStates := map[consensus.Epoch]*EpochState{}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
-	for epoch := idx.Epoch(1); epoch <= idx.Epoch(epochs); epoch++ {
-		tdag.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, tdag.ForEachEvent{
-			Process: func(e dag.Event, name string) {
+	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
+		consensus.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensus.ForEachEvent{
+			Process: func(e consensus.Event, name string) {
 				ordered[epoch] = append(ordered[epoch], e)
 
 				inputs[0].SetEvent(e)
@@ -131,7 +128,7 @@ func testLachesisRandomAndReset(t *testing.T, weights []pos.Weight, mutateWeight
 					lchs[0].Process(e))
 				epochStates[lchs[0].store.GetEpoch()] = lchs[0].store.GetEpochState()
 			},
-			Build: func(e dag.MutableEvent, name string) error {
+			Build: func(e consensus.MutableEvent, name string) error {
 				if epoch != lchs[0].store.GetEpoch() {
 					return errors.New("epoch already sealed, skip")
 				}
@@ -145,7 +142,7 @@ func testLachesisRandomAndReset(t *testing.T, weights []pos.Weight, mutateWeight
 	}
 
 	// connect events to other instances
-	for epoch := idx.Epoch(1); epoch <= idx.Epoch(epochs); epoch++ {
+	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
 		for i := 1; i < len(lchs); i++ {
 			if reset && epoch != epochs-1 && r.Intn(2) == 0 {
 				// never reset last epoch to be able to compare latest state
@@ -175,13 +172,13 @@ func testLachesisRandomAndReset(t *testing.T, weights []pos.Weight, mutateWeight
 }
 
 // reorder events, but ancestors are before it's descendants.
-func reorder(events dag.Events) dag.Events {
-	unordered := make(dag.Events, len(events))
+func reorder(events consensus.Events) consensus.Events {
+	unordered := make(consensus.Events, len(events))
 	for i, j := range rand.Perm(len(events)) {
 		unordered[j] = events[i]
 	}
 
-	reordered := tdag.ByParents(unordered)
+	reordered := consensus.ByParents(unordered)
 	return reordered
 }
 
@@ -197,12 +194,12 @@ func compareResults(t *testing.T, lchs []*CoreLachesis) {
 			assertar.Equal(*(lchs[j].store.GetLastDecidedState()), *(lchs[i].store.GetLastDecidedState()))
 			assertar.Equal(*(lchs[j].store.GetEpochState()), *(lchs[i].store.GetEpochState()))
 
-			for e := idx.Epoch(1); e <= lch0.store.GetEpoch(); e++ {
+			for e := consensus.Epoch(1); e <= lch0.store.GetEpoch(); e++ {
 				both := lch0.epochBlocks[e]
 				if both > lch1.epochBlocks[e] {
 					both = lch1.epochBlocks[e]
 				}
-				for f := idx.Frame(1); f < both; f++ {
+				for f := consensus.Frame(1); f < both; f++ {
 					key := BlockKey{e, f}
 					if !assertar.Equal(
 						lch0.blocks[key], lch1.blocks[key],

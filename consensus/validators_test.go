@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package pos
+package consensus
 
 import (
 	"math"
@@ -18,8 +18,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
 func TestNewValidators(t *testing.T) {
@@ -28,7 +26,7 @@ func TestNewValidators(t *testing.T) {
 	assert.NotNil(t, b)
 	assert.NotNil(t, b.Build())
 
-	assert.Equal(t, idx.Validator(0), b.Build().Len())
+	assert.Equal(t, ValidatorIndex(0), b.Build().Len())
 }
 
 func TestValidators_Set(t *testing.T) {
@@ -42,7 +40,7 @@ func TestValidators_Set(t *testing.T) {
 
 	v := b.Build()
 
-	assert.Equal(t, idx.Validator(5), v.Len())
+	assert.Equal(t, ValidatorIndex(5), v.Len())
 	assert.Equal(t, Weight(15), v.TotalWeight())
 
 	b.Set(1, 10)
@@ -50,7 +48,7 @@ func TestValidators_Set(t *testing.T) {
 
 	v = b.Build()
 
-	assert.Equal(t, idx.Validator(5), v.Len())
+	assert.Equal(t, ValidatorIndex(5), v.Len())
 	assert.Equal(t, Weight(51), v.TotalWeight())
 
 	b.Set(2, 0)
@@ -58,7 +56,7 @@ func TestValidators_Set(t *testing.T) {
 
 	v = b.Build()
 
-	assert.Equal(t, idx.Validator(3), v.Len())
+	assert.Equal(t, ValidatorIndex(3), v.Len())
 	assert.Equal(t, Weight(44), v.TotalWeight())
 
 	b.Set(4, 0)
@@ -67,7 +65,7 @@ func TestValidators_Set(t *testing.T) {
 
 	v = b.Build()
 
-	assert.Equal(t, idx.Validator(0), v.Len())
+	assert.Equal(t, ValidatorIndex(0), v.Len())
 	assert.Equal(t, Weight(0), v.TotalWeight())
 }
 
@@ -194,7 +192,7 @@ func TestValidators_Big(t *testing.T) {
 	assert.Equal(t, Weight(0x7ffff), v.Get(4))
 	assert.Equal(t, Weight(0x3fffffff), v.Get(5))
 
-	for v := idx.ValidatorID(1); v <= 5000; v++ {
+	for v := ValidatorID(1); v <= 5000; v++ {
 		b.Set(v, new(big.Int).Mul(big.NewInt(int64(v)), maxBig(400)))
 	}
 	v = b.Build()

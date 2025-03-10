@@ -17,9 +17,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 func TestLachesisClassicRoots(t *testing.T) {
@@ -264,30 +262,30 @@ func testSpecialNamedRoots(t *testing.T, scheme string) {
 	assertar := assert.New(t)
 
 	// decode is a event name parser
-	decode := func(name string) (frameN idx.Frame, isRoot bool) {
+	decode := func(name string) (frameN consensus.Frame, isRoot bool) {
 		n, err := strconv.ParseUint(strings.Split(name, ".")[0][1:2], 10, 64)
 		if err != nil {
 			panic(err.Error() + ". Name event " + name + " properly: <UpperCaseForRoot><FrameN><Engine>")
 		}
-		frameN = idx.Frame(n)
+		frameN = consensus.Frame(n)
 
 		isRoot = name == strings.ToUpper(name)
 		return
 	}
 
 	// get nodes only
-	nodes, _, _ := tdag.ASCIIschemeToDAG(scheme)
+	nodes, _, _ := consensus.ASCIIschemeToDAG(scheme)
 	// init abft
 	lch, _, input, _ := NewCoreLachesis(nodes, nil)
 
 	// process events
-	_, _, names := tdag.ASCIIschemeForEach(scheme, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	_, _, names := consensus.ASCIIschemeForEach(scheme, consensus.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			input.SetEvent(e)
 			assertar.NoError(
 				lch.Process(e))
 		},
-		Build: func(e dag.MutableEvent, name string) error {
+		Build: func(e consensus.MutableEvent, name string) error {
 			e.SetEpoch(lch.store.GetEpoch())
 			return lch.Build(e)
 		},
@@ -296,7 +294,7 @@ func testSpecialNamedRoots(t *testing.T, scheme string) {
 	// check each
 	for name, event := range names {
 		mustBeFrame, mustBeRoot := decode(name)
-		var selfParentFrame idx.Frame
+		var selfParentFrame consensus.Frame
 		if event.SelfParent() != nil {
 			selfParentFrame = input.GetEvent(*event.SelfParent()).Frame()
 		}
@@ -331,12 +329,12 @@ func codegen4LachesisRandomRoot() {
 	for _, e := range config {
 		frame := p.FrameOfEvent(e.ID())
 		_, isRoot := frame.Roots[e.Creator][e.ID()]
-		oldName := hash.GetEventName(e.ID())
+		oldName := ctype.GetEventName(e.ID())
 		newName := fmt.Sprintf("%s%d.%02d", oldName[0:1], frame.Engine, e.Seq)
 		if isRoot {
 			newName = strings.ToUpper(newName[0:1]) + newName[1:]
 		}
-		hash.SetEventName(e.ID(), newName)
+		ctype.SetEventName(e.ID(), newName)
 	}
 
 	fmt.Println(inter.DAGtoASCIIscheme(config))

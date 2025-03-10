@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/0xsoniclabs/consensus/common/bigendian"
+	"github.com/0xsoniclabs/consensus/utils/byteutils"
 	"github.com/0xsoniclabs/kvdb"
 	"github.com/0xsoniclabs/kvdb/devnulldb"
 	"github.com/0xsoniclabs/kvdb/leveldb"
@@ -140,7 +140,7 @@ func TestVecflushableUpdateValue(t *testing.T) {
 	backupDB, _ := tempLevelDB()
 	vecflushable := Wrap(backupDB, 1000)
 
-	key0 := bigendian.Uint64ToBytes(uint64(0))
+	key0 := byteutils.Uint64ToBigEndian(uint64(0))
 	bigVal := make([]byte, 70)
 	for i := 0; i < 70; i++ {
 		bigVal[i] = 0xff
@@ -160,7 +160,7 @@ func TestVecflushableUpdateValue(t *testing.T) {
 	assert.Equal(t, 1, len(vecflushable.underlying.cache))
 	assert.Equal(t, 178, vecflushable.underlying.memSize)
 
-	key1 := bigendian.Uint64ToBytes(uint64(1))
+	key1 := byteutils.Uint64ToBigEndian(uint64(1))
 	for i := 0; i < 2; i++ {
 		if err := vecflushable.Put(key1, bigVal); err != nil {
 			t.Error(err)
@@ -206,8 +206,8 @@ func BenchmarkPutAndFlush(b *testing.B) {
 	vecflushable := Wrap(devnulldb.New(), 1_000_000_000)
 	for op := 0; op < b.N; op++ {
 		step := op & 0xff
-		key := bigendian.Uint64ToBytes(uint64(step << 48))
-		val := bigendian.Uint64ToBytes(uint64(step))
+		key := byteutils.Uint64ToBigEndian(uint64(step << 48))
+		val := byteutils.Uint64ToBigEndian(uint64(step))
 		err := vecflushable.Put(key, val)
 		if err != nil {
 			b.Error(err)
@@ -219,8 +219,8 @@ func BenchmarkPutAndFlush(b *testing.B) {
 func loopOp(operation func(key []byte, val []byte), iterations int) {
 	for op := 0; op < iterations; op++ {
 		step := op & 0xff
-		key := bigendian.Uint64ToBytes(uint64(step << 48))
-		val := bigendian.Uint64ToBytes(uint64(step))
+		key := byteutils.Uint64ToBigEndian(uint64(step << 48))
+		val := byteutils.Uint64ToBigEndian(uint64(step))
 		operation(key, val)
 	}
 }

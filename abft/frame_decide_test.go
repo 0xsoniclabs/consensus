@@ -17,65 +17,62 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
 func TestConfirmBlocks_1(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{1}, 0)
+	testConfirmBlocks(t, []consensus.Weight{1}, 0)
 }
 
 func TestConfirmBlocks_big1(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{math.MaxUint32 / 2}, 0)
+	testConfirmBlocks(t, []consensus.Weight{math.MaxUint32 / 2}, 0)
 }
 
 func TestConfirmBlocks_big2(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{math.MaxUint32 / 4, math.MaxUint32 / 4}, 0)
+	testConfirmBlocks(t, []consensus.Weight{math.MaxUint32 / 4, math.MaxUint32 / 4}, 0)
 }
 
 func TestConfirmBlocks_big3(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{math.MaxUint32 / 8, math.MaxUint32 / 8, math.MaxUint32 / 4}, 0)
+	testConfirmBlocks(t, []consensus.Weight{math.MaxUint32 / 8, math.MaxUint32 / 8, math.MaxUint32 / 4}, 0)
 }
 
 func TestConfirmBlocks_4(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{1, 2, 3, 4}, 0)
+	testConfirmBlocks(t, []consensus.Weight{1, 2, 3, 4}, 0)
 }
 
 func TestConfirmBlocks_3_1(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{1, 1, 1, 1}, 1)
+	testConfirmBlocks(t, []consensus.Weight{1, 1, 1, 1}, 1)
 }
 
 func TestConfirmBlocks_67_33(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{33, 67}, 1)
+	testConfirmBlocks(t, []consensus.Weight{33, 67}, 1)
 }
 
 func TestConfirmBlocks_67_33_4(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{11, 11, 11, 67}, 3)
+	testConfirmBlocks(t, []consensus.Weight{11, 11, 11, 67}, 3)
 }
 
 func TestConfirmBlocks_67_33_5(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{11, 11, 11, 33, 34}, 3)
+	testConfirmBlocks(t, []consensus.Weight{11, 11, 11, 33, 34}, 3)
 }
 
 func TestConfirmBlocks_2_8_10(t *testing.T) {
-	testConfirmBlocks(t, []pos.Weight{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}, 3)
+	testConfirmBlocks(t, []consensus.Weight{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}, 3)
 }
 
-func testConfirmBlocks(t *testing.T, weights []pos.Weight, cheatersCount int) {
+func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount int) {
 	t.Helper()
 	assertar := assert.New(t)
 
-	nodes := tdag.GenNodes(len(weights))
+	nodes := consensus.GenNodes(len(weights))
 	lch, _, input, _ := NewCoreLachesis(nodes, weights)
 
 	var (
-		frames []idx.Frame
+		frames []consensus.Frame
 		blocks []*lachesis.Block
 	)
-	lch.applyBlock = func(block *lachesis.Block) *pos.Validators {
+	lch.applyBlock = func(block *lachesis.Block) *consensus.Validators {
 		frames = append(frames, lch.store.GetLastDecidedFrame()+1)
 		blocks = append(blocks, block)
 
@@ -88,14 +85,14 @@ func testConfirmBlocks(t *testing.T, weights []pos.Weight, cheatersCount int) {
 		parentCount = len(nodes)
 	}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
-	tdag.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	consensus.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensus.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			input.SetEvent(e)
 			assertar.NoError(
 				lch.Process(e))
 
 		},
-		Build: func(e dag.MutableEvent, name string) error {
+		Build: func(e consensus.MutableEvent, name string) error {
 			e.SetEpoch(FirstEpoch)
 			return lch.Build(e)
 		},

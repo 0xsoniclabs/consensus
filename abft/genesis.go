@@ -13,14 +13,13 @@ package abft
 import (
 	"fmt"
 
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 // Genesis stores genesis state
 type Genesis struct {
-	Epoch      idx.Epoch
-	Validators *pos.Validators
+	Epoch      consensus.Epoch
+	Validators *consensus.Validators
 }
 
 func (s *Store) ApplyGenesis(g *Genesis) error {

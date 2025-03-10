@@ -8,19 +8,14 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package tdag
-
-import (
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-)
+package consensus
 
 type TestEvent struct {
-	dag.MutableBaseEvent
+	MutableBaseEvent
 	Name string
 }
 
-func (e *TestEvent) AddParent(id hash.Event) {
+func (e *TestEvent) AddParent(id EventHash) {
 	parents := e.Parents()
 	parents.Add(id)
 	e.SetParents(parents)

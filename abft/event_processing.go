@@ -13,8 +13,7 @@ package abft
 import (
 	"github.com/pkg/errors"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 var (
@@ -23,7 +22,7 @@ var (
 
 // Build fills consensus-related fields: Frame, IsRoot
 // returns error if event should be dropped
-func (p *Orderer) Build(e dag.MutableEvent) error {
+func (p *Orderer) Build(e consensus.MutableEvent) error {
 	// sanity check
 	if e.Epoch() != p.store.GetEpoch() {
 		p.crit(errors.New("event has wrong epoch"))
@@ -42,7 +41,7 @@ func (p *Orderer) Build(e dag.MutableEvent) error {
 // Event order matter: parents first.
 // All the event checkers must be launched.
 // Process is not safe for concurrent use.
-func (p *Orderer) Process(e dag.Event) (err error) {
+func (p *Orderer) Process(e consensus.Event) (err error) {
 	err, selfParentFrame := p.checkAndSaveEvent(e)
 	if err != nil {
 		return err
@@ -60,7 +59,7 @@ func (p *Orderer) Process(e dag.Event) (err error) {
 }
 
 // Process event that's been built locally
-func (p *Orderer) ProcessLocalEvent(e dag.Event) (err error) {
+func (p *Orderer) ProcessLocalEvent(e consensus.Event) (err error) {
 	selfParentFrame := p.getSelfParentFrame(e)
 	if selfParentFrame == e.Frame() {
 		return nil
@@ -76,7 +75,7 @@ func (p *Orderer) ProcessLocalEvent(e dag.Event) (err error) {
 }
 
 // checkAndSaveEvent checks consensus-related fields: Frame, IsRoot
-func (p *Orderer) checkAndSaveEvent(e dag.Event) (error, idx.Frame) {
+func (p *Orderer) checkAndSaveEvent(e consensus.Event) (error, consensus.Frame) {
 	// check frame & isRoot
 	selfParentFrame, frameIdx := p.calcFrameIdx(e)
 	if !p.config.SuppressFramePanic && e.Frame() != frameIdx {
@@ -90,7 +89,7 @@ func (p *Orderer) checkAndSaveEvent(e dag.Event) (error, idx.Frame) {
 }
 
 // calculates Atropos election for the root, calls p.onFrameDecided if election was decided
-func (p *Orderer) handleElection(root dag.Event) error {
+func (p *Orderer) handleElection(root consensus.Event) error {
 	decisions, err := p.election.VoteAndAggregate(root.Frame(), root.Creator(), root.ID())
 	if err != nil {
 		return err
@@ -133,7 +132,7 @@ func (p *Orderer) bootstrapElection() error {
 }
 
 // forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W roots on specified frame
-func (p *Orderer) forklessCausedByQuorumOn(e dag.Event, f idx.Frame) bool {
+func (p *Orderer) forklessCausedByQuorumOn(e consensus.Event, f consensus.Frame) bool {
 	observedCounter := p.store.GetValidators().NewCounter()
 	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
 	for _, it := range p.store.GetFrameRoots(f) {
@@ -148,7 +147,7 @@ func (p *Orderer) forklessCausedByQuorumOn(e dag.Event, f idx.Frame) bool {
 }
 
 // calcFrameIdx is not safe for concurrent use.
-func (p *Orderer) calcFrameIdx(e dag.Event) (selfParentFrame, frame idx.Frame) {
+func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consensus.Frame) {
 	if e.SelfParent() == nil {
 		return 0, 1
 	}
@@ -164,7 +163,7 @@ func (p *Orderer) calcFrameIdx(e dag.Event) (selfParentFrame, frame idx.Frame) {
 	return selfParentFrame, frame
 }
 
-func (p *Orderer) getSelfParentFrame(e dag.Event) idx.Frame {
+func (p *Orderer) getSelfParentFrame(e consensus.Event) consensus.Frame {
 	if e.SelfParent() == nil {
 		return 0
 	}

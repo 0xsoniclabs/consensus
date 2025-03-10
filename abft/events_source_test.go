@@ -15,9 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 /*
@@ -30,7 +28,7 @@ func TestEventStore(t *testing.T) {
 	t.Run("NotExisting", func(t *testing.T) {
 		assertar := assert.New(t)
 
-		h := hash.FakeEvent()
+		h := consensus.FakeEvent()
 		e1 := store.GetEvent(h)
 		assertar.Nil(e1)
 	})
@@ -38,9 +36,9 @@ func TestEventStore(t *testing.T) {
 	t.Run("Events", func(t *testing.T) {
 		assertar := assert.New(t)
 
-		nodes := tdag.GenNodes(5)
-		tdag.ForEachRandEvent(nodes, int(TestMaxEpochEvents)-1, 4, nil, tdag.ForEachEvent{
-			Process: func(e dag.Event, name string) {
+		nodes := consensus.GenNodes(5)
+		consensus.ForEachRandEvent(nodes, int(TestMaxEpochEvents)-1, 4, nil, consensus.ForEachEvent{
+			Process: func(e consensus.Event, name string) {
 				store.SetEvent(e)
 				e1 := store.GetEvent(e.ID())
 

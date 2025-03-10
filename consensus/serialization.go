@@ -8,28 +8,25 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package tdag
+package consensus
 
 import (
 	"github.com/ethereum/go-ethereum/rlp"
-
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
 type TestEventMarshaling struct {
-	Epoch idx.Epoch
-	Seq   idx.Event
+	Epoch Epoch
+	Seq   Seq
 
-	Frame idx.Frame
+	Frame Frame
 
-	Creator idx.ValidatorID
+	Creator ValidatorID
 
-	Parents hash.Events
+	Parents EventHashes
 
-	Lamport idx.Lamport
+	Lamport Lamport
 
-	ID   hash.Event
+	ID   EventHash
 	Name string
 }
 

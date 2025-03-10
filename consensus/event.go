@@ -8,27 +8,24 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package dag
+package consensus
 
 import (
 	"fmt"
-
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
 type Event interface {
-	Epoch() idx.Epoch
-	Seq() idx.Event
-	Frame() idx.Frame
-	Creator() idx.ValidatorID
-	Lamport() idx.Lamport
+	Epoch() Epoch
+	Seq() Seq
+	Frame() Frame
+	Creator() ValidatorID
+	Lamport() Lamport
 
-	Parents() hash.Events
-	SelfParent() *hash.Event
-	IsSelfParent(hash hash.Event) bool
+	Parents() EventHashes
+	SelfParent() *EventHash
+	IsSelfParent(hash EventHash) bool
 
-	ID() hash.Event
+	ID() EventHash
 
 	String() string
 
@@ -37,13 +34,13 @@ type Event interface {
 
 type MutableEvent interface {
 	Event
-	SetEpoch(idx.Epoch)
-	SetSeq(idx.Event)
-	SetFrame(idx.Frame)
-	SetCreator(idx.ValidatorID)
-	SetLamport(idx.Lamport)
+	SetEpoch(Epoch)
+	SetSeq(Seq)
+	SetFrame(Frame)
+	SetCreator(ValidatorID)
+	SetLamport(Lamport)
 
-	SetParents(hash.Events)
+	SetParents(EventHashes)
 
 	SetID(id [24]byte)
 }
@@ -53,18 +50,18 @@ type MutableEvent interface {
 // Doesn't contain payload, it should be extended by an app
 // Doesn't contain event signature, it should be extended by an app
 type BaseEvent struct {
-	epoch idx.Epoch
-	seq   idx.Event
+	epoch Epoch
+	seq   Seq
 
-	frame idx.Frame
+	frame Frame
 
-	creator idx.ValidatorID
+	creator ValidatorID
 
-	parents hash.Events
+	parents EventHashes
 
-	lamport idx.Lamport
+	lamport Lamport
 
-	id hash.Event
+	id EventHash
 }
 
 type MutableBaseEvent struct {
@@ -86,7 +83,7 @@ func (e *BaseEvent) String() string {
 }
 
 // SelfParent returns event's self-parent, if any
-func (e *BaseEvent) SelfParent() *hash.Event {
+func (e *BaseEvent) SelfParent() *EventHash {
 	if e.seq <= 1 || len(e.parents) == 0 {
 		return nil
 	}
@@ -94,40 +91,40 @@ func (e *BaseEvent) SelfParent() *hash.Event {
 }
 
 // IsSelfParent is true if specified ID is event's self-parent
-func (e *BaseEvent) IsSelfParent(hash hash.Event) bool {
+func (e *BaseEvent) IsSelfParent(hash EventHash) bool {
 	if e.SelfParent() == nil {
 		return false
 	}
 	return *e.SelfParent() == hash
 }
 
-func (e *BaseEvent) Epoch() idx.Epoch { return e.epoch }
+func (e *BaseEvent) Epoch() Epoch { return e.epoch }
 
-func (e *BaseEvent) Seq() idx.Event { return e.seq }
+func (e *BaseEvent) Seq() Seq { return e.seq }
 
-func (e *BaseEvent) Frame() idx.Frame { return e.frame }
+func (e *BaseEvent) Frame() Frame { return e.frame }
 
-func (e *BaseEvent) Creator() idx.ValidatorID { return e.creator }
+func (e *BaseEvent) Creator() ValidatorID { return e.creator }
 
-func (e *BaseEvent) Parents() hash.Events { return e.parents }
+func (e *BaseEvent) Parents() EventHashes { return e.parents }
 
-func (e *BaseEvent) Lamport() idx.Lamport { return e.lamport }
+func (e *BaseEvent) Lamport() Lamport { return e.lamport }
 
-func (e *BaseEvent) ID() hash.Event { return e.id }
+func (e *BaseEvent) ID() EventHash { return e.id }
 
 func (e *BaseEvent) Size() int { return 4 + 4 + 4 + 4 + len(e.parents)*32 + 4 + 32 }
 
-func (e *MutableBaseEvent) SetEpoch(v idx.Epoch) { e.epoch = v }
+func (e *MutableBaseEvent) SetEpoch(v Epoch) { e.epoch = v }
 
-func (e *MutableBaseEvent) SetSeq(v idx.Event) { e.seq = v }
+func (e *MutableBaseEvent) SetSeq(v Seq) { e.seq = v }
 
-func (e *MutableBaseEvent) SetFrame(v idx.Frame) { e.frame = v }
+func (e *MutableBaseEvent) SetFrame(v Frame) { e.frame = v }
 
-func (e *MutableBaseEvent) SetCreator(v idx.ValidatorID) { e.creator = v }
+func (e *MutableBaseEvent) SetCreator(v ValidatorID) { e.creator = v }
 
-func (e *MutableBaseEvent) SetParents(v hash.Events) { e.parents = v }
+func (e *MutableBaseEvent) SetParents(v EventHashes) { e.parents = v }
 
-func (e *MutableBaseEvent) SetLamport(v idx.Lamport) { e.lamport = v }
+func (e *MutableBaseEvent) SetLamport(v Lamport) { e.lamport = v }
 
 func (e *MutableBaseEvent) SetID(rID [24]byte) {
 	copy(e.id[0:4], e.epoch.Bytes())

@@ -11,10 +11,10 @@
 package eventcheck
 
 import (
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/eventcheck/basiccheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/epochcheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/parentscheck"
-	"github.com/0xsoniclabs/consensus/inter/dag"
 )
 
 // Checkers is collection of all the checkers
@@ -25,7 +25,7 @@ type Checkers struct {
 }
 
 // Validate runs all the checks except Lachesis-related
-func (v *Checkers) Validate(e dag.Event, parents dag.Events) error {
+func (v *Checkers) Validate(e consensus.Event, parents consensus.Events) error {
 	if err := v.Basiccheck.Validate(e); err != nil {
 		return err
 	}

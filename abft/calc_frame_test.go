@@ -13,10 +13,7 @@ package abft
 import (
 	"testing"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 func TestCalFrameIdx_10000(t *testing.T) {
@@ -25,28 +22,28 @@ func TestCalFrameIdx_10000(t *testing.T) {
 
 // testCalcFrameIdx verifies that lagging validator calculates correct frame numbers after a (large) pause
 func testCalcFrameIdx(t *testing.T, gap int) {
-	nodes := tdag.GenNodes(2)
+	nodes := consensus.GenNodes(2)
 	// Give one validator quorum power to advance the frames on it's own
-	lch, _, store, _ := NewCoreLachesis(nodes, []pos.Weight{1, 3})
+	lch, _, store, _ := NewCoreLachesis(nodes, []consensus.Weight{1, 3})
 
-	laggyGenesis := processTestEvent(t, lch, store, nodes[0], 1, hash.Events{})
-	parentEvent := processTestEvent(t, lch, store, nodes[1], 1, hash.Events{})
+	laggyGenesis := processTestEvent(t, lch, store, nodes[0], 1, consensus.EventHashes{})
+	parentEvent := processTestEvent(t, lch, store, nodes[1], 1, consensus.EventHashes{})
 	for i := 0; i < gap; i++ {
-		parentEvent = processTestEvent(t, lch, store, nodes[1], idx.Event(parentEvent.Seq()+1), hash.Events{parentEvent.ID()})
+		parentEvent = processTestEvent(t, lch, store, nodes[1], consensus.Seq(parentEvent.Seq()+1), consensus.EventHashes{parentEvent.ID()})
 	}
 	// Lagging validator creates an event after a frame gap
-	finalEvent := processTestEvent(t, lch, store, nodes[0], laggyGenesis.Seq()+1, hash.Events{laggyGenesis.ID(), parentEvent.ID()})
+	finalEvent := processTestEvent(t, lch, store, nodes[0], laggyGenesis.Seq()+1, consensus.EventHashes{laggyGenesis.ID(), parentEvent.ID()})
 
-	if want, got := laggyGenesis.Frame()+idx.Frame(gap)+1, finalEvent.Frame(); want != got {
+	if want, got := laggyGenesis.Frame()+consensus.Frame(gap)+1, finalEvent.Frame(); want != got {
 		t.Errorf("expected calculated frame number of lagging validator to be: %d, got: %d", gap, finalEvent.Frame())
 	}
 }
 
-var maxLamport idx.Lamport = 0
+var maxLamport consensus.Lamport = 0
 
 // processTestEvent builds and pipes the event through main Lacehsis' DAG manipulation pipeline
-func processTestEvent(t *testing.T, lch *CoreLachesis, store *EventStore, validatorId idx.ValidatorID, seq idx.Event, parents hash.Events) *tdag.TestEvent {
-	event := &tdag.TestEvent{}
+func processTestEvent(t *testing.T, lch *CoreLachesis, store *EventStore, validatorId consensus.ValidatorID, seq consensus.Seq, parents consensus.EventHashes) *consensus.TestEvent {
+	event := &consensus.TestEvent{}
 	event.SetSeq(seq)
 	event.SetCreator(validatorId)
 	event.SetParents(parents)

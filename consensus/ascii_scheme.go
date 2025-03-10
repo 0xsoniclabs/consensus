@@ -8,21 +8,17 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package tdag
+package consensus
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
 type ForEachEvent struct {
-	Process func(e dag.Event, name string)
-	Build   func(e dag.MutableEvent, name string) error
+	Process func(e Event, name string)
+	Build   func(e MutableEvent, name string) error
 }
 
 // ASCIIschemeToDAG parses events from ASCII-scheme for test purpose.
@@ -35,12 +31,12 @@ func ASCIIschemeForEach(
 	scheme string,
 	callback ForEachEvent,
 ) (
-	nodes []idx.ValidatorID,
-	events map[idx.ValidatorID]dag.Events,
-	names map[string]dag.Event,
+	nodes []ValidatorID,
+	events map[ValidatorID]Events,
+	names map[string]Event,
 ) {
-	events = make(map[idx.ValidatorID]dag.Events)
-	names = make(map[string]dag.Event)
+	events = make(map[ValidatorID]Events)
+	names = make(map[string]Event)
 	var (
 		prevFarRefs map[int]int
 		curFarRefs  = make(map[int]int)
@@ -130,7 +126,7 @@ func ASCIIschemeForEach(
 		for i, name := range nNames {
 			// make node if don't exist
 			if len(nodes) <= nCreators[i] {
-				validator := idx.BytesToValidatorID(hash.Of([]byte(name)).Bytes()[:4])
+				validator := BytesToValidatorID(Of([]byte(name)).Bytes()[:4])
 				nodes = append(nodes, validator)
 				events[validator] = nil
 			}
@@ -138,9 +134,9 @@ func ASCIIschemeForEach(
 			creator := nodes[nCreators[i]]
 			// find creator's parent
 			var (
-				index      idx.Event
-				parents    = hash.Events{}
-				maxLamport idx.Lamport
+				index      Seq
+				parents    = EventHashes{}
+				maxLamport Lamport
 			)
 			if last := len(events[creator]) - prevRef - 1; last >= 0 {
 				parent := events[creator][last]
@@ -191,7 +187,7 @@ func ASCIIschemeForEach(
 			// save event
 			events[creator] = append(events[creator], e)
 			names[name] = e
-			hash.SetEventName(e.ID(), name)
+			SetEventName(e.ID(), name)
 			// callback
 			if callback.Process != nil {
 				callback.Process(e, name)
@@ -206,9 +202,9 @@ func ASCIIschemeForEach(
 		}
 		name := []rune(ee[0].ID().String())
 		if strings.HasPrefix(string(name), "node") {
-			hash.SetNodeName(node, "node"+strings.ToUpper(string(name[4:5])))
+			SetNodeName(node, "node"+strings.ToUpper(string(name[4:5])))
 		} else {
-			hash.SetNodeName(node, "node"+strings.ToUpper(string(name[0:1])))
+			SetNodeName(node, "node"+strings.ToUpper(string(name[0:1])))
 		}
 	}
 
@@ -218,34 +214,34 @@ func ASCIIschemeForEach(
 func ASCIIschemeToDAG(
 	scheme string,
 ) (
-	nodes []idx.ValidatorID,
-	events map[idx.ValidatorID]dag.Events,
-	names map[string]dag.Event,
+	nodes []ValidatorID,
+	events map[ValidatorID]Events,
+	names map[string]Event,
 ) {
 	return ASCIIschemeForEach(scheme, ForEachEvent{})
 }
 
 // DAGtoASCIIscheme builds ASCII-scheme of events for debug purpose.
-func DAGtoASCIIscheme(events dag.Events) (string, error) {
+func DAGtoASCIIscheme(events Events) (string, error) {
 	events = ByParents(events)
 
 	var (
 		scheme rows
 
-		processed = make(map[hash.Event]dag.Event)
-		nodeCols  = make(map[idx.ValidatorID]int)
+		processed = make(map[EventHash]Event)
+		nodeCols  = make(map[ValidatorID]int)
 		ok        bool
 
-		eventIndex       = make(map[idx.ValidatorID]map[hash.Event]int)
-		creatorLastIndex = make(map[idx.ValidatorID]int)
+		eventIndex       = make(map[ValidatorID]map[EventHash]int)
+		creatorLastIndex = make(map[ValidatorID]int)
 
-		seqCount = make(map[idx.ValidatorID]map[idx.Event]int)
+		seqCount = make(map[ValidatorID]map[Seq]int)
 	)
 	for _, e := range events {
 		// if count of unique seq > 1 -> fork
 		if _, exist := seqCount[e.Creator()]; !exist {
-			seqCount[e.Creator()] = map[idx.Event]int{}
-			eventIndex[e.Creator()] = map[hash.Event]int{}
+			seqCount[e.Creator()] = map[Seq]int{}
+			eventIndex[e.Creator()] = map[EventHash]int{}
 		}
 		if _, exist := seqCount[e.Creator()][e.Seq()]; !exist {
 			seqCount[e.Creator()][e.Seq()] = 1
@@ -267,9 +263,9 @@ func DAGtoASCIIscheme(events dag.Events) (string, error) {
 			nodeCols[e.Creator()] = r.Self
 		}
 		// name
-		r.Name = hash.GetEventName(ehash)
+		r.Name = GetEventName(ehash)
 		if len(r.Name) < 1 {
-			r.Name = hash.GetNodeName(e.Creator())
+			r.Name = GetNodeName(e.Creator())
 			if len(r.Name) < 1 {
 				r.Name = string('a' + rune(r.Self))
 			}

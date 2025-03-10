@@ -13,15 +13,13 @@ package abft
 import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/abft/election"
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 type OrdererCallbacks struct {
-	ApplyAtropos func(decidedFrame idx.Frame, atropos hash.Event) (sealEpoch *pos.Validators)
+	ApplyAtropos func(decidedFrame consensus.Frame, atropos consensus.EventHash) (sealEpoch *consensus.Validators)
 
-	EpochDBLoaded func(idx.Epoch)
+	EpochDBLoaded func(consensus.Epoch)
 }
 
 type OrdererDagIndex interface {
