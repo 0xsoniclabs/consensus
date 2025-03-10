@@ -11,9 +11,9 @@
 package memorydb
 
 import (
-	"github.com/0xsoniclabs/consensus/kvdb"
-	"github.com/0xsoniclabs/consensus/kvdb/devnulldb"
-	"github.com/0xsoniclabs/consensus/kvdb/flushable"
+	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/kvdb/devnulldb"
+	"github.com/0xsoniclabs/kvdb/flushable"
 )
 
 // Database is an ephemeral key-value store. Apart from basic data storage

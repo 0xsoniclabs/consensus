@@ -11,7 +11,7 @@
 package table
 
 import (
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 type IteratedReader struct {

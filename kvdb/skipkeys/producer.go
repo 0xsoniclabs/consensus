@@ -11,7 +11,7 @@
 package skipkeys
 
 import (
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 func openDB(p kvdb.DBProducer, skipPrefix []byte, name string) (kvdb.Store, error) {

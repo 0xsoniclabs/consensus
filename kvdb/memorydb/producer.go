@@ -11,7 +11,7 @@
 package memorydb
 
 import (
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 type Mod func(store kvdb.Store) kvdb.Store
