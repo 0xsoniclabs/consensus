@@ -16,10 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
+	"github.com/0xsoniclabs/consensus/kvdb/table"
 	"github.com/0xsoniclabs/consensus/utils/simplewlru"
-	"github.com/0xsoniclabs/kvdb"
-	"github.com/0xsoniclabs/kvdb/memorydb"
-	"github.com/0xsoniclabs/kvdb/table"
 )
 
 // Store is a abft persistent storage working over parent key-value database.

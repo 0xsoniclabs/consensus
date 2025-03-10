@@ -15,7 +15,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 // MigrateTables sets target fields to database tables.

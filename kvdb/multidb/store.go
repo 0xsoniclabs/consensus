@@ -10,7 +10,7 @@
 
 package multidb
 
-import "github.com/0xsoniclabs/kvdb"
+import "github.com/0xsoniclabs/consensus/kvdb"
 
 type closableTable struct {
 	kvdb.Store
