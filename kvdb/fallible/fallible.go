@@ -14,7 +14,7 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 var (

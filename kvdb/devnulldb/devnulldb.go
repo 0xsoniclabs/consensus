@@ -11,7 +11,7 @@
 package devnulldb
 
 import (
-	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/kvdb"
 )
 
 // Database is an always empty database.
