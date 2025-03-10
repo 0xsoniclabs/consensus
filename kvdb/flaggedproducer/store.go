@@ -13,8 +13,8 @@ package flaggedproducer
 import (
 	"sync/atomic"
 
-	"github.com/0xsoniclabs/kvdb"
-	"github.com/0xsoniclabs/kvdb/flushable"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 )
 
 type flaggedStore struct {

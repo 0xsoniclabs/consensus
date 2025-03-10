@@ -13,7 +13,7 @@ package multidb
 import (
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 type TableRecord struct {

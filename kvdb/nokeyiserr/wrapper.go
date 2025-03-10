@@ -13,7 +13,7 @@ package nokeyiserr
 import (
 	"errors"
 
-	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 var (

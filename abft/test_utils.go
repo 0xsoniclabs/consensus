@@ -20,9 +20,9 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
-	"github.com/0xsoniclabs/kvdb/memorydb"
 )
 
 type dbEvent struct {

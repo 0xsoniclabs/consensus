@@ -14,7 +14,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 type cacheState struct {

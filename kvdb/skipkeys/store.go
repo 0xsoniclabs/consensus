@@ -13,7 +13,7 @@ package skipkeys
 import (
 	"bytes"
 
-	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 type Store struct {

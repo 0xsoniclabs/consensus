@@ -23,10 +23,10 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/kvdb"
-	"github.com/0xsoniclabs/kvdb/flushable"
-	"github.com/0xsoniclabs/kvdb/leveldb"
-	"github.com/0xsoniclabs/kvdb/memorydb"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb/flushable"
+	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
+	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 )
 
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {

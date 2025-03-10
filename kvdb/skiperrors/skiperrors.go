@@ -11,7 +11,7 @@
 package skiperrors
 
 import (
-	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
 // wrapper is a kvdb.Store wrapper around any kvdb.Store.

@@ -15,8 +15,7 @@ go 1.22.0
 toolchain go1.23.6
 
 require (
-	github.com/0xsoniclabs/kvdb v0.0.0-20250224113306-fe6d2ca29563
-	github.com/cockroachdb/pebble v1.1.4
+	github.com/cockroachdb/pebble v1.1.2
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethereum/go-ethereum v1.15.0
 	github.com/golang/mock v1.6.0
@@ -24,8 +23,8 @@ require (
 	github.com/kelindar/simd v1.1.2
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/pkg/errors v0.9.1
-	github.com/status-im/keycard-go v0.3.3
-	github.com/stretchr/testify v1.10.0
+	github.com/status-im/keycard-go v0.3.2
+	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/urfave/cli/v2 v2.27.5
 )

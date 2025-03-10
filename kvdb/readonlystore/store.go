@@ -10,7 +10,7 @@
 
 package readonlystore
 
-import "github.com/0xsoniclabs/kvdb"
+import "github.com/0xsoniclabs/consensus/kvdb"
 
 type Store struct {
 	kvdb.Store

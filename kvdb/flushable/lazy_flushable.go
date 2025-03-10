@@ -11,8 +11,8 @@
 package flushable
 
 import (
-	"github.com/0xsoniclabs/kvdb"
-	"github.com/0xsoniclabs/kvdb/devnulldb"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb/devnulldb"
 )
 
 // LazyFlushable is a Flushable with delayed DB producer
