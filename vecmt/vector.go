@@ -23,16 +23,12 @@ type (
 
 // NewHighestBefore creates new HighestBefore vector.
 func NewHighestBefore(size idx.Validator) *HighestBefore {
+	vSeq := make(vecengine.HighestBeforeSeq, size*8)
+	vTime := make(HighestBeforeTime, size*8)
 	return &HighestBefore{
-		VSeq:  vecengine.NewHighestBeforeSeq(size),
-		VTime: NewHighestBeforeTime(size),
+		VSeq:  &vSeq,
+		VTime: &vTime,
 	}
-}
-
-// NewHighestBeforeTime creates new HighestBeforeTime vector.
-func NewHighestBeforeTime(size idx.Validator) *HighestBeforeTime {
-	b := make(HighestBeforeTime, size*8)
-	return &b
 }
 
 // Get i's position in the byte-encoded vector clock

@@ -14,19 +14,19 @@ func (vi *Index) NoCheaters(selfParent *hash.Event, options hash.Events) hash.Ev
 	}
 	vi.InitBranchesInfo()
 
-	if !vi.Engine.AtLeastOneFork() {
+	if !vi.AtLeastOneFork() {
 		return options
 	}
 
 	// no need to merge, because every branch is marked by IsForkDetected if fork is observed
-	highest := vi.Engine.GetHighestBefore(*selfParent)
+	highest := vi.GetHighestBefore(*selfParent)
 	filtered := make(hash.Events, 0, len(options))
 	for _, id := range options {
 		e := vi.getEvent(id)
 		if e == nil {
 			vi.crit(errors.New("event not found"))
 		}
-		if !highest.Get(vi.validatorIdxs[e.Creator()]).IsForkDetected() {
+		if !highest.VSeq.Get(vi.validatorIdxs[e.Creator()]).IsForkDetected() {
 			filtered.Add(id)
 		}
 	}
