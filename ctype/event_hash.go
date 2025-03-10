@@ -33,8 +33,8 @@ type (
 	// OrderedEvents is a sortable slice of event hashes.
 	OrderedEvents []EventHash
 
-	// Events is a slice of event hashes.
-	Events []EventHash
+	// EventHashes is a slice of event hashes.
+	EventHashes []EventHash
 
 	EventsStack []EventHash
 
@@ -157,8 +157,8 @@ func (hh EventsSet) String() string {
 }
 
 // Slice returns whole index as slice.
-func (hh EventsSet) Slice() Events {
-	arr := make(Events, len(hh))
+func (hh EventsSet) Slice() EventHashes {
+	arr := make(EventHashes, len(hh))
 	i := 0
 	for h := range hh {
 		arr[i] = h
@@ -192,19 +192,19 @@ func (hh EventsSet) Contains(hash EventHash) bool {
  */
 
 // NewEvents makes event hash slice.
-func NewEvents(h ...EventHash) Events {
-	hh := Events{}
+func NewEvents(h ...EventHash) EventHashes {
+	hh := EventHashes{}
 	hh.Add(h...)
 	return hh
 }
 
 // Copy copies events to a new structure.
-func (hh Events) Copy() Events {
-	return append(Events(nil), hh...)
+func (hh EventHashes) Copy() EventHashes {
+	return append(EventHashes(nil), hh...)
 }
 
 // String returns human readable string representation.
-func (hh Events) String() string {
+func (hh EventHashes) String() string {
 	ss := make([]string, 0, len(hh))
 	for _, h := range hh {
 		ss = append(ss, h.String())
@@ -213,7 +213,7 @@ func (hh Events) String() string {
 }
 
 // Set returns whole index as a EventsSet.
-func (hh Events) Set() EventsSet {
+func (hh EventHashes) Set() EventsSet {
 	set := make(EventsSet, len(hh))
 	for _, h := range hh {
 		set[h] = struct{}{}
@@ -222,7 +222,7 @@ func (hh Events) Set() EventsSet {
 }
 
 // Add appends hash to the slice.
-func (hh *Events) Add(hash ...EventHash) {
+func (hh *EventHashes) Add(hash ...EventHash) {
 	*hh = append(*hh, hash...)
 }
 
@@ -236,7 +236,7 @@ func (s *EventsStack) Push(v EventHash) {
 }
 
 // PushAll event IDs on top
-func (s *EventsStack) PushAll(vv Events) {
+func (s *EventsStack) PushAll(vv EventHashes) {
 	*s = append(*s, vv...)
 }
 
@@ -325,8 +325,8 @@ func FakeEvent() (h EventHash) {
 }
 
 // FakeEvents generates random hashes of fake event with the same epoch for testing purpose.
-func FakeEvents(n int) Events {
-	res := Events{}
+func FakeEvents(n int) EventHashes {
+	res := EventHashes{}
 	for i := 0; i < n; i++ {
 		res.Add(FakeEvent())
 	}
