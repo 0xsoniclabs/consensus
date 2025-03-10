@@ -10,7 +10,7 @@
 
 package cachedproducer
 
-import "github.com/0xsoniclabs/kvdb"
+import "github.com/0xsoniclabs/consensus/kvdb"
 
 type StoreWithFn struct {
 	kvdb.Store

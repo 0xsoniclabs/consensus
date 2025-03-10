@@ -14,12 +14,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/0xsoniclabs/kvdb/flushable"
-	"github.com/0xsoniclabs/kvdb/memorydb"
+	"github.com/0xsoniclabs/consensus/kvdb/flushable"
+	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/status-im/keycard-go/hexutils"
 
-	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/stretchr/testify/assert"
 )
 

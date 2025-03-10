@@ -10,7 +10,7 @@
 
 package batched
 
-import "github.com/0xsoniclabs/kvdb"
+import "github.com/0xsoniclabs/consensus/kvdb"
 
 // Store is a wrapper which translates every Put/Delete op into a batch
 type Store struct {

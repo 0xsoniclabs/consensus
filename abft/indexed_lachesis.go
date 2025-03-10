@@ -20,9 +20,9 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/kvdb"
+	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/lachesis"
-	"github.com/0xsoniclabs/kvdb"
-	"github.com/0xsoniclabs/kvdb/flushable"
 )
 
 var _ lachesis.Consensus = (*IndexedLachesis)(nil)
