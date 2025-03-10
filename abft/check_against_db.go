@@ -32,7 +32,7 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch idx.Epoch) error {
 	}
 	testLachesis, _, eventStore, _ := NewCoreLachesis(validators, weights)
 	// Plant the real epoch state for the sake of event hash calculation (epoch=1 by default)
-	testLachesis.store.applyGenesis(epoch, testLachesis.store.GetValidators())
+	testLachesis.store.switchGenesis(&Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()})
 
 	recalculatedAtropoi := make([]hash.Event, 0)
 	// Capture the elected atropoi by planting the `applyBlock` callback (nil by default)
