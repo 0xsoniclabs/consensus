@@ -50,7 +50,7 @@ func (s *WeightCounter) Count(v ValidatorID) bool {
 }
 
 // CountByIdx validator and return true if it hadn't counted before.
-func (s *WeightCounter) CountByIdx(validatorIdx ValidatorIdx) bool {
+func (s *WeightCounter) CountByIdx(validatorIdx ValidatorIndex) bool {
 	if s.already[validatorIdx] {
 		return false
 	}

@@ -14,11 +14,11 @@ import (
 	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
-func (b *LowestAfterSeq) InitWithEvent(i consensustypes.ValidatorIdx, e consensustypes.Event) {
+func (b *LowestAfterSeq) InitWithEvent(i consensustypes.ValidatorIndex, e consensustypes.Event) {
 	b.Set(i, e.Seq())
 }
 
-func (b *LowestAfterSeq) Visit(i consensustypes.ValidatorIdx, e consensustypes.Event) bool {
+func (b *LowestAfterSeq) Visit(i consensustypes.ValidatorIndex, e consensustypes.Event) bool {
 	if b.Get(i) != 0 {
 		return false
 	}
@@ -27,36 +27,36 @@ func (b *LowestAfterSeq) Visit(i consensustypes.ValidatorIdx, e consensustypes.E
 	return true
 }
 
-func (b *HighestBeforeSeq) InitWithEvent(i consensustypes.ValidatorIdx, e consensustypes.Event) {
+func (b *HighestBeforeSeq) InitWithEvent(i consensustypes.ValidatorIndex, e consensustypes.Event) {
 	b.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq()})
 }
 
-func (b *HighestBeforeSeq) IsEmpty(i consensustypes.ValidatorIdx) bool {
+func (b *HighestBeforeSeq) IsEmpty(i consensustypes.ValidatorIndex) bool {
 	seq := b.Get(i)
 	return !seq.IsForkDetected() && seq.Seq == 0
 }
 
-func (b *HighestBeforeSeq) IsForkDetected(i consensustypes.ValidatorIdx) bool {
+func (b *HighestBeforeSeq) IsForkDetected(i consensustypes.ValidatorIndex) bool {
 	return b.Get(i).IsForkDetected()
 }
 
-func (b *HighestBeforeSeq) Seq(i consensustypes.ValidatorIdx) consensustypes.Seq {
+func (b *HighestBeforeSeq) Seq(i consensustypes.ValidatorIndex) consensustypes.Seq {
 	val := b.Get(i)
 	return val.Seq
 }
 
-func (b *HighestBeforeSeq) MinSeq(i consensustypes.ValidatorIdx) consensustypes.Seq {
+func (b *HighestBeforeSeq) MinSeq(i consensustypes.ValidatorIndex) consensustypes.Seq {
 	val := b.Get(i)
 	return val.MinSeq
 }
 
-func (b *HighestBeforeSeq) SetForkDetected(i consensustypes.ValidatorIdx) {
+func (b *HighestBeforeSeq) SetForkDetected(i consensustypes.ValidatorIndex) {
 	b.Set(i, forkDetectedSeq)
 }
 
-func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensustypes.ValidatorIdx) {
+func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensustypes.ValidatorIndex) {
 	other := _other.(*HighestBeforeSeq)
-	for branchID := consensustypes.ValidatorIdx(0); branchID < num; branchID++ {
+	for branchID := consensustypes.ValidatorIndex(0); branchID < num; branchID++ {
 		hisSeq := other.Get(branchID)
 		if hisSeq.Seq == 0 && !hisSeq.IsForkDetected() {
 			// hisSeq doesn't observe anything about this branchID
@@ -86,7 +86,7 @@ func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensusty
 	}
 }
 
-func (self *HighestBeforeSeq) GatherFrom(to consensustypes.ValidatorIdx, _other HighestBeforeI, from []consensustypes.ValidatorIdx) {
+func (self *HighestBeforeSeq) GatherFrom(to consensustypes.ValidatorIndex, _other HighestBeforeI, from []consensustypes.ValidatorIndex) {
 	other := _other.(*HighestBeforeSeq)
 	// read all branches to find highest event
 	highestBranchSeq := BranchSeq{}

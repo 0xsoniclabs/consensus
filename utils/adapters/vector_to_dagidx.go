@@ -35,7 +35,7 @@ func (b *BranchSeq) MinSeq() consensustypes.Seq {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b VectorSeqToDagIndexSeq) Get(i consensustypes.ValidatorIdx) dagidx.Seq {
+func (b VectorSeqToDagIndexSeq) Get(i consensustypes.ValidatorIndex) dagidx.Seq {
 	seq := b.HighestBeforeSeq.Get(i)
 	return &BranchSeq{seq}
 }
