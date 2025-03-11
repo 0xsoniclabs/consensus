@@ -26,17 +26,17 @@ type BranchSeq struct {
 }
 
 // Seq is a maximum observed e.Seq in the branch
-func (b *BranchSeq) Seq() idx.Event {
+func (b *BranchSeq) Seq() idx.Seq {
 	return b.BranchSeq.Seq
 }
 
 // MinSeq is a minimum observed e.Seq in the branch
-func (b *BranchSeq) MinSeq() idx.Event {
+func (b *BranchSeq) MinSeq() idx.Seq {
 	return b.BranchSeq.MinSeq
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b VectorSeqToDagIndexSeq) Get(i idx.Validator) dagidx.Seq {
+func (b VectorSeqToDagIndexSeq) Get(i idx.ValidatorIdx) dagidx.Seq {
 	seq := b.HighestBeforeSeq.Get(i)
 	return &BranchSeq{seq}
 }
@@ -45,6 +45,6 @@ type VectorToDagIndexer struct {
 	*vecengine.Engine
 }
 
-func (v *VectorToDagIndexer) GetMergedHighestBefore(id hash.Event) dagidx.HighestBeforeSeq {
+func (v *VectorToDagIndexer) GetMergedHighestBefore(id hash.EventHash) dagidx.HighestBeforeSeq {
 	return VectorSeqToDagIndexSeq{v.Engine.GetMergedHighestBefore(id).(*vecengine.HighestBeforeSeq)}
 }

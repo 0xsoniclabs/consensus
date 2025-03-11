@@ -74,8 +74,8 @@ func benchmark_Index_Add(b *testing.B, dbProducer func() kvdb.FlushableKVStore) 
 		validatorsBuilder.Set(peer, 1)
 	}
 	validators := validatorsBuilder.Build()
-	events := make(map[hash.Event]dag.Event)
-	getEvent := func(id hash.Event) dag.Event {
+	events := make(map[hash.EventHash]dag.Event)
+	getEvent := func(id hash.EventHash) dag.Event {
 		return events[id]
 	}
 	for _, e := range ordered {

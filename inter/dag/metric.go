@@ -17,7 +17,7 @@ import (
 )
 
 type Metric struct {
-	Num  idx.Event
+	Num  idx.Seq
 	Size uint64
 }
 

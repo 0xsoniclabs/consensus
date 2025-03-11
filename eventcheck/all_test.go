@@ -126,7 +126,7 @@ func TestParentsEventValidation(t *testing.T) {
 			selfParent := &tdag.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{1})
-			e.SetParents(hash.Events{selfParent.ID()})
+			e.SetParents(hash.EventHashes{selfParent.ID()})
 			return e
 		}(),
 			func() dag.Events {
@@ -146,7 +146,7 @@ func TestParentsEventValidation(t *testing.T) {
 			selfParent := &tdag.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{2})
-			e.SetParents(hash.Events{selfParent.ID()})
+			e.SetParents(hash.EventHashes{selfParent.ID()})
 			return e
 		}(),
 			func() dag.Events {
@@ -162,7 +162,7 @@ func TestParentsEventValidation(t *testing.T) {
 			e := &tdag.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(1)
-			e.SetParents(hash.Events{e.ID()})
+			e.SetParents(hash.EventHashes{e.ID()})
 			return e
 		}(),
 			func() dag.Events {
@@ -176,7 +176,7 @@ func TestParentsEventValidation(t *testing.T) {
 			e := &tdag.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(2)
-			e.SetParents(hash.Events{e.ID()})
+			e.SetParents(hash.EventHashes{e.ID()})
 			return e
 		}(),
 			func() dag.Events {
@@ -193,7 +193,7 @@ func TestParentsEventValidation(t *testing.T) {
 			selfParent := &tdag.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{1})
-			e.SetParents(hash.Events{selfParent.ID()})
+			e.SetParents(hash.EventHashes{selfParent.ID()})
 			return e
 		}(),
 			func() dag.Events {
@@ -216,7 +216,7 @@ func TestParentsEventValidation(t *testing.T) {
 			e := &tdag.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(1)
-			e.SetParents(hash.Events{e.ID()})
+			e.SetParents(hash.EventHashes{e.ID()})
 			return e
 		}(),
 			nil,
@@ -248,7 +248,7 @@ func TestAllEventValidation(t *testing.T) {
 			e := &tdag.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
-			e.SetParents(hash.Events{e.ID()})
+			e.SetParents(hash.EventHashes{e.ID()})
 			return e
 		}(),
 			nil,
@@ -270,7 +270,7 @@ func TestAllEventValidation(t *testing.T) {
 			e.SetCreator(1)
 			e.SetEpoch(1)
 			e.SetFrame(1)
-			e.SetParents(hash.Events{e.ID()})
+			e.SetParents(hash.EventHashes{e.ID()})
 			return e
 		}(),
 			func() dag.Events {
@@ -287,7 +287,7 @@ func TestAllEventValidation(t *testing.T) {
 			e.SetCreator(1)
 			e.SetEpoch(1)
 			e.SetFrame(1)
-			e.SetParents(hash.Events{e.ID()})
+			e.SetParents(hash.EventHashes{e.ID()})
 			return e
 		}(),
 			func() dag.Events {

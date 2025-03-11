@@ -26,12 +26,12 @@ import (
 )
 
 type dbEvent struct {
-	hash        hash.Event
+	hash        hash.EventHash
 	validatorId idx.ValidatorID
-	seq         idx.Event
+	seq         idx.Seq
 	frame       idx.Frame
 	lamportTs   idx.Lamport
-	parents     []hash.Event
+	parents     []hash.EventHash
 }
 
 func (e *dbEvent) String() string {
@@ -46,7 +46,7 @@ type BlockKey struct {
 }
 
 type BlockResult struct {
-	Atropos    hash.Event
+	Atropos    hash.EventHash
 	Cheaters   lachesis.Cheaters
 	Validators *pos.Validators
 }
@@ -145,13 +145,13 @@ func mutateValidators(validators *pos.Validators) *pos.Validators {
 // EventStore is a abft event storage for test purpose.
 // It implements EventSource interface.
 type EventStore struct {
-	db map[hash.Event]dag.Event
+	db map[hash.EventHash]dag.Event
 }
 
 // NewEventStore creates store over memory map.
 func NewEventStore() *EventStore {
 	return &EventStore{
-		db: map[hash.Event]dag.Event{},
+		db: map[hash.EventHash]dag.Event{},
 	}
 }
 
@@ -166,12 +166,12 @@ func (s *EventStore) SetEvent(e dag.Event) {
 }
 
 // GetEvent returns stored event.
-func (s *EventStore) GetEvent(h hash.Event) dag.Event {
+func (s *EventStore) GetEvent(h hash.EventHash) dag.Event {
 	return s.db[h]
 }
 
 // HasEvent returns true if event exists.
-func (s *EventStore) HasEvent(h hash.Event) bool {
+func (s *EventStore) HasEvent(h hash.EventHash) bool {
 	_, ok := s.db[h]
 	return ok
 }

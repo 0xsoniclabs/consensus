@@ -30,15 +30,15 @@ func (ee Events) String() string {
 }
 
 func (ee Events) Metric() (metric Metric) {
-	metric.Num = idx.Event(len(ee))
+	metric.Num = idx.Seq(len(ee))
 	for _, e := range ee {
 		metric.Size += uint64(e.Size())
 	}
 	return metric
 }
 
-func (ee Events) IDs() hash.Events {
-	ids := make(hash.Events, len(ee))
+func (ee Events) IDs() hash.EventHashes {
+	ids := make(hash.EventHashes, len(ee))
 	for i, e := range ee {
 		ids[i] = e.ID()
 	}

@@ -17,9 +17,9 @@ import (
 
 // BranchesInfo contains information about global branches of each validator
 type BranchesInfo struct {
-	BranchIDLastSeq     []idx.Event       // branchID -> highest e.Seq in the branch
-	BranchIDCreatorIdxs []idx.Validator   // branchID -> validator idx
-	BranchIDByCreators  [][]idx.Validator // validator idx -> list of branch IDs
+	BranchIDLastSeq     []idx.Seq            // branchID -> highest e.Seq in the branch
+	BranchIDCreatorIdxs []idx.ValidatorIdx   // branchID -> validator idx
+	BranchIDByCreators  [][]idx.ValidatorIdx // validator idx -> list of branch IDs
 }
 
 // InitBranchesInfo loads BranchesInfo from store
@@ -36,16 +36,16 @@ func (vi *Engine) InitBranchesInfo() {
 
 func newInitialBranchesInfo(validators *pos.Validators) *BranchesInfo {
 	branchIDCreators := validators.SortedIDs()
-	branchIDCreatorIdxs := make([]idx.Validator, len(branchIDCreators))
+	branchIDCreatorIdxs := make([]idx.ValidatorIdx, len(branchIDCreators))
 	for i := range branchIDCreators {
-		branchIDCreatorIdxs[i] = idx.Validator(i)
+		branchIDCreatorIdxs[i] = idx.ValidatorIdx(i)
 	}
 
-	branchIDLastSeq := make([]idx.Event, len(branchIDCreatorIdxs))
-	branchIDByCreators := make([][]idx.Validator, validators.Len())
+	branchIDLastSeq := make([]idx.Seq, len(branchIDCreatorIdxs))
+	branchIDByCreators := make([][]idx.ValidatorIdx, validators.Len())
 	for i := range branchIDByCreators {
-		branchIDByCreators[i] = make([]idx.Validator, 1, validators.Len()/2+1)
-		branchIDByCreators[i][0] = idx.Validator(i)
+		branchIDByCreators[i] = make([]idx.ValidatorIdx, 1, validators.Len()/2+1)
+		branchIDByCreators[i][0] = idx.ValidatorIdx(i)
 	}
 	return &BranchesInfo{
 		BranchIDLastSeq:     branchIDLastSeq,
@@ -55,7 +55,7 @@ func newInitialBranchesInfo(validators *pos.Validators) *BranchesInfo {
 }
 
 func (vi *Engine) AtLeastOneFork() bool {
-	return idx.Validator(len(vi.bi.BranchIDCreatorIdxs)) > vi.validators.Len()
+	return idx.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs)) > vi.validators.Len()
 }
 
 func (vi *Engine) BranchesInfo() *BranchesInfo {

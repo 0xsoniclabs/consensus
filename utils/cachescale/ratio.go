@@ -61,8 +61,8 @@ func (r Ratio) I64(v int64) int64 {
 	return int64(r.U64(uint64(v)))
 }
 
-func (r Ratio) Events(v idx.Event) idx.Event {
-	return idx.Event(r.U64(uint64(v)))
+func (r Ratio) Events(v idx.Seq) idx.Seq {
+	return idx.Seq(r.U64(uint64(v)))
 }
 
 func (r Ratio) Blocks(v idx.Block) idx.Block {

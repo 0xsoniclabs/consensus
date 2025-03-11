@@ -19,19 +19,19 @@ import (
 )
 
 type LowestAfterI interface {
-	InitWithEvent(i idx.Validator, e dag.Event)
-	Visit(i idx.Validator, e dag.Event) bool
+	InitWithEvent(i idx.ValidatorIdx, e dag.Event)
+	Visit(i idx.ValidatorIdx, e dag.Event) bool
 }
 
 type HighestBeforeI interface {
-	InitWithEvent(i idx.Validator, e dag.Event)
-	IsEmpty(i idx.Validator) bool
-	IsForkDetected(i idx.Validator) bool
-	Seq(i idx.Validator) idx.Event
-	MinSeq(i idx.Validator) idx.Event
-	SetForkDetected(i idx.Validator)
-	CollectFrom(other HighestBeforeI, branches idx.Validator)
-	GatherFrom(to idx.Validator, other HighestBeforeI, from []idx.Validator)
+	InitWithEvent(i idx.ValidatorIdx, e dag.Event)
+	IsEmpty(i idx.ValidatorIdx) bool
+	IsForkDetected(i idx.ValidatorIdx) bool
+	Seq(i idx.ValidatorIdx) idx.Seq
+	MinSeq(i idx.ValidatorIdx) idx.Seq
+	SetForkDetected(i idx.ValidatorIdx)
+	CollectFrom(other HighestBeforeI, branches idx.ValidatorIdx)
+	GatherFrom(to idx.ValidatorIdx, other HighestBeforeI, from []idx.ValidatorIdx)
 }
 
 type allVecs struct {
@@ -51,38 +51,38 @@ type (
 
 	// BranchSeq encodes Seq and MinSeq into 8 bytes
 	BranchSeq struct {
-		Seq    idx.Event
-		MinSeq idx.Event
+		Seq    idx.Seq
+		MinSeq idx.Seq
 	}
 )
 
 // NewLowestAfterSeq creates new LowestAfterSeq vector.
-func NewLowestAfterSeq(size idx.Validator) *LowestAfterSeq {
+func NewLowestAfterSeq(size idx.ValidatorIdx) *LowestAfterSeq {
 	b := make(LowestAfterSeq, size*4)
 	return &b
 }
 
 // NewHighestBeforeSeq creates new HighestBeforeSeq vector.
-func NewHighestBeforeSeq(size idx.Validator) *HighestBeforeSeq {
+func NewHighestBeforeSeq(size idx.ValidatorIdx) *HighestBeforeSeq {
 	b := make(HighestBeforeSeq, size*8)
 	return &b
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b LowestAfterSeq) Get(i idx.Validator) idx.Event {
+func (b LowestAfterSeq) Get(i idx.ValidatorIdx) idx.Seq {
 	for i >= b.Size() {
 		return 0
 	}
-	return idx.Event(binary.LittleEndian.Uint32(b[i*4 : (i+1)*4]))
+	return idx.Seq(binary.LittleEndian.Uint32(b[i*4 : (i+1)*4]))
 }
 
 // Size of the vector clock
-func (b LowestAfterSeq) Size() idx.Validator {
-	return idx.Validator(len(b)) / 4
+func (b LowestAfterSeq) Size() idx.ValidatorIdx {
+	return idx.ValidatorIdx(len(b)) / 4
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *LowestAfterSeq) Set(i idx.Validator, seq idx.Event) {
+func (b *LowestAfterSeq) Set(i idx.ValidatorIdx, seq idx.Seq) {
 	for i >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0}...)
@@ -97,7 +97,7 @@ func (b HighestBeforeSeq) Size() int {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b HighestBeforeSeq) Get(i idx.Validator) BranchSeq {
+func (b HighestBeforeSeq) Get(i idx.ValidatorIdx) BranchSeq {
 	for int(i) >= b.Size() {
 		return BranchSeq{}
 	}
@@ -105,13 +105,13 @@ func (b HighestBeforeSeq) Get(i idx.Validator) BranchSeq {
 	seq2 := binary.LittleEndian.Uint32(b[i*8+4 : i*8+8])
 
 	return BranchSeq{
-		Seq:    idx.Event(seq1),
-		MinSeq: idx.Event(seq2),
+		Seq:    idx.Seq(seq1),
+		MinSeq: idx.Seq(seq2),
 	}
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *HighestBeforeSeq) Set(i idx.Validator, seq BranchSeq) {
+func (b *HighestBeforeSeq) Set(i idx.ValidatorIdx, seq BranchSeq) {
 	for int(i) >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
@@ -124,7 +124,7 @@ var (
 	// forkDetectedSeq is a special marker of observed fork by a creator
 	forkDetectedSeq = BranchSeq{
 		Seq:    0,
-		MinSeq: idx.Event(math.MaxInt32),
+		MinSeq: idx.Seq(math.MaxInt32),
 	}
 )
 

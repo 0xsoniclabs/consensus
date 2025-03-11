@@ -28,8 +28,8 @@ import (
 )
 
 type fakeEdge struct {
-	from hash.Event
-	to   hash.Event
+	from hash.EventHash
+	to   hash.EventHash
 }
 
 type (
@@ -216,7 +216,7 @@ type slot struct {
 type testState struct {
 	ordered    tdag.TestEvents
 	frameRoots map[idx.Frame][]RootContext
-	vertices   map[hash.Event]slot
+	vertices   map[hash.EventHash]slot
 	edges      map[fakeEdge]bool
 }
 
@@ -233,7 +233,7 @@ func testVoteAndAggregate(
 	state := testState{
 		ordered:    make(tdag.TestEvents, 0),
 		frameRoots: make(map[idx.Frame][]RootContext),
-		vertices:   make(map[hash.Event]slot),
+		vertices:   make(map[hash.EventHash]slot),
 		edges:      make(map[fakeEdge]bool),
 	}
 
@@ -260,7 +260,7 @@ func testVoteAndAggregate(
 	}
 	validators := validatorsBuilder.Build()
 
-	forklessCauseFn := func(a hash.Event, b hash.Event) bool {
+	forklessCauseFn := func(a hash.EventHash, b hash.EventHash) bool {
 		edge := fakeEdge{
 			from: a,
 			to:   b,
@@ -350,9 +350,9 @@ func indexTestEvent(state *testState, root *tdag.TestEvent, isFork bool) {
 	} else {
 		selfParent := root.SelfParent()
 		if selfParent != nil {
-			root.SetParents(hash.Events{*selfParent})
+			root.SetParents(hash.EventHashes{*selfParent})
 		} else {
-			root.SetParents(hash.Events{})
+			root.SetParents(hash.EventHashes{})
 		}
 	}
 }
