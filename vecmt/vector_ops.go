@@ -3,7 +3,6 @@ package vecmt
 import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
 type CreationTimer interface {
@@ -11,32 +10,45 @@ type CreationTimer interface {
 }
 
 func (b *HighestBefore) InitWithEvent(i idx.Validator, e dag.Event) {
-	b.VSeq.InitWithEvent(i, e)
+	b.VSeq.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq()})
 	b.VTime.Set(i, e.(CreationTimer).CreationTime())
 }
 
+func (b *LowestAfter) InitWithEvent(i idx.Validator, e dag.Event) {
+	b.Set(i, e.Seq())
+}
+
+func (b *LowestAfter) Visit(i idx.Validator, e dag.Event) bool {
+	if b.Get(i) != 0 {
+		return false
+	}
+
+	b.Set(i, e.Seq())
+	return true
+}
+
 func (b *HighestBefore) IsEmpty(i idx.Validator) bool {
-	return b.VSeq.IsEmpty(i)
+	seq := b.VSeq.Get(i)
+	return !seq.IsForkDetected() && seq.Seq == 0
 }
 
 func (b *HighestBefore) IsForkDetected(i idx.Validator) bool {
-	return b.VSeq.IsForkDetected(i)
+	return b.VSeq.Get(i).IsForkDetected()
 }
 
 func (b *HighestBefore) Seq(i idx.Validator) idx.Event {
-	return b.VSeq.Seq(i)
+	return b.VSeq.Get(i).Seq
 }
 
 func (b *HighestBefore) MinSeq(i idx.Validator) idx.Event {
-	return b.VSeq.MinSeq(i)
+	return b.VSeq.Get(i).MinSeq
 }
 
 func (b *HighestBefore) SetForkDetected(i idx.Validator) {
-	b.VSeq.SetForkDetected(i)
+	b.VSeq.Set(i, forkDetectedSeq)
 }
 
-func (hb *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.Validator) {
-	other := _other.(*HighestBefore)
+func (hb *HighestBefore) CollectFrom(other *HighestBefore, num idx.Validator) {
 	for branchID := idx.Validator(0); branchID < num; branchID++ {
 		hisSeq := other.VSeq.Get(branchID)
 		if hisSeq.Seq == 0 && !hisSeq.IsForkDetected() {
@@ -68,10 +80,9 @@ func (hb *HighestBefore) CollectFrom(_other vecengine.HighestBeforeI, num idx.Va
 	}
 }
 
-func (hb *HighestBefore) GatherFrom(to idx.Validator, _other vecengine.HighestBeforeI, from []idx.Validator) {
-	other := _other.(*HighestBefore)
+func (hb *HighestBefore) GatherFrom(to idx.Validator, other *HighestBefore, from []idx.Validator) {
 	// read all branches to find highest event
-	highestBranchSeq := vecengine.BranchSeq{}
+	highestBranchSeq := BranchSeq{}
 	highestBranchTime := Timestamp(0)
 	for _, branchID := range from {
 		vseq := other.VSeq.Get(branchID)
