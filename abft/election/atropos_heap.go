@@ -13,7 +13,7 @@ package election
 import (
 	"container/heap"
 
-	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 // atroposHeap is a min-heap of Atropos decisions ordered by Frames.
@@ -45,7 +45,7 @@ func (h *atroposHeap) Pop() any {
 // example 1: frameToDeliver = 100, heapBuffer = [100, 101, 102] -> deliveredAtropoi = [100, 101, 102], heapBuffer = []
 // example 2: frameToDeliver = 100, heapBuffer = [101, 102] -> deliveredAtropoi = [], heapBuffer = [101, 102]
 // example 3: frameToDeliver = 100, heapBuffer = [100, 101, 104, 105] -> deliveredAtropoi = [100, 101], heapBuffer=[104, 105]
-func (ah *atroposHeap) getDeliveryReadyAtropoi(frameToDeliver idx.Frame) []*AtroposDecision {
+func (ah *atroposHeap) getDeliveryReadyAtropoi(frameToDeliver ctype.Frame) []*AtroposDecision {
 	atropoi := make([]*AtroposDecision, 0)
 	for len(ah.container) > 0 && ah.container[0].Frame == frameToDeliver {
 		atropoi = append(atropoi, heap.Pop(ah).(*AtroposDecision))

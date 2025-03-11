@@ -17,15 +17,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/0xsoniclabs/consensus/ctype"
 	"github.com/0xsoniclabs/consensus/vecflushable"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
@@ -55,11 +51,11 @@ func benchForklessCauseMain(b *testing.B, idx *int, inmem bool) {
 func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 	b.Helper()
 	b.StopTimer()
-	nodes := tdag.GenNodes(10)
-	validators := pos.EqualWeightValidators(nodes, 1)
+	nodes := ctype.GenNodes(10)
+	validators := ctype.EqualWeightValidators(nodes, 1)
 
-	events := make(map[hash.EventHash]dag.Event)
-	getEvent := func(id hash.EventHash) dag.Event {
+	events := make(map[ctype.EventHash]ctype.Event)
+	getEvent := func(id ctype.EventHash) ctype.Event {
 		return events[id]
 	}
 
@@ -80,8 +76,8 @@ func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(db, 10000000), getEvent)
 
-	tdag.ForEachRandEvent(nodes, 10, 2, nil, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	ctype.ForEachRandEvent(nodes, 10, 2, nil, ctype.ForEachEvent{
+		Process: func(e ctype.Event, name string) {
 			events[e.ID()] = e
 			err := vi.Add(e)
 			if err != nil {
@@ -160,19 +156,19 @@ func testForklessCaused(t *testing.T, dagAscii string) {
 	t.Helper()
 	assertar := assert.New(t)
 
-	nodes, _, _ := tdag.ASCIIschemeToDAG(dagAscii)
-	validators := pos.EqualWeightValidators(nodes, 1)
+	nodes, _, _ := ctype.ASCIIschemeToDAG(dagAscii)
+	validators := ctype.EqualWeightValidators(nodes, 1)
 
-	events := make(map[hash.EventHash]dag.Event)
-	getEvent := func(id hash.EventHash) dag.Event {
+	events := make(map[ctype.EventHash]ctype.Event)
+	getEvent := func(id ctype.EventHash) ctype.Event {
 		return events[id]
 	}
 
 	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-	_, _, named := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	_, _, named := ctype.ASCIIschemeForEach(dagAscii, ctype.ForEachEvent{
+		Process: func(e ctype.Event, name string) {
 			events[e.ID()] = e
 			err := vi.Add(e)
 			if err != nil {
@@ -497,17 +493,17 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 		"d019": {"a000": {}, "a001": {}, "a002": {}, "a003": {}, "a004": {}, "a005": {}, "a006": {}, "a007": {}, "a008": {}, "a009": {}, "a010": {}, "a011": {}, "a012": {}, "a013": {}, "a014": {}, "a015": {}, "a016": {}, "a017": {}, "a018": {}, "a019": {}, "b000": {}, "b001": {}, "b002": {}, "b003": {}, "b004": {}, "b005": {}, "b006": {}, "b007": {}, "b008": {}, "b009": {}, "b010": {}, "b011": {}, "b012": {}, "b013": {}, "b014": {}, "b015": {}, "b016": {}, "b017": {}, "b018": {}, "c000": {}, "c001": {}, "c002": {}, "c003": {}, "c004": {}, "c005": {}, "c006": {}, "c007": {}, "c008": {}, "c009": {}, "c010": {}, "c011": {}, "c012": {}, "c013": {}, "c014": {}, "c015": {}, "c016": {}, "c017": {}, "c018": {}, "d000": {}, "d001": {}, "d002": {}, "d003": {}, "d004": {}, "d005": {}, "d006": {}, "d007": {}, "d008": {}, "d009": {}, "d010": {}, "d011": {}, "d012": {}, "d013": {}, "d014": {}, "d015": {}, "d016": {}, "d017": {}, "d018": {}},
 	}
 
-	ordered := make(dag.Events, 0)
-	nodes, _, named := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	ordered := make(ctype.Events, 0)
+	nodes, _, named := ctype.ASCIIschemeForEach(dagAscii, ctype.ForEachEvent{
+		Process: func(e ctype.Event, name string) {
 			ordered = append(ordered, e)
 		},
 	})
 
-	validators := pos.EqualWeightValidators(nodes, 1)
+	validators := ctype.EqualWeightValidators(nodes, 1)
 
-	events := make(map[hash.EventHash]dag.Event)
-	getEvent := func(id hash.EventHash) dag.Event {
+	events := make(map[ctype.EventHash]ctype.Event)
+	getEvent := func(id ctype.EventHash) ctype.Event {
 		return events[id]
 	}
 
@@ -540,16 +536,16 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 }
 
 type eventSlot struct {
-	seq     idx.Seq
-	creator idx.ValidatorID
+	seq     ctype.Seq
+	creator ctype.ValidatorID
 }
 
 // naive implementation of fork detection, O(n)
-func testForksDetected(vi *Engine, head dag.Event) (cheaters map[idx.ValidatorID]bool, err error) {
-	cheaters = map[idx.ValidatorID]bool{}
-	visited := hash.EventHashSet{}
+func testForksDetected(vi *Engine, head ctype.Event) (cheaters map[ctype.ValidatorID]bool, err error) {
+	cheaters = map[ctype.ValidatorID]bool{}
+	visited := ctype.EventHashSet{}
 	detected := map[eventSlot]int{}
-	onWalk := func(id hash.EventHash) (godeeper bool) {
+	onWalk := func(id ctype.EventHash) (godeeper bool) {
 		// ensure visited once
 		if visited.Contains(id) {
 			return false
@@ -575,21 +571,21 @@ func testForksDetected(vi *Engine, head dag.Event) (cheaters map[idx.ValidatorID
 }
 
 func TestRandomForksSanity(t *testing.T) {
-	nodes := tdag.GenNodes(8)
-	cheaters := []idx.ValidatorID{nodes[0], nodes[1], nodes[2]}
+	nodes := ctype.GenNodes(8)
+	cheaters := []ctype.ValidatorID{nodes[0], nodes[1], nodes[2]}
 
-	validatorsBuilder := pos.NewBuilder()
+	validatorsBuilder := ctype.NewBuilder()
 	for _, peer := range nodes {
-		validatorsBuilder.Set(peer, pos.Weight(1))
+		validatorsBuilder.Set(peer, ctype.Weight(1))
 	}
 
-	validatorsBuilder.Set(cheaters[0], pos.Weight(2))
-	validatorsBuilder.Set(nodes[3], pos.Weight(2))
-	validatorsBuilder.Set(nodes[4], pos.Weight(3))
+	validatorsBuilder.Set(cheaters[0], ctype.Weight(2))
+	validatorsBuilder.Set(nodes[3], ctype.Weight(2))
+	validatorsBuilder.Set(nodes[4], ctype.Weight(3))
 	validators := validatorsBuilder.Build()
 
-	processed := make(map[hash.EventHash]dag.Event)
-	getEvent := func(id hash.EventHash) dag.Event {
+	processed := make(map[ctype.EventHash]ctype.Event)
+	getEvent := func(id ctype.EventHash) ctype.Event {
 		return processed[id]
 	}
 
@@ -597,8 +593,8 @@ func TestRandomForksSanity(t *testing.T) {
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 	// Many forks from each node in large graph, so probability of not seeing a fork is negligible
-	events := tdag.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	events := ctype.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, ctype.ForEachEvent{
+		Process: func(e ctype.Event, name string) {
 			if _, ok := processed[e.ID()]; ok {
 				return
 			}
@@ -624,9 +620,9 @@ func TestRandomForksSanity(t *testing.T) {
 			isCheater := n < len(cheaters)
 			assertar.Equal(isCheater, branchSeq.IsForkDetected(), cheater)
 			if isCheater {
-				assertar.Equal(idx.Seq(0), branchSeq.Seq, cheater)
+				assertar.Equal(ctype.Seq(0), branchSeq.Seq, cheater)
 			} else {
-				assertar.NotEqual(idx.Seq(0), branchSeq.Seq, cheater)
+				assertar.NotEqual(ctype.Seq(0), branchSeq.Seq, cheater)
 			}
 		}
 	}
@@ -709,22 +705,22 @@ func TestRandomForks(t *testing.T) {
 		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
 			r := rand.New(rand.NewSource(int64(i))) // nolint:gosec
 
-			nodes := tdag.GenNodes(test.nodesNum)
+			nodes := ctype.GenNodes(test.nodesNum)
 			cheaters := nodes[:test.cheatersNum]
 
-			validators := pos.EqualWeightValidators(nodes, 1)
+			validators := ctype.EqualWeightValidators(nodes, 1)
 
-			processedArr := dag.Events{}
-			processed := make(map[hash.EventHash]dag.Event)
-			getEvent := func(id hash.EventHash) dag.Event {
+			processedArr := ctype.Events{}
+			processed := make(map[ctype.EventHash]ctype.Event)
+			getEvent := func(id ctype.EventHash) ctype.Event {
 				return processed[id]
 			}
 
 			vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 			vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-			_ = tdag.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, tdag.ForEachEvent{
-				Process: func(e dag.Event, name string) {
+			_ = ctype.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, ctype.ForEachEvent{
+				Process: func(e ctype.Event, name string) {
 					if _, ok := processed[e.ID()]; ok {
 						return
 					}
@@ -750,7 +746,7 @@ func TestRandomForks(t *testing.T) {
 					branchSeq := highestBefore.Get(idxs[cheater])
 					assertar.Equal(expectedCheater, branchSeq.IsForkDetected(), e.String())
 					if expectedCheater {
-						assertar.Equal(idx.Seq(0), branchSeq.Seq, e.String())
+						assertar.Equal(ctype.Seq(0), branchSeq.Seq, e.String())
 					}
 				}
 			}
@@ -776,11 +772,11 @@ func TestRandomForks(t *testing.T) {
 			// check that events re-order doesn't change forklessCause result
 			for reorderTry := 0; reorderTry < test.reorderChecks; reorderTry++ {
 				// re-order events randomly, preserving parents order
-				unordered := make(dag.Events, len(processedArr))
+				unordered := make(ctype.Events, len(processedArr))
 				for i, j := range r.Perm(len(processedArr)) {
 					unordered[i] = processedArr[j]
 				}
-				processedArr = tdag.ByParents(unordered)
+				processedArr = ctype.ByParents(unordered)
 
 				for _, a := range processedArr {
 					assertar.NoError(vi.Add(a))
@@ -809,13 +805,13 @@ func codegen4ForklessCausedStability() {
 	peers := inter.GenNodes(4)
 	events := inter.GenEventsByNode(peers, 20, 2, nil, nil, nil)
 
-	validators := make(pos.Validators, len(peers))
+	validators := make(ctype.Validators, len(peers))
 	for _, peer := range peers {
-		validators.Set(peer, pos.Weight(1))
+		validators.Set(peer, ctype.Weight(1))
 	}
 	vi := NewIndex(validators, memorydb.New())
 
-	processed := make(map[hash.Event]*inter.Event)
+	processed := make(map[ctype.Event]*inter.Event)
 	orderThenProcess := ordering.EventsBuffer(ordering.Callback{
 
 		Process: func(e *inter.Event) {
@@ -827,7 +823,7 @@ func codegen4ForklessCausedStability() {
 			panic(err)
 		},
 
-		Exists: func(h hash.Event) *inter.Event {
+		Exists: func(h ctype.Event) *inter.Event {
 			return processed[h]
 		},
 	})

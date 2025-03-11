@@ -16,10 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/lachesis"
@@ -41,11 +38,11 @@ type DagIndexer interface {
 	dagidx.VectorClock
 	dagidx.ForklessCause
 
-	Add(dag.Event) error
+	Add(ctype.Event) error
 	Flush()
 	DropNotFlushed()
 
-	Reset(validators *pos.Validators, db kvdb.FlushableKVStore, getEvent func(hash.EventHash) dag.Event)
+	Reset(validators *ctype.Validators, db kvdb.FlushableKVStore, getEvent func(ctype.EventHash) ctype.Event)
 }
 
 // NewIndexedLachesis creates IndexedLachesis instance.
@@ -61,7 +58,7 @@ func NewIndexedLachesis(store *Store, input EventSource, dagIndexer DagIndexer, 
 
 // Build fills consensus-related fields: Frame, IsRoot
 // returns error if event should be dropped
-func (p *IndexedLachesis) Build(e dag.MutableEvent) error {
+func (p *IndexedLachesis) Build(e ctype.MutableEvent) error {
 	e.SetID(p.uniqueDirtyID.sample())
 
 	defer p.DagIndexer.DropNotFlushed()
@@ -77,7 +74,7 @@ func (p *IndexedLachesis) Build(e dag.MutableEvent) error {
 // Event order matter: parents first.
 // All the event checkers must be launched.
 // Process is not safe for concurrent use.
-func (p *IndexedLachesis) Process(e dag.Event) (err error) {
+func (p *IndexedLachesis) Process(e ctype.Event) (err error) {
 	defer p.DagIndexer.DropNotFlushed()
 	err = p.DagIndexer.Add(e)
 	if err != nil {
@@ -96,7 +93,7 @@ func (p *IndexedLachesis) Bootstrap(callback lachesis.ConsensusCallbacks) error 
 	base := p.Lachesis.OrdererCallbacks()
 	ordererCallbacks := OrdererCallbacks{
 		ApplyAtropos: base.ApplyAtropos,
-		EpochDBLoaded: func(epoch idx.Epoch) {
+		EpochDBLoaded: func(epoch ctype.Epoch) {
 			if base.EpochDBLoaded != nil {
 				base.EpochDBLoaded(epoch)
 			}

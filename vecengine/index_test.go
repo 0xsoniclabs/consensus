@@ -15,14 +15,11 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/0xsoniclabs/consensus/ctype"
 	"github.com/0xsoniclabs/consensus/vecflushable"
 
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
@@ -61,21 +58,21 @@ func BenchmarkIndex_Add_vecflushable_Backup(b *testing.B) {
 func benchmark_Index_Add(b *testing.B, dbProducer func() kvdb.FlushableKVStore) {
 	b.StopTimer()
 
-	nodes := tdag.GenNodes(70)
-	ordered := make(dag.Events, 0)
-	tdag.ForEachRandEvent(nodes, 10, 10, nil, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	nodes := ctype.GenNodes(70)
+	ordered := make(ctype.Events, 0)
+	ctype.ForEachRandEvent(nodes, 10, 10, nil, ctype.ForEachEvent{
+		Process: func(e ctype.Event, name string) {
 			ordered = append(ordered, e)
 		},
 	})
 
-	validatorsBuilder := pos.NewBuilder()
+	validatorsBuilder := ctype.NewBuilder()
 	for _, peer := range nodes {
 		validatorsBuilder.Set(peer, 1)
 	}
 	validators := validatorsBuilder.Build()
-	events := make(map[hash.EventHash]dag.Event)
-	getEvent := func(id hash.EventHash) dag.Event {
+	events := make(map[ctype.EventHash]ctype.Event)
+	getEvent := func(id ctype.EventHash) ctype.Event {
 		return events[id]
 	}
 	for _, e := range ordered {

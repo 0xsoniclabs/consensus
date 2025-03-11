@@ -16,14 +16,11 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/0xsoniclabs/consensus/ctype"
 	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/lachesis"
@@ -31,46 +28,46 @@ import (
 )
 
 func TestRestart_1(t *testing.T) {
-	testRestart(t, []pos.Weight{1}, 0)
+	testRestart(t, []ctype.Weight{1}, 0)
 }
 
 func TestRestart_big1(t *testing.T) {
-	testRestart(t, []pos.Weight{math.MaxUint32 / 2}, 0)
+	testRestart(t, []ctype.Weight{math.MaxUint32 / 2}, 0)
 }
 
 func TestRestart_big2(t *testing.T) {
-	testRestart(t, []pos.Weight{math.MaxUint32 / 4, math.MaxUint32 / 4}, 0)
+	testRestart(t, []ctype.Weight{math.MaxUint32 / 4, math.MaxUint32 / 4}, 0)
 }
 
 func TestRestart_big3(t *testing.T) {
-	testRestart(t, []pos.Weight{math.MaxUint32 / 8, math.MaxUint32 / 8, math.MaxUint32 / 4}, 0)
+	testRestart(t, []ctype.Weight{math.MaxUint32 / 8, math.MaxUint32 / 8, math.MaxUint32 / 4}, 0)
 }
 
 func TestRestart_4(t *testing.T) {
-	testRestart(t, []pos.Weight{1, 2, 3, 4}, 0)
+	testRestart(t, []ctype.Weight{1, 2, 3, 4}, 0)
 }
 
 func TestRestart_3_1(t *testing.T) {
-	testRestart(t, []pos.Weight{1, 1, 1, 1}, 1)
+	testRestart(t, []ctype.Weight{1, 1, 1, 1}, 1)
 }
 
 func TestRestart_67_33(t *testing.T) {
-	testRestart(t, []pos.Weight{33, 67}, 1)
+	testRestart(t, []ctype.Weight{33, 67}, 1)
 }
 
 func TestRestart_67_33_4(t *testing.T) {
-	testRestart(t, []pos.Weight{11, 11, 11, 67}, 3)
+	testRestart(t, []ctype.Weight{11, 11, 11, 67}, 3)
 }
 
 func TestRestart_67_33_5(t *testing.T) {
-	testRestart(t, []pos.Weight{11, 11, 11, 33, 34}, 3)
+	testRestart(t, []ctype.Weight{11, 11, 11, 33, 34}, 3)
 }
 
 func TestRestart_2_8_10(t *testing.T) {
-	testRestart(t, []pos.Weight{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}, 3)
+	testRestart(t, []ctype.Weight{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}, 3)
 }
 
-func testRestart(t *testing.T, weights []pos.Weight, cheatersCount int) {
+func testRestart(t *testing.T, weights []ctype.Weight, cheatersCount int) {
 	t.Helper()
 	testRestartAndReset(t, weights, false, cheatersCount, false)
 	testRestartAndReset(t, weights, false, cheatersCount, true)
@@ -78,7 +75,7 @@ func testRestart(t *testing.T, weights []pos.Weight, cheatersCount int) {
 	testRestartAndReset(t, weights, true, 0, true)
 }
 
-func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool, cheatersCount int, resets bool) {
+func testRestartAndReset(t *testing.T, weights []ctype.Weight, mutateWeights bool, cheatersCount int, resets bool) {
 	t.Helper()
 	assertar := assert.New(t)
 
@@ -88,7 +85,7 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 		EXPECTED  = 1 // sample
 		RESTORED  = 2 // compare with sample
 	)
-	nodes := tdag.GenNodes(len(weights))
+	nodes := ctype.GenNodes(len(weights))
 
 	lchs := make([]*CoreLachesis, 0, COUNT)
 	inputs := make([]*EventStore, 0, COUNT)
@@ -106,8 +103,8 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 	// seal epoch on decided frame == maxEpochBlocks
 	for _, _lch := range lchs {
 		lch := _lch // capture
-		lch.applyBlock = func(block *lachesis.Block) *pos.Validators {
-			if lch.store.GetLastDecidedFrame()+1 == idx.Frame(maxEpochBlocks) {
+		lch.applyBlock = func(block *lachesis.Block) *ctype.Validators {
+			if lch.store.GetLastDecidedFrame()+1 == ctype.Frame(maxEpochBlocks) {
 				// seal epoch
 				if mutateWeights {
 					return mutateValidators(lch.store.GetValidators())
@@ -118,16 +115,16 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 		}
 	}
 
-	var ordered dag.Events
+	var ordered ctype.Events
 	parentCount := 5
 	if parentCount > len(nodes) {
 		parentCount = len(nodes)
 	}
-	epochStates := map[idx.Epoch]*EpochState{}
+	epochStates := map[ctype.Epoch]*EpochState{}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
-	for epoch := idx.Epoch(1); epoch <= idx.Epoch(epochs); epoch++ {
-		tdag.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, tdag.ForEachEvent{
-			Process: func(e dag.Event, name string) {
+	for epoch := ctype.Epoch(1); epoch <= ctype.Epoch(epochs); epoch++ {
+		ctype.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, ctype.ForEachEvent{
+			Process: func(e ctype.Event, name string) {
 				inputs[GENERATOR].SetEvent(e)
 				assertar.NoError(
 					lchs[GENERATOR].Process(e))
@@ -135,7 +132,7 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 				ordered = append(ordered, e)
 				epochStates[lchs[GENERATOR].store.GetEpoch()] = lchs[GENERATOR].store.GetEpochState()
 			},
-			Build: func(e dag.MutableEvent, name string) error {
+			Build: func(e ctype.MutableEvent, name string) error {
 				if epoch != lchs[GENERATOR].store.GetEpoch() {
 					return errors.New("epoch already sealed, skip")
 				}
@@ -148,7 +145,7 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 		return
 	}
 
-	resetEpoch := idx.Epoch(0)
+	resetEpoch := ctype.Epoch(0)
 
 	// use pre-ordered events, call consensus(es) directly
 	for _, e := range ordered {
@@ -187,7 +184,7 @@ func testRestartAndReset(t *testing.T, weights []pos.Weight, mutateWeights bool,
 				it.Release()
 			}
 			restartEpoch := prev.store.GetEpoch()
-			store.getEpochDB = func(epoch idx.Epoch) kvdb.Store {
+			store.getEpochDB = func(epoch ctype.Epoch) kvdb.Store {
 				if epoch == restartEpoch {
 					return restartEpochDB
 				}
@@ -238,9 +235,9 @@ func compareStates(assertar *assert.Assertions, expected, restored *CoreLachesis
 
 func compareBlocks(assertar *assert.Assertions, expected, restored *CoreLachesis) {
 	assertar.Equal(expected.lastBlock, restored.lastBlock)
-	for e := idx.Epoch(1); e <= expected.lastBlock.Epoch; e++ {
+	for e := ctype.Epoch(1); e <= expected.lastBlock.Epoch; e++ {
 		assertar.Equal(expected.epochBlocks[e], restored.epochBlocks[e])
-		for f := idx.Frame(1); f < expected.epochBlocks[e]; f++ {
+		for f := ctype.Frame(1); f < expected.epochBlocks[e]; f++ {
 			key := BlockKey{e, f}
 			if !assertar.NotNil(restored.blocks[key]) ||
 				!assertar.Equal(expected.blocks[key], restored.blocks[key]) {

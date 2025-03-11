@@ -11,23 +11,21 @@
 package lachesis
 
 import (
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 // Consensus is a consensus interface.
 type Consensus interface {
 	// Process takes event for processing.
-	Process(e dag.Event) error
+	Process(e ctype.Event) error
 	// Build sets consensus fields. Returns an error if event should be dropped.
-	Build(e dag.MutableEvent) error
+	Build(e ctype.MutableEvent) error
 	// Reset switches epoch state to a new empty epoch.
-	Reset(epoch idx.Epoch, validators *pos.Validators) error
+	Reset(epoch ctype.Epoch, validators *ctype.Validators) error
 }
 
-type ApplyEventFn func(event dag.Event)
-type EndBlockFn func() (sealEpoch *pos.Validators)
+type ApplyEventFn func(event ctype.Event)
+type EndBlockFn func() (sealEpoch *ctype.Validators)
 
 type BlockCallbacks struct {
 	// ApplyEvent is called on confirmation of each event during block processing.

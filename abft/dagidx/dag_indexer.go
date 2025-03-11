@@ -11,18 +11,17 @@
 package dagidx
 
 import (
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 type Seq interface {
-	Seq() idx.Seq
+	Seq() ctype.Seq
 	IsForkDetected() bool
 }
 
 type HighestBeforeSeq interface {
 	Size() int
-	Get(i idx.ValidatorIdx) Seq
+	Get(i ctype.ValidatorIdx) Seq
 }
 
 type ForklessCause interface {
@@ -40,9 +39,9 @@ type ForklessCause interface {
 	// unless more than 1/3W are Byzantine.
 	// This great property is the reason why this function exists,
 	// providing the base for the BFT algorithm.
-	ForklessCause(aID, bID hash.EventHash) bool
+	ForklessCause(aID, bID ctype.EventHash) bool
 }
 
 type VectorClock interface {
-	GetMergedHighestBefore(id hash.EventHash) HighestBeforeSeq
+	GetMergedHighestBefore(id ctype.EventHash) HighestBeforeSeq
 }

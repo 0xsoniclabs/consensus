@@ -15,7 +15,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/ctype"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 	"github.com/0xsoniclabs/consensus/kvdb/table"
@@ -52,7 +52,7 @@ var (
 	ErrNoGenesis = errors.New("genesis not applied")
 )
 
-type EpochDBProducer func(epoch idx.Epoch) kvdb.Store
+type EpochDBProducer func(epoch ctype.Epoch) kvdb.Store
 
 // NewStore creates store over key-value db.
 func NewStore(mainDB kvdb.Store, getDB EpochDBProducer, crit func(error), cfg StoreConfig) *Store {
@@ -77,7 +77,7 @@ func (s *Store) initCache() {
 // NewMemStore creates store over memory map.
 // Store is always blank.
 func NewMemStore() *Store {
-	getDb := func(epoch idx.Epoch) kvdb.Store {
+	getDb := func(epoch ctype.Epoch) kvdb.Store {
 		return memorydb.New()
 	}
 	cfg := LiteStoreConfig()
@@ -124,7 +124,7 @@ func (s *Store) dropEpochDB() error {
 }
 
 // openEpochDB makes new epoch DB
-func (s *Store) openEpochDB(n idx.Epoch) error {
+func (s *Store) openEpochDB(n ctype.Epoch) error {
 	// Clear full LRU cache.
 	s.cache.FrameRoots.Purge()
 

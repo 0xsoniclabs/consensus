@@ -15,14 +15,11 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
-func CheckEpochAgainstDB(conn *sql.DB, epoch idx.Epoch) error {
+func CheckEpochAgainstDB(conn *sql.DB, epoch ctype.Epoch) error {
 	validators, weights, err := getValidator(conn, epoch)
 	if err != nil {
 		return err
@@ -34,9 +31,9 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch idx.Epoch) error {
 	// Plant the real epoch state for the sake of event hash calculation (epoch=1 by default)
 	testLachesis.store.switchGenesis(&Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()})
 
-	recalculatedAtropoi := make([]hash.EventHash, 0)
+	recalculatedAtropoi := make([]ctype.EventHash, 0)
 	// Capture the elected atropoi by planting the `applyBlock` callback (nil by default)
-	testLachesis.applyBlock = func(block *lachesis.Block) *pos.Validators {
+	testLachesis.applyBlock = func(block *lachesis.Block) *ctype.Validators {
 		recalculatedAtropoi = append(recalculatedAtropoi, block.Atropos)
 		return nil
 	}
@@ -67,7 +64,7 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch idx.Epoch) error {
 	return nil
 }
 
-func GetEpochRange(conn *sql.DB) (idx.Epoch, idx.Epoch, error) {
+func GetEpochRange(conn *sql.DB) (ctype.Epoch, ctype.Epoch, error) {
 	// Query the `Event` table as `Validator` table may include future (empty) epochs
 	rows, err := conn.Query(`
 		SELECT MIN(e.EpochId), MAX(e.EpochId)
@@ -78,7 +75,7 @@ func GetEpochRange(conn *sql.DB) (idx.Epoch, idx.Epoch, error) {
 	}
 	defer rows.Close()
 
-	var epochMin, epochMax idx.Epoch
+	var epochMin, epochMax ctype.Epoch
 	if !rows.Next() {
 		return 0, 0, fmt.Errorf("no non-empty epochs in database")
 	}
@@ -90,7 +87,7 @@ func GetEpochRange(conn *sql.DB) (idx.Epoch, idx.Epoch, error) {
 }
 
 func ingestEvent(testLachesis *CoreLachesis, eventStore *EventStore, event *dbEvent) error {
-	testEvent := &tdag.TestEvent{}
+	testEvent := &ctype.TestEvent{}
 	testEvent.SetSeq(event.seq)
 	testEvent.SetCreator(event.validatorId)
 	testEvent.SetParents(event.parents)
@@ -105,7 +102,7 @@ func ingestEvent(testLachesis *CoreLachesis, eventStore *EventStore, event *dbEv
 // processLocalEvent simulates a flattened (without redudantant indexing and frame (re)calculations)
 // event lifecycle in local computation intensive consensus components - DAG indexing, frame calculation, election
 // Conditions and order in which the components are invoked are identical to production Consensus behaviour
-func processLocalEvent(testLachesis *CoreLachesis, event *tdag.TestEvent, targetFrame idx.Frame) error {
+func processLocalEvent(testLachesis *CoreLachesis, event *ctype.TestEvent, targetFrame ctype.Frame) error {
 	if err := testLachesis.DagIndexer.Add(event); err != nil {
 		return fmt.Errorf("error wihile indexing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
@@ -126,7 +123,7 @@ func processLocalEvent(testLachesis *CoreLachesis, event *tdag.TestEvent, target
 	return nil
 }
 
-func getValidator(conn *sql.DB, epoch idx.Epoch) ([]idx.ValidatorID, []pos.Weight, error) {
+func getValidator(conn *sql.DB, epoch ctype.Epoch) ([]ctype.ValidatorID, []ctype.Weight, error) {
 	rows, err := conn.Query(`
 		SELECT ValidatorId, Weight
 		FROM Validator
@@ -137,11 +134,11 @@ func getValidator(conn *sql.DB, epoch idx.Epoch) ([]idx.ValidatorID, []pos.Weigh
 	}
 	defer rows.Close()
 
-	validators := make([]idx.ValidatorID, 0)
-	weights := make([]pos.Weight, 0)
+	validators := make([]ctype.ValidatorID, 0)
+	weights := make([]ctype.Weight, 0)
 	for rows.Next() {
-		var validatorId idx.ValidatorID
-		var weight pos.Weight
+		var validatorId ctype.ValidatorID
+		var weight ctype.Weight
 
 		err = rows.Scan(&validatorId, &weight)
 		if err != nil {
@@ -154,7 +151,7 @@ func getValidator(conn *sql.DB, epoch idx.Epoch) ([]idx.ValidatorID, []pos.Weigh
 	return validators, weights, nil
 }
 
-func getEvents(conn *sql.DB, epoch idx.Epoch) ([]*dbEvent, map[hash.EventHash]*dbEvent, error) {
+func getEvents(conn *sql.DB, epoch ctype.Epoch) ([]*dbEvent, map[ctype.EventHash]*dbEvent, error) {
 	rows, err := conn.Query(`
 		SELECT e.EventHash, e.ValidatorId, e.SequenceNumber, e.FrameId, e.LamportNumber
 		FROM Event e
@@ -166,14 +163,14 @@ func getEvents(conn *sql.DB, epoch idx.Epoch) ([]*dbEvent, map[hash.EventHash]*d
 	}
 	defer rows.Close()
 
-	eventMap := make(map[hash.EventHash]*dbEvent)
+	eventMap := make(map[ctype.EventHash]*dbEvent)
 	eventsOrdered := make([]*dbEvent, 0)
 	for rows.Next() {
 		var hashStr string
-		var validatorId idx.ValidatorID
-		var seq idx.Seq
-		var frame idx.Frame
-		var lamportTs idx.Lamport
+		var validatorId ctype.ValidatorID
+		var seq ctype.Seq
+		var frame ctype.Frame
+		var lamportTs ctype.Lamport
 		err = rows.Scan(&hashStr, &validatorId, &seq, &frame, &lamportTs)
 		if err != nil {
 			return nil, nil, err
@@ -189,7 +186,7 @@ func getEvents(conn *sql.DB, epoch idx.Epoch) ([]*dbEvent, map[hash.EventHash]*d
 			seq:         seq,
 			frame:       frame,
 			lamportTs:   lamportTs,
-			parents:     make([]hash.EventHash, 0),
+			parents:     make([]ctype.EventHash, 0),
 		}
 		eventsOrdered = append(eventsOrdered, event)
 		eventMap[eventHash] = event
@@ -197,7 +194,7 @@ func getEvents(conn *sql.DB, epoch idx.Epoch) ([]*dbEvent, map[hash.EventHash]*d
 	return eventsOrdered, eventMap, appointParents(conn, eventMap, epoch)
 }
 
-func appointParents(conn *sql.DB, eventMap map[hash.EventHash]*dbEvent, epoch idx.Epoch) error {
+func appointParents(conn *sql.DB, eventMap map[ctype.EventHash]*dbEvent, epoch ctype.Epoch) error {
 	rows, err := conn.Query(`
 		SELECT e.EventHash, eParent.EventHash
 		FROM Event e JOIN Parent p ON e.EventId = p.EventId JOIN Event eParent ON eParent.EventId = p.ParentId
@@ -250,7 +247,7 @@ func appointParents(conn *sql.DB, eventMap map[hash.EventHash]*dbEvent, epoch id
 	return nil
 }
 
-func getAtropoi(conn *sql.DB, epoch idx.Epoch) ([]hash.EventHash, error) {
+func getAtropoi(conn *sql.DB, epoch ctype.Epoch) ([]ctype.EventHash, error) {
 	rows, err := conn.Query(`
 		SELECT e.EventHash
 		FROM Atropos a JOIN Event e ON a.AtroposId = e.EventId
@@ -262,7 +259,7 @@ func getAtropoi(conn *sql.DB, epoch idx.Epoch) ([]hash.EventHash, error) {
 	}
 	defer rows.Close()
 
-	atropoi := make([]hash.EventHash, 0)
+	atropoi := make([]ctype.EventHash, 0)
 	for rows.Next() {
 		var atroposHashStr string
 		err = rows.Scan(&atroposHashStr)
@@ -280,10 +277,10 @@ func getAtropoi(conn *sql.DB, epoch idx.Epoch) ([]hash.EventHash, error) {
 }
 
 // hashStr is in hex format, i.e. 0x1a2b3c4d...
-func decodeHashStr(hashStr string) (hash.EventHash, error) {
+func decodeHashStr(hashStr string) (ctype.EventHash, error) {
 	hashSlice, err := hex.DecodeString(hashStr[2:])
 	if err != nil {
-		return hash.EventHash{}, err
+		return ctype.EventHash{}, err
 	}
-	return hash.EventHash(hashSlice), nil
+	return ctype.EventHash(hashSlice), nil
 }

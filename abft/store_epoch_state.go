@@ -11,8 +11,7 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 const esKey = "e"
@@ -49,11 +48,11 @@ func (s *Store) getEpochState(key []byte) *EpochState {
 }
 
 // GetEpoch returns current epoch
-func (s *Store) GetEpoch() idx.Epoch {
+func (s *Store) GetEpoch() ctype.Epoch {
 	return s.GetEpochState().Epoch
 }
 
 // GetValidators returns current validators
-func (s *Store) GetValidators() *pos.Validators {
+func (s *Store) GetValidators() *ctype.Validators {
 	return s.GetEpochState().Validators
 }
