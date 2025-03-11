@@ -12,8 +12,6 @@ package ctype
 
 import (
 	"sync"
-
-	"github.com/0xsoniclabs/consensus/inter/idx"
 )
 
 var (
@@ -21,14 +19,14 @@ var (
 	eventNameDictMu sync.RWMutex
 
 	// nodeNameDict is an optional dictionary to make node address human readable in log.
-	nodeNameDict = make(map[idx.ValidatorID]string)
+	nodeNameDict = make(map[ValidatorID]string)
 
 	// eventNameDict is an optional dictionary to make events human readable in log.
 	eventNameDict = make(map[EventHash]string)
 )
 
 // SetNodeName sets an optional human readable alias of node address in log.
-func SetNodeName(n idx.ValidatorID, name string) {
+func SetNodeName(n ValidatorID, name string) {
 	nodeNameDictMu.Lock()
 	defer nodeNameDictMu.Unlock()
 
@@ -44,7 +42,7 @@ func SetEventName(e EventHash, name string) {
 }
 
 // GetNodeName gets an optional human readable alias of node address.
-func GetNodeName(n idx.ValidatorID) string {
+func GetNodeName(n ValidatorID) string {
 	nodeNameDictMu.RLock()
 	defer nodeNameDictMu.RUnlock()
 
