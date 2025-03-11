@@ -66,7 +66,7 @@ func (p *Lachesis) applyAtropos(decidedFrame consensustypes.Frame, atropos conse
 	// cheaters are ordered deterministically
 	cheaters := make([]consensustypes.ValidatorID, 0, validators.Len())
 	for creatorIdx, creator := range validators.SortedIDs() {
-		if atroposVecClock.Get(consensustypes.ValidatorIdx(creatorIdx)).IsForkDetected() {
+		if atroposVecClock.Get(consensustypes.ValidatorIndex(creatorIdx)).IsForkDetected() {
 			cheaters = append(cheaters, creator)
 		}
 	}

@@ -21,7 +21,7 @@ type Seq interface {
 
 type HighestBeforeSeq interface {
 	Size() int
-	Get(i consensustypes.ValidatorIdx) Seq
+	Get(i consensustypes.ValidatorIndex) Seq
 }
 
 type ForklessCause interface {

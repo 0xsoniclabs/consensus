@@ -18,19 +18,19 @@ import (
 )
 
 type LowestAfterI interface {
-	InitWithEvent(i consensustypes.ValidatorIdx, e consensustypes.Event)
-	Visit(i consensustypes.ValidatorIdx, e consensustypes.Event) bool
+	InitWithEvent(i consensustypes.ValidatorIndex, e consensustypes.Event)
+	Visit(i consensustypes.ValidatorIndex, e consensustypes.Event) bool
 }
 
 type HighestBeforeI interface {
-	InitWithEvent(i consensustypes.ValidatorIdx, e consensustypes.Event)
-	IsEmpty(i consensustypes.ValidatorIdx) bool
-	IsForkDetected(i consensustypes.ValidatorIdx) bool
-	Seq(i consensustypes.ValidatorIdx) consensustypes.Seq
-	MinSeq(i consensustypes.ValidatorIdx) consensustypes.Seq
-	SetForkDetected(i consensustypes.ValidatorIdx)
-	CollectFrom(other HighestBeforeI, branches consensustypes.ValidatorIdx)
-	GatherFrom(to consensustypes.ValidatorIdx, other HighestBeforeI, from []consensustypes.ValidatorIdx)
+	InitWithEvent(i consensustypes.ValidatorIndex, e consensustypes.Event)
+	IsEmpty(i consensustypes.ValidatorIndex) bool
+	IsForkDetected(i consensustypes.ValidatorIndex) bool
+	Seq(i consensustypes.ValidatorIndex) consensustypes.Seq
+	MinSeq(i consensustypes.ValidatorIndex) consensustypes.Seq
+	SetForkDetected(i consensustypes.ValidatorIndex)
+	CollectFrom(other HighestBeforeI, branches consensustypes.ValidatorIndex)
+	GatherFrom(to consensustypes.ValidatorIndex, other HighestBeforeI, from []consensustypes.ValidatorIndex)
 }
 
 type allVecs struct {
@@ -56,19 +56,19 @@ type (
 )
 
 // NewLowestAfterSeq creates new LowestAfterSeq vector.
-func NewLowestAfterSeq(size consensustypes.ValidatorIdx) *LowestAfterSeq {
+func NewLowestAfterSeq(size consensustypes.ValidatorIndex) *LowestAfterSeq {
 	b := make(LowestAfterSeq, size*4)
 	return &b
 }
 
 // NewHighestBeforeSeq creates new HighestBeforeSeq vector.
-func NewHighestBeforeSeq(size consensustypes.ValidatorIdx) *HighestBeforeSeq {
+func NewHighestBeforeSeq(size consensustypes.ValidatorIndex) *HighestBeforeSeq {
 	b := make(HighestBeforeSeq, size*8)
 	return &b
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b LowestAfterSeq) Get(i consensustypes.ValidatorIdx) consensustypes.Seq {
+func (b LowestAfterSeq) Get(i consensustypes.ValidatorIndex) consensustypes.Seq {
 	for i >= b.Size() {
 		return 0
 	}
@@ -76,12 +76,12 @@ func (b LowestAfterSeq) Get(i consensustypes.ValidatorIdx) consensustypes.Seq {
 }
 
 // Size of the vector clock
-func (b LowestAfterSeq) Size() consensustypes.ValidatorIdx {
-	return consensustypes.ValidatorIdx(len(b)) / 4
+func (b LowestAfterSeq) Size() consensustypes.ValidatorIndex {
+	return consensustypes.ValidatorIndex(len(b)) / 4
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *LowestAfterSeq) Set(i consensustypes.ValidatorIdx, seq consensustypes.Seq) {
+func (b *LowestAfterSeq) Set(i consensustypes.ValidatorIndex, seq consensustypes.Seq) {
 	for i >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0}...)
@@ -96,7 +96,7 @@ func (b HighestBeforeSeq) Size() int {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b HighestBeforeSeq) Get(i consensustypes.ValidatorIdx) BranchSeq {
+func (b HighestBeforeSeq) Get(i consensustypes.ValidatorIndex) BranchSeq {
 	for int(i) >= b.Size() {
 		return BranchSeq{}
 	}
@@ -110,7 +110,7 @@ func (b HighestBeforeSeq) Get(i consensustypes.ValidatorIdx) BranchSeq {
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *HighestBeforeSeq) Set(i consensustypes.ValidatorIdx, seq BranchSeq) {
+func (b *HighestBeforeSeq) Set(i consensustypes.ValidatorIndex, seq BranchSeq) {
 	for int(i) >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)

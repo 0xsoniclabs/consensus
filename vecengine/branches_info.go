@@ -16,9 +16,9 @@ import (
 
 // BranchesInfo contains information about global branches of each validator
 type BranchesInfo struct {
-	BranchIDLastSeq     []consensustypes.Seq            // branchID -> highest e.Seq in the branch
-	BranchIDCreatorIdxs []consensustypes.ValidatorIdx   // branchID -> validator idx
-	BranchIDByCreators  [][]consensustypes.ValidatorIdx // validator idx -> list of branch IDs
+	BranchIDLastSeq     []consensustypes.Seq              // branchID -> highest e.Seq in the branch
+	BranchIDCreatorIdxs []consensustypes.ValidatorIndex   // branchID -> validator idx
+	BranchIDByCreators  [][]consensustypes.ValidatorIndex // validator idx -> list of branch IDs
 }
 
 // InitBranchesInfo loads BranchesInfo from store
@@ -35,16 +35,16 @@ func (vi *Engine) InitBranchesInfo() {
 
 func newInitialBranchesInfo(validators *consensustypes.Validators) *BranchesInfo {
 	branchIDCreators := validators.SortedIDs()
-	branchIDCreatorIdxs := make([]consensustypes.ValidatorIdx, len(branchIDCreators))
+	branchIDCreatorIdxs := make([]consensustypes.ValidatorIndex, len(branchIDCreators))
 	for i := range branchIDCreators {
-		branchIDCreatorIdxs[i] = consensustypes.ValidatorIdx(i)
+		branchIDCreatorIdxs[i] = consensustypes.ValidatorIndex(i)
 	}
 
 	branchIDLastSeq := make([]consensustypes.Seq, len(branchIDCreatorIdxs))
-	branchIDByCreators := make([][]consensustypes.ValidatorIdx, validators.Len())
+	branchIDByCreators := make([][]consensustypes.ValidatorIndex, validators.Len())
 	for i := range branchIDByCreators {
-		branchIDByCreators[i] = make([]consensustypes.ValidatorIdx, 1, validators.Len()/2+1)
-		branchIDByCreators[i][0] = consensustypes.ValidatorIdx(i)
+		branchIDByCreators[i] = make([]consensustypes.ValidatorIndex, 1, validators.Len()/2+1)
+		branchIDByCreators[i][0] = consensustypes.ValidatorIndex(i)
 	}
 	return &BranchesInfo{
 		BranchIDLastSeq:     branchIDLastSeq,
@@ -54,7 +54,7 @@ func newInitialBranchesInfo(validators *consensustypes.Validators) *BranchesInfo
 }
 
 func (vi *Engine) AtLeastOneFork() bool {
-	return consensustypes.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs)) > vi.validators.Len()
+	return consensustypes.ValidatorIndex(len(vi.bi.BranchIDCreatorIdxs)) > vi.validators.Len()
 }
 
 func (vi *Engine) BranchesInfo() *BranchesInfo {

@@ -43,7 +43,7 @@ type Election struct {
 	getFrameRoots  GetFrameRootsFn
 
 	vote           map[consensustypes.Frame]map[consensustypes.ValidatorID]map[consensustypes.EventHash]*RootVoteContext
-	validatorIDMap map[consensustypes.ValidatorID]consensustypes.ValidatorIdx
+	validatorIDMap map[consensustypes.ValidatorID]consensustypes.ValidatorIndex
 	validatorCount consensustypes.Frame
 
 	atroposDeliveryBuffer *atroposHeap

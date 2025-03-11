@@ -14,17 +14,15 @@ import (
 	"github.com/0xsoniclabs/consensus/common/bigendian"
 )
 
-type (
-	// ValidatorIdx numeration.
-	ValidatorIdx uint32
-)
+// ValidatorIndex represents a normalized value of ValidatorID for slice/array packing purposes
+type ValidatorIndex uint32
 
 // Bytes gets the byte representation of the index.
-func (v ValidatorIdx) Bytes() []byte {
+func (v ValidatorIndex) Bytes() []byte {
 	return bigendian.Uint32ToBytes(uint32(v))
 }
 
 // BytesToValidator converts bytes to validator index.
-func BytesToValidator(b []byte) ValidatorIdx {
-	return ValidatorIdx(bigendian.BytesToUint32(b))
+func BytesToValidator(b []byte) ValidatorIndex {
+	return ValidatorIndex(bigendian.BytesToUint32(b))
 }
