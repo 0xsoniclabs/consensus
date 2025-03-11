@@ -11,12 +11,10 @@
 package consensustypes
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"math/rand"
-	"sort"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -28,9 +26,6 @@ type (
 	// EventHash is a unique identifier of event.
 	// It is a hash of EventHash.
 	EventHash Hash
-
-	// OrderedEventHashes is a sortable slice of event hashes.
-	OrderedEventHashes []EventHash
 
 	// EventHashes is a slice of event hashes.
 	EventHashes []EventHash
@@ -250,40 +245,6 @@ func (s *EventHashStack) Pop() *EventHash {
 	*s = (*s)[:l-1]
 
 	return res
-}
-
-/*
- * OrderedEvents methods:
- */
-
-// String returns string representation.
-func (hh OrderedEventHashes) String() string {
-	buf := &strings.Builder{}
-
-	out := func(s string) {
-		if _, err := buf.WriteString(s); err != nil {
-			panic(err)
-		}
-	}
-
-	out("[")
-	for _, h := range hh {
-		out(h.String() + ", ")
-	}
-	out("]")
-
-	return buf.String()
-}
-
-func (hh OrderedEventHashes) Len() int      { return len(hh) }
-func (hh OrderedEventHashes) Swap(i, j int) { hh[i], hh[j] = hh[j], hh[i] }
-func (hh OrderedEventHashes) Less(i, j int) bool {
-	return bytes.Compare(hh[i].Bytes(), hh[j].Bytes()) < 0
-}
-
-// ByEpochAndLamport sorts events by epoch first, by lamport second, by ID third
-func (hh OrderedEventHashes) ByEpochAndLamport() {
-	sort.Sort(hh)
 }
 
 // Of returns hash of data
