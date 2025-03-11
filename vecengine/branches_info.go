@@ -11,14 +11,14 @@
 package vecengine
 
 import (
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
 // BranchesInfo contains information about global branches of each validator
 type BranchesInfo struct {
-	BranchIDLastSeq     []ctype.Seq            // branchID -> highest e.Seq in the branch
-	BranchIDCreatorIdxs []ctype.ValidatorIdx   // branchID -> validator idx
-	BranchIDByCreators  [][]ctype.ValidatorIdx // validator idx -> list of branch IDs
+	BranchIDLastSeq     []consensustypes.Seq            // branchID -> highest e.Seq in the branch
+	BranchIDCreatorIdxs []consensustypes.ValidatorIdx   // branchID -> validator idx
+	BranchIDByCreators  [][]consensustypes.ValidatorIdx // validator idx -> list of branch IDs
 }
 
 // InitBranchesInfo loads BranchesInfo from store
@@ -33,18 +33,18 @@ func (vi *Engine) InitBranchesInfo() {
 	}
 }
 
-func newInitialBranchesInfo(validators *ctype.Validators) *BranchesInfo {
+func newInitialBranchesInfo(validators *consensustypes.Validators) *BranchesInfo {
 	branchIDCreators := validators.SortedIDs()
-	branchIDCreatorIdxs := make([]ctype.ValidatorIdx, len(branchIDCreators))
+	branchIDCreatorIdxs := make([]consensustypes.ValidatorIdx, len(branchIDCreators))
 	for i := range branchIDCreators {
-		branchIDCreatorIdxs[i] = ctype.ValidatorIdx(i)
+		branchIDCreatorIdxs[i] = consensustypes.ValidatorIdx(i)
 	}
 
-	branchIDLastSeq := make([]ctype.Seq, len(branchIDCreatorIdxs))
-	branchIDByCreators := make([][]ctype.ValidatorIdx, validators.Len())
+	branchIDLastSeq := make([]consensustypes.Seq, len(branchIDCreatorIdxs))
+	branchIDByCreators := make([][]consensustypes.ValidatorIdx, validators.Len())
 	for i := range branchIDByCreators {
-		branchIDByCreators[i] = make([]ctype.ValidatorIdx, 1, validators.Len()/2+1)
-		branchIDByCreators[i][0] = ctype.ValidatorIdx(i)
+		branchIDByCreators[i] = make([]consensustypes.ValidatorIdx, 1, validators.Len()/2+1)
+		branchIDByCreators[i][0] = consensustypes.ValidatorIdx(i)
 	}
 	return &BranchesInfo{
 		BranchIDLastSeq:     branchIDLastSeq,
@@ -54,7 +54,7 @@ func newInitialBranchesInfo(validators *ctype.Validators) *BranchesInfo {
 }
 
 func (vi *Engine) AtLeastOneFork() bool {
-	return ctype.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs)) > vi.validators.Len()
+	return consensustypes.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs)) > vi.validators.Len()
 }
 
 func (vi *Engine) BranchesInfo() *BranchesInfo {

@@ -11,7 +11,7 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
 const esKey = "e"
@@ -48,11 +48,11 @@ func (s *Store) getEpochState(key []byte) *EpochState {
 }
 
 // GetEpoch returns current epoch
-func (s *Store) GetEpoch() ctype.Epoch {
+func (s *Store) GetEpoch() consensustypes.Epoch {
 	return s.GetEpochState().Epoch
 }
 
 // GetValidators returns current validators
-func (s *Store) GetValidators() *ctype.Validators {
+func (s *Store) GetValidators() *consensustypes.Validators {
 	return s.GetEpochState().Validators
 }

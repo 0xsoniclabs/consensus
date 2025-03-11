@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
 /*
@@ -28,7 +28,7 @@ func TestEventStore(t *testing.T) {
 	t.Run("NotExisting", func(t *testing.T) {
 		assertar := assert.New(t)
 
-		h := ctype.FakeEvent()
+		h := consensustypes.FakeEvent()
 		e1 := store.GetEvent(h)
 		assertar.Nil(e1)
 	})
@@ -36,9 +36,9 @@ func TestEventStore(t *testing.T) {
 	t.Run("Events", func(t *testing.T) {
 		assertar := assert.New(t)
 
-		nodes := ctype.GenNodes(5)
-		ctype.ForEachRandEvent(nodes, int(TestMaxEpochEvents)-1, 4, nil, ctype.ForEachEvent{
-			Process: func(e ctype.Event, name string) {
+		nodes := consensustypes.GenNodes(5)
+		consensustypes.ForEachRandEvent(nodes, int(TestMaxEpochEvents)-1, 4, nil, consensustypes.ForEachEvent{
+			Process: func(e consensustypes.Event, name string) {
 				store.SetEvent(e)
 				e1 := store.GetEvent(e.ID())
 

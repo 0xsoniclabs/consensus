@@ -11,7 +11,7 @@
 package eventcheck
 
 import (
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 	"github.com/0xsoniclabs/consensus/eventcheck/basiccheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/epochcheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/parentscheck"
@@ -25,7 +25,7 @@ type Checkers struct {
 }
 
 // Validate runs all the checks except Lachesis-related
-func (v *Checkers) Validate(e ctype.Event, parents ctype.Events) error {
+func (v *Checkers) Validate(e consensustypes.Event, parents consensustypes.Events) error {
 	if err := v.Basiccheck.Validate(e); err != nil {
 		return err
 	}

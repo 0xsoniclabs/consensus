@@ -15,7 +15,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 	"github.com/0xsoniclabs/consensus/vecflushable"
 
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -58,21 +58,21 @@ func BenchmarkIndex_Add_vecflushable_Backup(b *testing.B) {
 func benchmark_Index_Add(b *testing.B, dbProducer func() kvdb.FlushableKVStore) {
 	b.StopTimer()
 
-	nodes := ctype.GenNodes(70)
-	ordered := make(ctype.Events, 0)
-	ctype.ForEachRandEvent(nodes, 10, 10, nil, ctype.ForEachEvent{
-		Process: func(e ctype.Event, name string) {
+	nodes := consensustypes.GenNodes(70)
+	ordered := make(consensustypes.Events, 0)
+	consensustypes.ForEachRandEvent(nodes, 10, 10, nil, consensustypes.ForEachEvent{
+		Process: func(e consensustypes.Event, name string) {
 			ordered = append(ordered, e)
 		},
 	})
 
-	validatorsBuilder := ctype.NewBuilder()
+	validatorsBuilder := consensustypes.NewBuilder()
 	for _, peer := range nodes {
 		validatorsBuilder.Set(peer, 1)
 	}
 	validators := validatorsBuilder.Build()
-	events := make(map[ctype.EventHash]ctype.Event)
-	getEvent := func(id ctype.EventHash) ctype.Event {
+	events := make(map[consensustypes.EventHash]consensustypes.Event)
+	getEvent := func(id consensustypes.EventHash) consensustypes.Event {
 		return events[id]
 	}
 	for _, e := range ordered {

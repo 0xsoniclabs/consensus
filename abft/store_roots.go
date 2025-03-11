@@ -15,10 +15,10 @@ import (
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/abft/election"
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
-func rootRecordKey(frame ctype.Frame, root *election.RootContext) []byte {
+func rootRecordKey(frame consensustypes.Frame, root *election.RootContext) []byte {
 	key := bytes.Buffer{}
 	key.Write(frame.Bytes())
 	key.Write(root.ValidatorID.Bytes())
@@ -28,11 +28,11 @@ func rootRecordKey(frame ctype.Frame, root *election.RootContext) []byte {
 
 // AddRoot stores the new root
 // Not safe for concurrent use due to the complex mutable cache!
-func (s *Store) AddRoot(root ctype.Event) {
+func (s *Store) AddRoot(root consensustypes.Event) {
 	s.addRoot(root, root.Frame())
 }
 
-func (s *Store) addRoot(root ctype.Event, frame ctype.Frame) {
+func (s *Store) addRoot(root consensustypes.Event, frame consensustypes.Frame) {
 	r := election.RootContext{
 		ValidatorID: root.Creator(),
 		RootHash:    root.ID(),
@@ -58,7 +58,7 @@ const (
 
 // GetFrameRoots returns all the roots in the specified frame
 // Not safe for concurrent use due to the complex mutable cache!
-func (s *Store) GetFrameRoots(frame ctype.Frame) []election.RootContext {
+func (s *Store) GetFrameRoots(frame consensustypes.Frame) []election.RootContext {
 	if rr, ok := s.cache.FrameRoots.Get(frame); ok {
 		return rr.([]election.RootContext)
 	}
@@ -72,8 +72,8 @@ func (s *Store) GetFrameRoots(frame ctype.Frame) []election.RootContext {
 		}
 
 		r := election.RootContext{
-			RootHash:    ctype.BytesToEvent(key[frameSize+validatorIDSize:]),
-			ValidatorID: ctype.BytesToValidatorID(key[frameSize : frameSize+validatorIDSize]),
+			RootHash:    consensustypes.BytesToEvent(key[frameSize+validatorIDSize:]),
+			ValidatorID: consensustypes.BytesToValidatorID(key[frameSize : frameSize+validatorIDSize]),
 		}
 		roots = append(roots, r)
 	}
