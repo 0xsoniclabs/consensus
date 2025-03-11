@@ -3,7 +3,6 @@ package vecmt
 import (
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/kvdb"
-	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
 func (vi *Index) getBytes(table kvdb.Store, id hash.Event) []byte {
@@ -25,11 +24,11 @@ func (vi *Index) setBytes(table kvdb.Store, id hash.Event, b []byte) {
 
 // GetHighestBefore reads the vector from DB
 func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
-	var vSeq *vecengine.HighestBeforeSeq
+	var vSeq *HighestBeforeSeq
 	if vSeqVal, ok := vi.cache.HighestBeforeSeq.Get(id); ok {
-		vSeq = vSeqVal.(*vecengine.HighestBeforeSeq)
+		vSeq = vSeqVal.(*HighestBeforeSeq)
 	} else {
-		temp := vecengine.HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
+		temp := HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
 		vSeq = &temp
 	}
 
@@ -52,12 +51,12 @@ func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 }
 
 // GetLowestAfter reads the vector from DB
-func (vi *Index) GetLowestAfter(id hash.Event) *vecengine.LowestAfterSeq {
+func (vi *Index) GetLowestAfter(id hash.Event) *LowestAfter {
 	if bVal, okGet := vi.cache.LowestAfterSeq.Get(id); okGet {
-		return bVal.(*vecengine.LowestAfterSeq)
+		return bVal.(*LowestAfter) // Cast needed because simplewlru uses raw interface{}.
 	}
 
-	b := vecengine.LowestAfterSeq(vi.getBytes(vi.table.LowestAfterSeq, id))
+	b := LowestAfter(vi.getBytes(vi.table.LowestAfterSeq, id))
 	if b == nil {
 		return nil
 	}
@@ -74,7 +73,7 @@ func (vi *Index) SetHighestBefore(id hash.Event, vec *HighestBefore) {
 }
 
 // SetLowestAfter stores the vector into DB
-func (vi *Index) SetLowestAfter(id hash.Event, seq *vecengine.LowestAfterSeq) {
+func (vi *Index) SetLowestAfter(id hash.Event, seq *LowestAfterSeq) {
 	vi.setBytes(vi.table.LowestAfterSeq, id, *seq)
 	vi.cache.LowestAfterSeq.Add(id, seq, uint(len(*seq)))
 }
