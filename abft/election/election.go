@@ -19,18 +19,18 @@ import (
 )
 
 type (
-	ForklessCauseFn func(a hash.Event, b hash.Event) bool
+	ForklessCauseFn func(a hash.EventHash, b hash.EventHash) bool
 	GetFrameRootsFn func(f idx.Frame) []RootContext
 )
 
 type RootContext struct {
 	ValidatorID idx.ValidatorID
-	RootHash    hash.Event
+	RootHash    hash.EventHash
 }
 
 type AtroposDecision struct {
 	Frame       idx.Frame
-	AtroposHash hash.Event
+	AtroposHash hash.EventHash
 }
 
 type RootVoteContext struct {
@@ -44,8 +44,8 @@ type Election struct {
 	forklessCauses ForklessCauseFn
 	getFrameRoots  GetFrameRootsFn
 
-	vote           map[idx.Frame]map[idx.ValidatorID]map[hash.Event]*RootVoteContext
-	validatorIDMap map[idx.ValidatorID]idx.Validator
+	vote           map[idx.Frame]map[idx.ValidatorID]map[hash.EventHash]*RootVoteContext
+	validatorIDMap map[idx.ValidatorID]idx.ValidatorIdx
 	validatorCount idx.Frame
 
 	atroposDeliveryBuffer *atroposHeap
@@ -71,7 +71,7 @@ func (el *Election) ResetEpoch(frameToDeliver idx.Frame, validators *pos.Validat
 	el.atroposDeliveryBuffer = NewAtroposHeap()
 	el.frameToDeliver = frameToDeliver
 	el.validators = validators
-	el.vote = make(map[idx.Frame]map[idx.ValidatorID]map[hash.Event]*RootVoteContext)
+	el.vote = make(map[idx.Frame]map[idx.ValidatorID]map[hash.EventHash]*RootVoteContext)
 	el.validatorCount = idx.Frame(validators.Len())
 	el.validatorIDMap = validators.Idxs()
 }
@@ -79,7 +79,7 @@ func (el *Election) ResetEpoch(frameToDeliver idx.Frame, validators *pos.Validat
 func (el *Election) VoteAndAggregate(
 	frame idx.Frame,
 	validatorId idx.ValidatorID,
-	rootHash hash.Event,
+	rootHash hash.EventHash,
 ) ([]*AtroposDecision, error) {
 	el.prepareNewElectorRoot(frame, validatorId, rootHash)
 	if frame <= el.frameToDeliver {
@@ -141,11 +141,11 @@ func (el *Election) decide(aggregatingFrame idx.Frame, aggregationMatr []int32, 
 // by the "upper frame" root votes'. This is trivial in case of non-forking events as such
 // roots are uniquely identified by (frame, validator).
 // In the case of a fork, a tiebreaker algorithms has to be run.
-func (el *Election) elect(frame idx.Frame, validatorCandidate idx.ValidatorID) hash.Event {
+func (el *Election) elect(frame idx.Frame, validatorCandidate idx.ValidatorID) hash.EventHash {
 	candidateMap := el.vote[frame][validatorCandidate]
 	// get any hash identifed by (frame, validatorCandidate) tuple
 	// for non-forking scenarios, only a single such root is possible
-	atroposHash := hash.Event{}
+	atroposHash := hash.EventHash{}
 	for hash := range candidateMap {
 		atroposHash = hash
 	}
@@ -165,7 +165,7 @@ func (el *Election) elect(frame idx.Frame, validatorCandidate idx.ValidatorID) h
 	return atroposHash
 }
 
-func (el *Election) observedRoots(root hash.Event, frame idx.Frame) []RootContext {
+func (el *Election) observedRoots(root hash.EventHash, frame idx.Frame) []RootContext {
 	observedRoots := make([]RootContext, 0, el.validators.Len())
 	frameRoots := el.getFrameRoots(frame)
 	for _, frameRoot := range frameRoots {
@@ -176,12 +176,12 @@ func (el *Election) observedRoots(root hash.Event, frame idx.Frame) []RootContex
 	return observedRoots
 }
 
-func (el *Election) prepareNewElectorRoot(frame idx.Frame, validatorId idx.ValidatorID, root hash.Event) {
+func (el *Election) prepareNewElectorRoot(frame idx.Frame, validatorId idx.ValidatorID, root hash.EventHash) {
 	if _, ok := el.vote[frame]; !ok {
-		el.vote[frame] = make(map[idx.ValidatorID]map[hash.Event]*RootVoteContext)
+		el.vote[frame] = make(map[idx.ValidatorID]map[hash.EventHash]*RootVoteContext)
 	}
 	if _, ok := el.vote[frame][validatorId]; !ok {
-		el.vote[frame][validatorId] = make(map[hash.Event]*RootVoteContext)
+		el.vote[frame][validatorId] = make(map[hash.EventHash]*RootVoteContext)
 	}
 	el.vote[frame][validatorId][root] = &RootVoteContext{frameToDeliverOffset: el.frameToDeliver}
 }

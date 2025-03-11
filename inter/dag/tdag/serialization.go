@@ -19,17 +19,17 @@ import (
 
 type TestEventMarshaling struct {
 	Epoch idx.Epoch
-	Seq   idx.Event
+	Seq   idx.Seq
 
 	Frame idx.Frame
 
 	Creator idx.ValidatorID
 
-	Parents hash.Events
+	Parents hash.EventHashes
 
 	Lamport idx.Lamport
 
-	ID   hash.Event
+	ID   hash.EventHash
 	Name string
 }
 

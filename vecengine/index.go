@@ -26,12 +26,12 @@ import (
 )
 
 type Callbacks struct {
-	GetHighestBefore func(hash.Event) HighestBeforeI
-	GetLowestAfter   func(hash.Event) LowestAfterI
-	SetHighestBefore func(hash.Event, HighestBeforeI)
-	SetLowestAfter   func(hash.Event, LowestAfterI)
-	NewHighestBefore func(idx.Validator) HighestBeforeI
-	NewLowestAfter   func(idx.Validator) LowestAfterI
+	GetHighestBefore func(hash.EventHash) HighestBeforeI
+	GetLowestAfter   func(hash.EventHash) LowestAfterI
+	SetHighestBefore func(hash.EventHash, HighestBeforeI)
+	SetLowestAfter   func(hash.EventHash, LowestAfterI)
+	NewHighestBefore func(idx.ValidatorIdx) HighestBeforeI
+	NewLowestAfter   func(idx.ValidatorIdx) LowestAfterI
 	OnDropNotFlushed func()
 }
 
@@ -39,11 +39,11 @@ type Callbacks struct {
 type Engine struct {
 	crit          func(error)
 	validators    *pos.Validators
-	validatorIdxs map[idx.ValidatorID]idx.Validator
+	validatorIdxs map[idx.ValidatorID]idx.ValidatorIdx
 
 	bi *BranchesInfo
 
-	getEvent func(hash.Event) dag.Event
+	getEvent func(hash.EventHash) dag.Event
 
 	Callbacks Callbacks
 
@@ -105,19 +105,19 @@ func (vi *Engine) DropNotFlushed() {
 	}
 }
 
-func (vi *Engine) setForkDetected(before HighestBeforeI, branchID idx.Validator) {
+func (vi *Engine) setForkDetected(before HighestBeforeI, branchID idx.ValidatorIdx) {
 	creatorIdx := vi.bi.BranchIDCreatorIdxs[branchID]
 	for _, branchID := range vi.bi.BranchIDByCreators[creatorIdx] {
 		before.SetForkDetected(branchID)
 	}
 }
 
-func (vi *Engine) fillGlobalBranchID(e dag.Event, meIdx idx.Validator) (idx.Validator, error) {
+func (vi *Engine) fillGlobalBranchID(e dag.Event, meIdx idx.ValidatorIdx) (idx.ValidatorIdx, error) {
 	// sanity checks
 	if len(vi.bi.BranchIDCreatorIdxs) != len(vi.bi.BranchIDLastSeq) {
 		return 0, errors.New("inconsistent BranchIDCreators len (inconsistent DB)")
 	}
-	if idx.Validator(len(vi.bi.BranchIDCreatorIdxs)) < vi.validators.Len() {
+	if idx.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs)) < vi.validators.Len() {
 		return 0, errors.New("inconsistent BranchIDCreators len (inconsistent DB)")
 	}
 
@@ -145,7 +145,7 @@ func (vi *Engine) fillGlobalBranchID(e dag.Event, meIdx idx.Validator) (idx.Vali
 	// if we're here, then new fork is observed (only globally), create new branchID due to a new fork
 	vi.bi.BranchIDLastSeq = append(vi.bi.BranchIDLastSeq, e.Seq())
 	vi.bi.BranchIDCreatorIdxs = append(vi.bi.BranchIDCreatorIdxs, meIdx)
-	newBranchID := idx.Validator(len(vi.bi.BranchIDLastSeq) - 1)
+	newBranchID := idx.ValidatorIdx(len(vi.bi.BranchIDLastSeq) - 1)
 	vi.bi.BranchIDByCreators[meIdx] = append(vi.bi.BranchIDByCreators[meIdx], newBranchID)
 	return newBranchID, nil
 }
@@ -154,8 +154,8 @@ func (vi *Engine) fillGlobalBranchID(e dag.Event, meIdx idx.Validator) (idx.Vali
 func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	meIdx := vi.validatorIdxs[e.Creator()]
 	myVecs := allVecs{
-		before: vi.Callbacks.NewHighestBefore(idx.Validator(len(vi.bi.BranchIDCreatorIdxs))),
-		after:  vi.Callbacks.NewLowestAfter(idx.Validator(len(vi.bi.BranchIDCreatorIdxs))),
+		before: vi.Callbacks.NewHighestBefore(idx.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs))),
+		after:  vi.Callbacks.NewLowestAfter(idx.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs))),
 	}
 
 	meBranchID, err := vi.fillGlobalBranchID(e, meIdx)
@@ -165,7 +165,7 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 
 	// pre-load parents into RAM for quick access
 	parentsVecs := make([]HighestBeforeI, len(e.Parents()))
-	parentsBranchIDs := make([]idx.Validator, len(e.Parents()))
+	parentsBranchIDs := make([]idx.ValidatorIdx, len(e.Parents()))
 	for i, p := range e.Parents() {
 		parentsBranchIDs[i] = vi.GetEventBranchID(p)
 		parentsVecs[i] = vi.Callbacks.GetHighestBefore(p)
@@ -180,11 +180,11 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 
 	for _, pVec := range parentsVecs {
 		// calculate HighestBefore  Detect forks for a case when parent observes a fork
-		myVecs.before.CollectFrom(pVec, idx.Validator(len(vi.bi.BranchIDCreatorIdxs)))
+		myVecs.before.CollectFrom(pVec, idx.ValidatorIdx(len(vi.bi.BranchIDCreatorIdxs)))
 	}
 	// Detect forks, which were not observed by parents
 	if vi.AtLeastOneFork() {
-		for n := idx.Validator(0); n < vi.validators.Len(); n++ {
+		for n := idx.ValidatorIdx(0); n < vi.validators.Len(); n++ {
 			if len(vi.bi.BranchIDByCreators[n]) <= 1 {
 				continue
 			}
@@ -198,7 +198,7 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 		}
 
 	nextCreator:
-		for n := idx.Validator(0); n < vi.validators.Len(); n++ {
+		for n := idx.ValidatorIdx(0); n < vi.validators.Len(); n++ {
 			if myVecs.before.IsForkDetected(n) {
 				continue
 			}
@@ -223,7 +223,7 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	}
 
 	// graph traversal starting from e, but excluding e
-	onWalk := func(walk hash.Event) (godeeper bool) {
+	onWalk := func(walk hash.EventHash) (godeeper bool) {
 		wLowestAfterSeq := vi.Callbacks.GetLowestAfter(walk)
 
 		// update LowestAfter vector of the old event, because newly-connected event observes it
@@ -246,7 +246,7 @@ func (vi *Engine) fillEventVectors(e dag.Event) (allVecs, error) {
 	return myVecs, nil
 }
 
-func (vi *Engine) GetMergedHighestBefore(id hash.Event) HighestBeforeI {
+func (vi *Engine) GetMergedHighestBefore(id hash.EventHash) HighestBeforeI {
 	vi.InitBranchesInfo()
 
 	if vi.AtLeastOneFork() {
@@ -255,7 +255,7 @@ func (vi *Engine) GetMergedHighestBefore(id hash.Event) HighestBeforeI {
 		mergedBefore := vi.Callbacks.NewHighestBefore(vi.validators.Len())
 
 		for creatorIdx, branches := range vi.bi.BranchIDByCreators {
-			mergedBefore.GatherFrom(idx.Validator(creatorIdx), scatteredBefore, branches)
+			mergedBefore.GatherFrom(idx.ValidatorIdx(creatorIdx), scatteredBefore, branches)
 		}
 
 		return mergedBefore
@@ -271,22 +271,22 @@ func (vi *Engine) initCaches() {
 
 func GetEngineCallbacks(vi *Engine) Callbacks {
 	return Callbacks{
-		GetHighestBefore: func(event hash.Event) HighestBeforeI {
+		GetHighestBefore: func(event hash.EventHash) HighestBeforeI {
 			return vi.GetHighestBefore(event)
 		},
-		GetLowestAfter: func(event hash.Event) LowestAfterI {
+		GetLowestAfter: func(event hash.EventHash) LowestAfterI {
 			return vi.GetLowestAfter(event)
 		},
-		SetHighestBefore: func(event hash.Event, b HighestBeforeI) {
+		SetHighestBefore: func(event hash.EventHash, b HighestBeforeI) {
 			vi.SetHighestBefore(event, b.(*HighestBeforeSeq))
 		},
-		SetLowestAfter: func(event hash.Event, b LowestAfterI) {
+		SetLowestAfter: func(event hash.EventHash, b LowestAfterI) {
 			vi.SetLowestAfter(event, b.(*LowestAfterSeq))
 		},
-		NewHighestBefore: func(size idx.Validator) HighestBeforeI {
+		NewHighestBefore: func(size idx.ValidatorIdx) HighestBeforeI {
 			return NewHighestBeforeSeq(size)
 		},
-		NewLowestAfter: func(size idx.Validator) LowestAfterI {
+		NewLowestAfter: func(size idx.ValidatorIdx) LowestAfterI {
 			return NewLowestAfterSeq(size)
 		},
 		OnDropNotFlushed: func() { vi.onDropNotFlushed() },
@@ -294,7 +294,7 @@ func GetEngineCallbacks(vi *Engine) Callbacks {
 }
 
 // Reset resets buffers.
-func (vi *Engine) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, getEvent func(hash.Event) dag.Event) {
+func (vi *Engine) Reset(validators *pos.Validators, db kvdb.FlushableKVStore, getEvent func(hash.EventHash) dag.Event) {
 	vi.getEvent = getEvent
 	vi.vecDb = db
 	vi.validators = validators

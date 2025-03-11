@@ -24,7 +24,7 @@ var (
 	nodeNameDict = make(map[idx.ValidatorID]string)
 
 	// eventNameDict is an optional dictionary to make events human readable in log.
-	eventNameDict = make(map[Event]string)
+	eventNameDict = make(map[EventHash]string)
 )
 
 // SetNodeName sets an optional human readable alias of node address in log.
@@ -36,7 +36,7 @@ func SetNodeName(n idx.ValidatorID, name string) {
 }
 
 // SetEventName sets an optional human readable alias of event hash in log.
-func SetEventName(e Event, name string) {
+func SetEventName(e EventHash, name string) {
 	eventNameDictMu.Lock()
 	defer eventNameDictMu.Unlock()
 
@@ -52,7 +52,7 @@ func GetNodeName(n idx.ValidatorID) string {
 }
 
 // GetEventName gets an optional human readable alias of event hash.
-func GetEventName(e Event) string {
+func GetEventName(e EventHash) string {
 	eventNameDictMu.RLock()
 	defer eventNameDictMu.RUnlock()
 

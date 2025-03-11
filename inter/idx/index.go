@@ -18,8 +18,8 @@ type (
 	// Epoch numeration.
 	Epoch uint32
 
-	// Event numeration.
-	Event uint32
+	// Seq numeration.
+	Seq uint32
 
 	// Block numeration.
 	Block uint64
@@ -43,7 +43,7 @@ func (e Epoch) Bytes() []byte {
 }
 
 // Bytes gets the byte representation of the index.
-func (e Event) Bytes() []byte {
+func (e Seq) Bytes() []byte {
 	return bigendian.Uint32ToBytes(uint32(e))
 }
 
@@ -78,8 +78,8 @@ func BytesToEpoch(b []byte) Epoch {
 }
 
 // BytesToEvent converts bytes to event index.
-func BytesToEvent(b []byte) Event {
-	return Event(bigendian.BytesToUint32(b))
+func BytesToEvent(b []byte) Seq {
+	return Seq(bigendian.BytesToUint32(b))
 }
 
 // BytesToBlock converts bytes to block index.

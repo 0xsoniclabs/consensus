@@ -138,8 +138,8 @@ func ASCIIschemeForEach(
 			creator := nodes[nCreators[i]]
 			// find creator's parent
 			var (
-				index      idx.Event
-				parents    = hash.Events{}
+				index      idx.Seq
+				parents    = hash.EventHashes{}
 				maxLamport idx.Lamport
 			)
 			if last := len(events[creator]) - prevRef - 1; last >= 0 {
@@ -232,20 +232,20 @@ func DAGtoASCIIscheme(events dag.Events) (string, error) {
 	var (
 		scheme rows
 
-		processed = make(map[hash.Event]dag.Event)
+		processed = make(map[hash.EventHash]dag.Event)
 		nodeCols  = make(map[idx.ValidatorID]int)
 		ok        bool
 
-		eventIndex       = make(map[idx.ValidatorID]map[hash.Event]int)
+		eventIndex       = make(map[idx.ValidatorID]map[hash.EventHash]int)
 		creatorLastIndex = make(map[idx.ValidatorID]int)
 
-		seqCount = make(map[idx.ValidatorID]map[idx.Event]int)
+		seqCount = make(map[idx.ValidatorID]map[idx.Seq]int)
 	)
 	for _, e := range events {
 		// if count of unique seq > 1 -> fork
 		if _, exist := seqCount[e.Creator()]; !exist {
-			seqCount[e.Creator()] = map[idx.Event]int{}
-			eventIndex[e.Creator()] = map[hash.Event]int{}
+			seqCount[e.Creator()] = map[idx.Seq]int{}
+			eventIndex[e.Creator()] = map[hash.EventHash]int{}
 		}
 		if _, exist := seqCount[e.Creator()][e.Seq()]; !exist {
 			seqCount[e.Creator()][e.Seq()] = 1

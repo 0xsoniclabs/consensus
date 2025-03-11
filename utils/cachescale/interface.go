@@ -23,7 +23,7 @@ type Func interface {
 	U64(uint64) uint64
 	F32(float32) float32
 	F64(float64) float64
-	Events(v idx.Event) idx.Event
+	Events(v idx.Seq) idx.Seq
 	Blocks(v idx.Block) idx.Block
 	Frames(v idx.Frame) idx.Frame
 }

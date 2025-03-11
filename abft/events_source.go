@@ -17,6 +17,6 @@ import (
 
 // EventSource is a callback for getting events from an external storage.
 type EventSource interface {
-	HasEvent(hash.Event) bool
-	GetEvent(hash.Event) dag.Event
+	HasEvent(hash.EventHash) bool
+	GetEvent(hash.EventHash) dag.Event
 }
