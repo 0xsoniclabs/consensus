@@ -26,7 +26,7 @@ func (vi *Index) setBytes(table kvdb.Store, id hash.Event, b []byte) {
 func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 	var vSeq *HighestBeforeSeq
 	if vSeqVal, ok := vi.cache.HighestBeforeSeq.Get(id); ok {
-		vSeq = vSeqVal.(*HighestBeforeSeq)
+		vSeq = vSeqVal.(*HighestBeforeSeq) // Assertion needed because of raw bytes.
 	} else {
 		temp := HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
 		vSeq = &temp
@@ -34,7 +34,7 @@ func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 
 	var vTime *HighestBeforeTime
 	if vTimeVal, ok := vi.cache.HighestBeforeTime.Get(id); ok {
-		vTime = vTimeVal.(*HighestBeforeTime)
+		vTime = vTimeVal.(*HighestBeforeTime) // Assertion needed because of raw bytes.
 	} else {
 		temp := HighestBeforeTime(vi.getBytes(vi.table.HighestBeforeTime, id))
 		vTime = &temp
@@ -43,7 +43,7 @@ func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 		}
 	}
 
-	vi.cache.HighestBeforeSeq.Add(id, &vSeq, uint(len(*vSeq)))
+	vi.cache.HighestBeforeSeq.Add(id, vSeq, uint(len(*vSeq)))
 	return &HighestBefore{
 		VSeq:  vSeq,
 		VTime: vTime,
@@ -67,7 +67,7 @@ func (vi *Index) GetLowestAfter(id hash.Event) *LowestAfter {
 // SetHighestBefore stores the vectors into DB
 func (vi *Index) SetHighestBefore(id hash.Event, vec *HighestBefore) {
 	vi.setBytes(vi.table.HighestBeforeTime, id, *vec.VTime)
-	vi.cache.HighestBeforeTime.Add(id, vec, uint(len(*vec.VTime)))
+	vi.cache.HighestBeforeTime.Add(id, vec.VTime, uint(len(*vec.VTime)))
 	vi.setBytes(vi.table.HighestBeforeSeq, id, *vec.VSeq)
 	vi.cache.HighestBeforeSeq.Add(id, vec.VSeq, uint(len(*vec.VSeq)))
 }
