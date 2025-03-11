@@ -10,9 +10,7 @@
 
 package cachescale
 
-import (
-	"github.com/0xsoniclabs/consensus/inter/idx"
-)
+import "github.com/0xsoniclabs/consensus/ctype"
 
 type Func interface {
 	I(int) int
@@ -23,7 +21,7 @@ type Func interface {
 	U64(uint64) uint64
 	F32(float32) float32
 	F64(float64) float64
-	Events(v idx.Seq) idx.Seq
-	Blocks(v idx.Block) idx.Block
-	Frames(v idx.Frame) idx.Frame
+	Events(v ctype.Seq) ctype.Seq
+	Blocks(v ctype.Block) ctype.Block
+	Frames(v ctype.Frame) ctype.Frame
 }

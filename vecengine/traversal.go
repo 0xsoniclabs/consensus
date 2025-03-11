@@ -13,15 +13,14 @@ package vecengine
 import (
 	"errors"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 // DfsSubgraph iterates all the event which are observed by head, and accepted by a filter
 // Excluding head
 // filter MAY BE called twice for the same event.
-func (vi *Engine) DfsSubgraph(head dag.Event, walk func(hash.EventHash) (godeeper bool)) error {
-	stack := make(hash.EventHashStack, 0, vi.validators.Len()*5)
+func (vi *Engine) DfsSubgraph(head ctype.Event, walk func(ctype.EventHash) (godeeper bool)) error {
+	stack := make(ctype.EventHashStack, 0, vi.validators.Len()*5)
 
 	// first element
 	stack.PushAll(head.Parents())

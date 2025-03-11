@@ -11,16 +11,14 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 // onFrameDecided moves LastDecidedFrameN to frame.
 // It includes: moving current decided frame, txs ordering and execution, epoch sealing.
-func (p *Orderer) onFrameDecided(frame idx.Frame, atropos hash.EventHash) (bool, error) {
+func (p *Orderer) onFrameDecided(frame ctype.Frame, atropos ctype.EventHash) (bool, error) {
 	// new checkpoint
-	var newValidators *pos.Validators
+	var newValidators *ctype.Validators
 	if p.callback.ApplyAtropos != nil {
 		newValidators = p.callback.ApplyAtropos(frame, atropos)
 	}
@@ -40,7 +38,7 @@ func (p *Orderer) onFrameDecided(frame idx.Frame, atropos hash.EventHash) (bool,
 	return newValidators != nil, nil
 }
 
-func (p *Orderer) resetEpochStore(newEpoch idx.Epoch) error {
+func (p *Orderer) resetEpochStore(newEpoch ctype.Epoch) error {
 	err := p.store.dropEpochDB()
 	if err != nil {
 		return err
@@ -56,7 +54,7 @@ func (p *Orderer) resetEpochStore(newEpoch idx.Epoch) error {
 	return nil
 }
 
-func (p *Orderer) sealEpoch(newValidators *pos.Validators) error {
+func (p *Orderer) sealEpoch(newValidators *ctype.Validators) error {
 	// new PrevEpoch state
 	epochState := *p.store.GetEpochState()
 	epochState.Epoch++

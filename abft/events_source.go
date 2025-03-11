@@ -11,12 +11,11 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 // EventSource is a callback for getting events from an external storage.
 type EventSource interface {
-	HasEvent(hash.EventHash) bool
-	GetEvent(hash.EventHash) dag.Event
+	HasEvent(ctype.EventHash) bool
+	GetEvent(ctype.EventHash) ctype.Event
 }

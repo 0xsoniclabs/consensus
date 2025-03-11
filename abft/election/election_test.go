@@ -20,24 +20,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 type fakeEdge struct {
-	from hash.EventHash
-	to   hash.EventHash
+	from ctype.EventHash
+	to   ctype.EventHash
 }
 
 type (
-	weights map[string]pos.Weight
+	weights map[string]ctype.Weight
 )
 
 type testExpected struct {
-	DecidedFrame   idx.Frame
+	DecidedFrame   ctype.Frame
 	DecidedAtropos string
 	DecisiveRoots  map[string]bool
 }
@@ -209,14 +205,14 @@ func TestProcessRoot(t *testing.T) {
 }
 
 type slot struct {
-	frame       idx.Frame
-	validatorID idx.ValidatorID
+	frame       ctype.Frame
+	validatorID ctype.ValidatorID
 }
 
 type testState struct {
-	ordered    tdag.TestEvents
-	frameRoots map[idx.Frame][]RootContext
-	vertices   map[hash.EventHash]slot
+	ordered    ctype.TestEvents
+	frameRoots map[ctype.Frame][]RootContext
+	vertices   map[ctype.EventHash]slot
 	edges      map[fakeEdge]bool
 }
 
@@ -231,28 +227,28 @@ func testVoteAndAggregate(
 	assertar := assert.New(t)
 
 	state := testState{
-		ordered:    make(tdag.TestEvents, 0),
-		frameRoots: make(map[idx.Frame][]RootContext),
-		vertices:   make(map[hash.EventHash]slot),
+		ordered:    make(ctype.TestEvents, 0),
+		frameRoots: make(map[ctype.Frame][]RootContext),
+		vertices:   make(map[ctype.EventHash]slot),
 		edges:      make(map[fakeEdge]bool),
 	}
 
-	nodes, _, _ := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
-		Process: func(_root dag.Event, name string) {
-			root := _root.(*tdag.TestEvent)
+	nodes, _, _ := ctype.ASCIIschemeForEach(dagAscii, ctype.ForEachEvent{
+		Process: func(_root ctype.Event, name string) {
+			root := _root.(*ctype.TestEvent)
 			indexTestEvent(&state, root, false)
 			if forkedRootName, ok := forks[name]; ok {
 				forkedRoot := *root
 				forkedRoot.Name = forkedRootName
-				forkedRoot.SetID(tdag.CalcHashForTestEvent(&forkedRoot))
+				forkedRoot.SetID(ctype.CalcHashForTestEvent(&forkedRoot))
 				indexTestEvent(&state, &forkedRoot, true)
 			}
 		},
 	})
 
-	validatorsBuilder := pos.NewBuilder()
+	validatorsBuilder := ctype.NewBuilder()
 	for _, node := range nodes {
-		nodeName := hash.GetNodeName(node)
+		nodeName := ctype.GetNodeName(node)
 		if len(nodeName) == 0 {
 			nodeName = fmt.Sprintf("%d", node)
 		}
@@ -260,19 +256,19 @@ func testVoteAndAggregate(
 	}
 	validators := validatorsBuilder.Build()
 
-	forklessCauseFn := func(a hash.EventHash, b hash.EventHash) bool {
+	forklessCauseFn := func(a ctype.EventHash, b ctype.EventHash) bool {
 		edge := fakeEdge{
 			from: a,
 			to:   b,
 		}
 		return state.edges[edge]
 	}
-	getFrameRootsFn := func(f idx.Frame) []RootContext {
+	getFrameRootsFn := func(f ctype.Frame) []RootContext {
 		return state.frameRoots[f]
 	}
 
 	// re-order events randomly, preserving parents order
-	unordered := make(tdag.TestEvents, len(state.ordered))
+	unordered := make(ctype.TestEvents, len(state.ordered))
 	for i, j := range rand.Perm(len(state.ordered)) {
 		unordered[i] = state.ordered[j]
 	}
@@ -306,16 +302,16 @@ func testVoteAndAggregate(
 	}
 }
 
-func frameOf(dsc string) idx.Frame {
+func frameOf(dsc string) ctype.Frame {
 	s := strings.Split(dsc, "_")[1]
 	h, err := strconv.ParseUint(s, 10, 32)
 	if err != nil {
 		panic(err)
 	}
-	return idx.Frame(h)
+	return ctype.Frame(h)
 }
 
-func indexTestEvent(state *testState, root *tdag.TestEvent, isFork bool) {
+func indexTestEvent(state *testState, root *ctype.TestEvent, isFork bool) {
 	state.ordered = append(state.ordered, root)
 	slt := slot{
 		frame:       frameOf(root.Name),
@@ -350,9 +346,9 @@ func indexTestEvent(state *testState, root *tdag.TestEvent, isFork bool) {
 	} else {
 		selfParent := root.SelfParent()
 		if selfParent != nil {
-			root.SetParents(hash.EventHashes{*selfParent})
+			root.SetParents(ctype.EventHashes{*selfParent})
 		} else {
-			root.SetParents(hash.EventHashes{})
+			root.SetParents(ctype.EventHashes{})
 		}
 	}
 }

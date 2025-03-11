@@ -15,26 +15,25 @@ import (
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/abft/election"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 const (
-	FirstFrame = idx.Frame(1)
-	FirstEpoch = idx.Epoch(1)
+	FirstFrame = ctype.Frame(1)
+	FirstEpoch = ctype.Epoch(1)
 )
 
 // LastDecidedState is for persistent storing.
 type LastDecidedState struct {
 	// fields can change only after a frame is decided
-	LastDecidedFrame idx.Frame
+	LastDecidedFrame ctype.Frame
 }
 
 type EpochState struct {
 	// stored values
 	// these values change only after a change of epoch
-	Epoch      idx.Epoch
-	Validators *pos.Validators
+	Epoch      ctype.Epoch
+	Validators *ctype.Validators
 }
 
 func (es EpochState) String() string {
@@ -65,7 +64,7 @@ func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 }
 
 // Reset switches epoch state to a new empty epoch.
-func (p *Orderer) Reset(epoch idx.Epoch, validators *pos.Validators) error {
+func (p *Orderer) Reset(epoch ctype.Epoch, validators *ctype.Validators) error {
 	if err := p.store.switchGenesis(&Genesis{Epoch: epoch, Validators: validators}); err != nil {
 		return err
 	}

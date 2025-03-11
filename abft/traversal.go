@@ -13,16 +13,15 @@ package abft
 import (
 	"errors"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
-type eventFilterFn func(event dag.Event) bool
+type eventFilterFn func(event ctype.Event) bool
 
 // dfsSubgraph iterates all the events which are observed by head, and accepted by a filter.
 // filter MAY BE called twice for the same event.
-func (p *Orderer) dfsSubgraph(head hash.EventHash, filter eventFilterFn) error {
-	stack := make(hash.EventHashStack, 0, 300)
+func (p *Orderer) dfsSubgraph(head ctype.EventHash, filter eventFilterFn) error {
+	stack := make(ctype.EventHashStack, 0, 300)
 
 	for pwalk := &head; pwalk != nil; pwalk = stack.Pop() {
 		walk := *pwalk

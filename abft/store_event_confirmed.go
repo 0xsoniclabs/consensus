@@ -11,12 +11,11 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/idx"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
-// SetEventConfirmedOn stores confirmed event hash.
-func (s *Store) SetEventConfirmedOn(e hash.EventHash, on idx.Frame) {
+// SetEventConfirmedOn stores confirmed event ctype.
+func (s *Store) SetEventConfirmedOn(e ctype.EventHash, on ctype.Frame) {
 	key := e.Bytes()
 
 	if err := s.epochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
@@ -24,8 +23,8 @@ func (s *Store) SetEventConfirmedOn(e hash.EventHash, on idx.Frame) {
 	}
 }
 
-// GetEventConfirmedOn returns confirmed event hash.
-func (s *Store) GetEventConfirmedOn(e hash.EventHash) idx.Frame {
+// GetEventConfirmedOn returns confirmed event ctype.
+func (s *Store) GetEventConfirmedOn(e ctype.EventHash) ctype.Frame {
 	key := e.Bytes()
 
 	buf, err := s.epochTable.ConfirmedEvent.Get(key)
@@ -36,5 +35,5 @@ func (s *Store) GetEventConfirmedOn(e hash.EventHash) idx.Frame {
 		return 0
 	}
 
-	return idx.BytesToFrame(buf)
+	return ctype.BytesToFrame(buf)
 }

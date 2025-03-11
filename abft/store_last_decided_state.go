@@ -10,9 +10,7 @@
 
 package abft
 
-import (
-	"github.com/0xsoniclabs/consensus/inter/idx"
-)
+import "github.com/0xsoniclabs/consensus/ctype"
 
 const dsKey = "d"
 
@@ -40,6 +38,6 @@ func (s *Store) GetLastDecidedState() *LastDecidedState {
 	return w
 }
 
-func (s *Store) GetLastDecidedFrame() idx.Frame {
+func (s *Store) GetLastDecidedFrame() ctype.Frame {
 	return s.GetLastDecidedState().LastDecidedFrame
 }

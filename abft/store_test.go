@@ -6,9 +6,7 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/abft/election"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/ctype"
 )
 
 func TestStore_StatePersisting(t *testing.T) {
@@ -31,7 +29,7 @@ func TestStore_FrameRootPersisting(t *testing.T) {
 	}
 	rand.Shuffle(len(retrievalOrder), func(i, j int) { retrievalOrder[i], retrievalOrder[j] = retrievalOrder[j], retrievalOrder[i] })
 	for _, frame := range retrievalOrder {
-		frameRoots := store.GetFrameRoots(idx.Frame(frame))
+		frameRoots := store.GetFrameRoots(ctype.Frame(frame))
 		if want, got := len(roots[frame]), len(frameRoots); want != got {
 			t.Fatalf("incorrect number of roots retrieved for frame %d, expected: %d, got: %d", frame, want, got)
 		}
@@ -60,13 +58,13 @@ func TestStore_Close(t *testing.T) {
 	}
 }
 
-func populateWithRoots(store *Store) [][]*tdag.TestEvent {
+func populateWithRoots(store *Store) [][]*ctype.TestEvent {
 	store.openEpochDB(1)
-	roots := make([][]*tdag.TestEvent, 100)
-	for frame := range idx.Frame(100) {
-		roots[frame] = make([]*tdag.TestEvent, 100)
-		for validatorID := range idx.ValidatorID(100) {
-			root := &tdag.TestEvent{}
+	roots := make([][]*ctype.TestEvent, 100)
+	for frame := range ctype.Frame(100) {
+		roots[frame] = make([]*ctype.TestEvent, 100)
+		for validatorID := range ctype.ValidatorID(100) {
+			root := &ctype.TestEvent{}
 			root.SetID([24]byte{byte(frame), byte(validatorID)})
 			store.addRoot(root, frame)
 			roots[frame][validatorID] = root
@@ -76,7 +74,7 @@ func populateWithRoots(store *Store) [][]*tdag.TestEvent {
 }
 
 func populateWithEpochStates(store *Store) (*EpochState, *LastDecidedState) {
-	validatorBuilder := pos.NewBuilder()
+	validatorBuilder := ctype.NewBuilder()
 	validatorBuilder.Set(1, 10)
 	epochState := &EpochState{Epoch: 3, Validators: validatorBuilder.Build()}
 	lastDecidedState := &LastDecidedState{LastDecidedFrame: 5}
