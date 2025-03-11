@@ -14,7 +14,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
@@ -51,7 +51,7 @@ func newFakeFS(namespace string) *fakeFS {
 }
 
 func uniqNamespace() string {
-	return ctype.FakeHash(rand.Int63()).Hex() // nolint:gosec
+	return consensustypes.FakeHash(rand.Int63()).Hex() // nolint:gosec
 }
 
 func (fs *fakeFS) ListFakeDBs() []string {

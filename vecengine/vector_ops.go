@@ -11,14 +11,14 @@
 package vecengine
 
 import (
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
-func (b *LowestAfterSeq) InitWithEvent(i ctype.ValidatorIdx, e ctype.Event) {
+func (b *LowestAfterSeq) InitWithEvent(i consensustypes.ValidatorIdx, e consensustypes.Event) {
 	b.Set(i, e.Seq())
 }
 
-func (b *LowestAfterSeq) Visit(i ctype.ValidatorIdx, e ctype.Event) bool {
+func (b *LowestAfterSeq) Visit(i consensustypes.ValidatorIdx, e consensustypes.Event) bool {
 	if b.Get(i) != 0 {
 		return false
 	}
@@ -27,36 +27,36 @@ func (b *LowestAfterSeq) Visit(i ctype.ValidatorIdx, e ctype.Event) bool {
 	return true
 }
 
-func (b *HighestBeforeSeq) InitWithEvent(i ctype.ValidatorIdx, e ctype.Event) {
+func (b *HighestBeforeSeq) InitWithEvent(i consensustypes.ValidatorIdx, e consensustypes.Event) {
 	b.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq()})
 }
 
-func (b *HighestBeforeSeq) IsEmpty(i ctype.ValidatorIdx) bool {
+func (b *HighestBeforeSeq) IsEmpty(i consensustypes.ValidatorIdx) bool {
 	seq := b.Get(i)
 	return !seq.IsForkDetected() && seq.Seq == 0
 }
 
-func (b *HighestBeforeSeq) IsForkDetected(i ctype.ValidatorIdx) bool {
+func (b *HighestBeforeSeq) IsForkDetected(i consensustypes.ValidatorIdx) bool {
 	return b.Get(i).IsForkDetected()
 }
 
-func (b *HighestBeforeSeq) Seq(i ctype.ValidatorIdx) ctype.Seq {
+func (b *HighestBeforeSeq) Seq(i consensustypes.ValidatorIdx) consensustypes.Seq {
 	val := b.Get(i)
 	return val.Seq
 }
 
-func (b *HighestBeforeSeq) MinSeq(i ctype.ValidatorIdx) ctype.Seq {
+func (b *HighestBeforeSeq) MinSeq(i consensustypes.ValidatorIdx) consensustypes.Seq {
 	val := b.Get(i)
 	return val.MinSeq
 }
 
-func (b *HighestBeforeSeq) SetForkDetected(i ctype.ValidatorIdx) {
+func (b *HighestBeforeSeq) SetForkDetected(i consensustypes.ValidatorIdx) {
 	b.Set(i, forkDetectedSeq)
 }
 
-func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num ctype.ValidatorIdx) {
+func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensustypes.ValidatorIdx) {
 	other := _other.(*HighestBeforeSeq)
-	for branchID := ctype.ValidatorIdx(0); branchID < num; branchID++ {
+	for branchID := consensustypes.ValidatorIdx(0); branchID < num; branchID++ {
 		hisSeq := other.Get(branchID)
 		if hisSeq.Seq == 0 && !hisSeq.IsForkDetected() {
 			// hisSeq doesn't observe anything about this branchID
@@ -86,7 +86,7 @@ func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num ctype.Valid
 	}
 }
 
-func (self *HighestBeforeSeq) GatherFrom(to ctype.ValidatorIdx, _other HighestBeforeI, from []ctype.ValidatorIdx) {
+func (self *HighestBeforeSeq) GatherFrom(to consensustypes.ValidatorIdx, _other HighestBeforeI, from []consensustypes.ValidatorIdx) {
 	other := _other.(*HighestBeforeSeq)
 	// read all branches to find highest event
 	highestBranchSeq := BranchSeq{}

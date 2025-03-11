@@ -14,7 +14,7 @@ import (
 	"errors"
 	"math"
 
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
 var (
@@ -31,7 +31,7 @@ func New() *Checker {
 	return &Checker{}
 }
 
-func (v *Checker) checkLimits(e ctype.Event) error {
+func (v *Checker) checkLimits(e consensustypes.Event) error {
 	if e.Seq() >= math.MaxInt32-1 || e.Epoch() >= math.MaxInt32-1 || e.Frame() >= math.MaxInt32-1 ||
 		e.Lamport() >= math.MaxInt32-1 {
 		return ErrHugeValue
@@ -40,7 +40,7 @@ func (v *Checker) checkLimits(e ctype.Event) error {
 	return nil
 }
 
-func (v *Checker) checkInited(e ctype.Event) error {
+func (v *Checker) checkInited(e consensustypes.Event) error {
 	// it's unsigned, but check for negative in a case if type will change
 	if e.Seq() <= 0 || e.Epoch() <= 0 || e.Frame() <= 0 || e.Lamport() <= 0 {
 		return ErrNotInited
@@ -54,7 +54,7 @@ func (v *Checker) checkInited(e ctype.Event) error {
 }
 
 // Validate event
-func (v *Checker) Validate(e ctype.Event) error {
+func (v *Checker) Validate(e consensustypes.Event) error {
 	if err := v.checkLimits(e); err != nil {
 		return err
 	}

@@ -11,16 +11,16 @@
 package lachesis
 
 import (
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 // Cheaters is a slice type for storing cheaters list.
-type Cheaters []ctype.ValidatorID
+type Cheaters []consensustypes.ValidatorID
 
 // Set returns map of cheaters
-func (s Cheaters) Set() map[ctype.ValidatorID]struct{} {
-	set := map[ctype.ValidatorID]struct{}{}
+func (s Cheaters) Set() map[consensustypes.ValidatorID]struct{} {
+	set := map[consensustypes.ValidatorID]struct{}{}
 	for _, element := range s {
 		set[element] = struct{}{}
 	}

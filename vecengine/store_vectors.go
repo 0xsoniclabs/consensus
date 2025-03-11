@@ -11,11 +11,11 @@
 package vecengine
 
 import (
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
-func (vi *Engine) getBytes(table kvdb.Store, id ctype.EventHash) []byte {
+func (vi *Engine) getBytes(table kvdb.Store, id consensustypes.EventHash) []byte {
 	key := id.Bytes()
 	b, err := table.Get(key)
 	if err != nil {
@@ -24,7 +24,7 @@ func (vi *Engine) getBytes(table kvdb.Store, id ctype.EventHash) []byte {
 	return b
 }
 
-func (vi *Engine) setBytes(table kvdb.Store, id ctype.EventHash, b []byte) {
+func (vi *Engine) setBytes(table kvdb.Store, id consensustypes.EventHash, b []byte) {
 	key := id.Bytes()
 	err := table.Put(key, b)
 	if err != nil {
@@ -33,7 +33,7 @@ func (vi *Engine) setBytes(table kvdb.Store, id ctype.EventHash, b []byte) {
 }
 
 // GetLowestAfter reads the vector from DB
-func (vi *Engine) GetLowestAfter(id ctype.EventHash) *LowestAfterSeq {
+func (vi *Engine) GetLowestAfter(id consensustypes.EventHash) *LowestAfterSeq {
 	if bVal, okGet := vi.cache.LowestAfterSeq.Get(id); okGet {
 		return bVal.(*LowestAfterSeq)
 	}
@@ -47,7 +47,7 @@ func (vi *Engine) GetLowestAfter(id ctype.EventHash) *LowestAfterSeq {
 }
 
 // GetHighestBefore reads the vector from DB
-func (vi *Engine) GetHighestBefore(id ctype.EventHash) *HighestBeforeSeq {
+func (vi *Engine) GetHighestBefore(id consensustypes.EventHash) *HighestBeforeSeq {
 	if bVal, okGet := vi.cache.HighestBeforeSeq.Get(id); okGet {
 		return bVal.(*HighestBeforeSeq)
 	}
@@ -61,14 +61,14 @@ func (vi *Engine) GetHighestBefore(id ctype.EventHash) *HighestBeforeSeq {
 }
 
 // SetLowestAfter stores the vector into DB
-func (vi *Engine) SetLowestAfter(id ctype.EventHash, seq *LowestAfterSeq) {
+func (vi *Engine) SetLowestAfter(id consensustypes.EventHash, seq *LowestAfterSeq) {
 	vi.setBytes(vi.table.LowestAfterSeq, id, *seq)
 
 	vi.cache.LowestAfterSeq.Add(id, seq, uint(len(*seq)))
 }
 
 // SetHighestBefore stores the vectors into DB
-func (vi *Engine) SetHighestBefore(id ctype.EventHash, seq *HighestBeforeSeq) {
+func (vi *Engine) SetHighestBefore(id consensustypes.EventHash, seq *HighestBeforeSeq) {
 	vi.setBytes(vi.table.HighestBeforeSeq, id, *seq)
 
 	vi.cache.HighestBeforeSeq.Add(id, seq, uint(len(*seq)))

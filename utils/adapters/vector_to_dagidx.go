@@ -12,7 +12,7 @@ package adapters
 
 import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 	"github.com/0xsoniclabs/consensus/vecengine"
 )
 
@@ -25,17 +25,17 @@ type BranchSeq struct {
 }
 
 // Seq is a maximum observed e.Seq in the branch
-func (b *BranchSeq) Seq() ctype.Seq {
+func (b *BranchSeq) Seq() consensustypes.Seq {
 	return b.BranchSeq.Seq
 }
 
 // MinSeq is a minimum observed e.Seq in the branch
-func (b *BranchSeq) MinSeq() ctype.Seq {
+func (b *BranchSeq) MinSeq() consensustypes.Seq {
 	return b.BranchSeq.MinSeq
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b VectorSeqToDagIndexSeq) Get(i ctype.ValidatorIdx) dagidx.Seq {
+func (b VectorSeqToDagIndexSeq) Get(i consensustypes.ValidatorIdx) dagidx.Seq {
 	seq := b.HighestBeforeSeq.Get(i)
 	return &BranchSeq{seq}
 }
@@ -44,6 +44,6 @@ type VectorToDagIndexer struct {
 	*vecengine.Engine
 }
 
-func (v *VectorToDagIndexer) GetMergedHighestBefore(id ctype.EventHash) dagidx.HighestBeforeSeq {
+func (v *VectorToDagIndexer) GetMergedHighestBefore(id consensustypes.EventHash) dagidx.HighestBeforeSeq {
 	return VectorSeqToDagIndexSeq{v.Engine.GetMergedHighestBefore(id).(*vecengine.HighestBeforeSeq)}
 }

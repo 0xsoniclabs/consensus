@@ -13,14 +13,14 @@ package vecengine
 import (
 	"errors"
 
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
 // DfsSubgraph iterates all the event which are observed by head, and accepted by a filter
 // Excluding head
 // filter MAY BE called twice for the same event.
-func (vi *Engine) DfsSubgraph(head ctype.Event, walk func(ctype.EventHash) (godeeper bool)) error {
-	stack := make(ctype.EventHashStack, 0, vi.validators.Len()*5)
+func (vi *Engine) DfsSubgraph(head consensustypes.Event, walk func(consensustypes.EventHash) (godeeper bool)) error {
+	stack := make(consensustypes.EventHashStack, 0, vi.validators.Len()*5)
 
 	// first element
 	stack.PushAll(head.Parents())

@@ -13,13 +13,13 @@ package abft
 import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/abft/election"
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
 type OrdererCallbacks struct {
-	ApplyAtropos func(decidedFrame ctype.Frame, atropos ctype.EventHash) (sealEpoch *ctype.Validators)
+	ApplyAtropos func(decidedFrame consensustypes.Frame, atropos consensustypes.EventHash) (sealEpoch *consensustypes.Validators)
 
-	EpochDBLoaded func(ctype.Epoch)
+	EpochDBLoaded func(consensustypes.Epoch)
 }
 
 type OrdererDagIndex interface {

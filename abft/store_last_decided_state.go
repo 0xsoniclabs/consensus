@@ -10,7 +10,7 @@
 
 package abft
 
-import "github.com/0xsoniclabs/consensus/ctype"
+import "github.com/0xsoniclabs/consensus/consensustypes"
 
 const dsKey = "d"
 
@@ -38,6 +38,6 @@ func (s *Store) GetLastDecidedState() *LastDecidedState {
 	return w
 }
 
-func (s *Store) GetLastDecidedFrame() ctype.Frame {
+func (s *Store) GetLastDecidedFrame() consensustypes.Frame {
 	return s.GetLastDecidedState().LastDecidedFrame
 }

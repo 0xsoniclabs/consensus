@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 	"github.com/0xsoniclabs/consensus/eventcheck/basiccheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/epochcheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/parentscheck"
@@ -24,43 +24,43 @@ import (
 
 type testReader struct{}
 
-func (tr *testReader) GetEpochValidators() (*ctype.Validators, ctype.Epoch) {
-	vb := ctype.NewBuilder()
+func (tr *testReader) GetEpochValidators() (*consensustypes.Validators, consensustypes.Epoch) {
+	vb := consensustypes.NewBuilder()
 	vb.Set(1, 1)
 	return vb.Build(), 1
 }
 
 func TestBasicEventValidation(t *testing.T) {
 	var tests = []struct {
-		e       ctype.Event
+		e       consensustypes.Event
 		wantErr error
 	}{
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(1)
 			e.SetEpoch(1)
 			e.SetFrame(1)
 			return e
 		}(), nil},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(0)
 			e.SetLamport(1)
 			e.SetEpoch(1)
 			e.SetFrame(1)
 			return e
 		}(), basiccheck.ErrNotInited},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(1)
 			e.SetEpoch(1)
 			e.SetFrame(1)
 			return e
 		}(), basiccheck.ErrNoParents},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(math.MaxInt32 - 1)
 			e.SetLamport(1)
 			e.SetEpoch(1)
@@ -77,23 +77,23 @@ func TestBasicEventValidation(t *testing.T) {
 
 func TestEpochEventValidation(t *testing.T) {
 	var tests = []struct {
-		e       ctype.Event
+		e       consensustypes.Event
 		wantErr error
 	}{
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetEpoch(1)
 			e.SetCreator(1)
 			return e
 		}(), nil},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetEpoch(2)
 			e.SetCreator(1)
 			return e
 		}(), epochcheck.ErrNotRelevant},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetEpoch(1)
 			e.SetCreator(2)
 			return e
@@ -109,110 +109,110 @@ func TestEpochEventValidation(t *testing.T) {
 
 func TestParentsEventValidation(t *testing.T) {
 	var tests = []struct {
-		e         ctype.Event
-		pe        ctype.Events
+		e         consensustypes.Event
+		pe        consensustypes.Events
 		wantErr   error
 		wantPanic bool
 	}{
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
 			e.SetCreator(1)
-			selfParent := &ctype.TestEvent{}
+			selfParent := &consensustypes.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{1})
-			e.SetParents(ctype.EventHashes{selfParent.ID()})
+			e.SetParents(consensustypes.EventHashes{selfParent.ID()})
 			return e
 		}(),
-			func() ctype.Events {
-				e := &ctype.TestEvent{}
+			func() consensustypes.Events {
+				e := &consensustypes.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				e.SetCreator(1)
 				e.SetID([24]byte{1})
-				return ctype.Events{e}
+				return consensustypes.Events{e}
 			}(),
 			nil, false},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
 			e.SetCreator(1)
-			selfParent := &ctype.TestEvent{}
+			selfParent := &consensustypes.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{2})
-			e.SetParents(ctype.EventHashes{selfParent.ID()})
+			e.SetParents(consensustypes.EventHashes{selfParent.ID()})
 			return e
 		}(),
-			func() ctype.Events {
-				e := &ctype.TestEvent{}
+			func() consensustypes.Events {
+				e := &consensustypes.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				e.SetCreator(1)
 				e.SetID([24]byte{1})
-				return ctype.Events{e}
+				return consensustypes.Events{e}
 			}(),
 			parentscheck.ErrWrongSelfParent, false},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(1)
-			e.SetParents(ctype.EventHashes{e.ID()})
+			e.SetParents(consensustypes.EventHashes{e.ID()})
 			return e
 		}(),
-			func() ctype.Events {
-				e := &ctype.TestEvent{}
+			func() consensustypes.Events {
+				e := &consensustypes.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
-				return ctype.Events{e}
+				return consensustypes.Events{e}
 			}(),
 			parentscheck.ErrWrongLamport, false},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(2)
-			e.SetParents(ctype.EventHashes{e.ID()})
+			e.SetParents(consensustypes.EventHashes{e.ID()})
 			return e
 		}(),
-			func() ctype.Events {
-				e := &ctype.TestEvent{}
+			func() consensustypes.Events {
+				e := &consensustypes.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
-				return ctype.Events{e}
+				return consensustypes.Events{e}
 			}(),
 			parentscheck.ErrWrongSelfParent, false},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
-			selfParent := &ctype.TestEvent{}
+			selfParent := &consensustypes.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{1})
-			e.SetParents(ctype.EventHashes{selfParent.ID()})
+			e.SetParents(consensustypes.EventHashes{selfParent.ID()})
 			return e
 		}(),
-			func() ctype.Events {
-				e := &ctype.TestEvent{}
+			func() consensustypes.Events {
+				e := &consensustypes.TestEvent{}
 				e.SetSeq(2)
 				e.SetLamport(1)
 				e.SetID([24]byte{1})
-				return ctype.Events{e}
+				return consensustypes.Events{e}
 			}(),
 			parentscheck.ErrWrongSeq, false},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(1)
 			return e
 		}(),
 			nil,
 			parentscheck.ErrWrongSeq, false},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(1)
-			e.SetParents(ctype.EventHashes{e.ID()})
+			e.SetParents(consensustypes.EventHashes{e.ID()})
 			return e
 		}(),
 			nil,
@@ -236,21 +236,21 @@ func TestParentsEventValidation(t *testing.T) {
 
 func TestAllEventValidation(t *testing.T) {
 	var tests = []struct {
-		e       ctype.Event
-		pe      ctype.Events
+		e       consensustypes.Event
+		pe      consensustypes.Events
 		wantErr error
 	}{
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
-			e.SetParents(ctype.EventHashes{e.ID()})
+			e.SetParents(consensustypes.EventHashes{e.ID()})
 			return e
 		}(),
 			nil,
 			basiccheck.ErrNotInited},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(1)
 			e.SetEpoch(1)
@@ -259,38 +259,38 @@ func TestAllEventValidation(t *testing.T) {
 		}(),
 			nil,
 			epochcheck.ErrAuth},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
 			e.SetCreator(1)
 			e.SetEpoch(1)
 			e.SetFrame(1)
-			e.SetParents(ctype.EventHashes{e.ID()})
+			e.SetParents(consensustypes.EventHashes{e.ID()})
 			return e
 		}(),
-			func() ctype.Events {
-				e := &ctype.TestEvent{}
+			func() consensustypes.Events {
+				e := &consensustypes.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
-				return ctype.Events{e}
+				return consensustypes.Events{e}
 			}(),
 			parentscheck.ErrWrongSelfParent},
-		{func() ctype.Event {
-			e := &ctype.TestEvent{}
+		{func() consensustypes.Event {
+			e := &consensustypes.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(2)
 			e.SetCreator(1)
 			e.SetEpoch(1)
 			e.SetFrame(1)
-			e.SetParents(ctype.EventHashes{e.ID()})
+			e.SetParents(consensustypes.EventHashes{e.ID()})
 			return e
 		}(),
-			func() ctype.Events {
-				e := &ctype.TestEvent{}
+			func() consensustypes.Events {
+				e := &consensustypes.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
-				return ctype.Events{e}
+				return consensustypes.Events{e}
 			}(),
 			nil},
 	}

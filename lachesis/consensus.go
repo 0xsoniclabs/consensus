@@ -11,21 +11,21 @@
 package lachesis
 
 import (
-	"github.com/0xsoniclabs/consensus/ctype"
+	"github.com/0xsoniclabs/consensus/consensustypes"
 )
 
 // Consensus is a consensus interface.
 type Consensus interface {
 	// Process takes event for processing.
-	Process(e ctype.Event) error
+	Process(e consensustypes.Event) error
 	// Build sets consensus fields. Returns an error if event should be dropped.
-	Build(e ctype.MutableEvent) error
+	Build(e consensustypes.MutableEvent) error
 	// Reset switches epoch state to a new empty epoch.
-	Reset(epoch ctype.Epoch, validators *ctype.Validators) error
+	Reset(epoch consensustypes.Epoch, validators *consensustypes.Validators) error
 }
 
-type ApplyEventFn func(event ctype.Event)
-type EndBlockFn func() (sealEpoch *ctype.Validators)
+type ApplyEventFn func(event consensustypes.Event)
+type EndBlockFn func() (sealEpoch *consensustypes.Validators)
 
 type BlockCallbacks struct {
 	// ApplyEvent is called on confirmation of each event during block processing.
