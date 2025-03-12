@@ -17,9 +17,8 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/0xsoniclabs/consensus/utils/byteutils"
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/0xsoniclabs/consensus/byteutils/bigendian"
 )
 
 type (
@@ -280,7 +279,7 @@ func FakeEvent() (h EventHash) {
 	if err != nil {
 		panic(err)
 	}
-	copy(h[0:4], bigendian.Uint32ToBigEndian(uint32(FakeEpoch())))
+	copy(h[0:4], byteutils.Uint32ToBigEndian(uint32(FakeEpoch())))
 	return
 }
 

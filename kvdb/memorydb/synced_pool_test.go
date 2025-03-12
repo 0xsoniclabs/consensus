@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/0xsoniclabs/consensus/byteutils/bigendian"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/flushable"
 	"github.com/0xsoniclabs/consensus/kvdb/table"
+	"github.com/0xsoniclabs/consensus/utils/byteutils"
 )
 
 func TestSyncedPoolUnderlying(t *testing.T) {
@@ -52,7 +52,7 @@ func TestSyncedPoolUnderlying(t *testing.T) {
 	pushData := func(n uint32, w kvdb.Store) {
 		const size uint32 = 10
 		for i := size; i > 0; i-- {
-			key := bigendian.Uint32ToBigEndian(i + size*n)
+			key := byteutils.Uint32ToBigEndian(i + size*n)
 			_ = w.Put(key, key)
 		}
 	}
@@ -63,7 +63,7 @@ func TestSyncedPoolUnderlying(t *testing.T) {
 		var prev uint32 = 0
 		for it.Next() {
 			key1 := it.Key()
-			i := bigendian.BigEndianToUint32(key1)
+			i := byteutils.BigEndianToUint32(key1)
 			require.Equal(prev+1, i)
 			prev = i
 

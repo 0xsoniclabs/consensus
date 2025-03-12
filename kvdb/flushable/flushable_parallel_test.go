@@ -20,10 +20,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/0xsoniclabs/consensus/byteutils/bigendian"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
 	"github.com/0xsoniclabs/consensus/kvdb/table"
+	"github.com/0xsoniclabs/consensus/utils/byteutils"
 )
 
 func TestFlushableParallel(t *testing.T) {
@@ -43,7 +43,7 @@ func TestFlushableParallel(t *testing.T) {
 
 		// fill data
 		for i := uint64(0); i < testPairsNum; i++ {
-			_ = tableImmutable.Put(bigendian.Uint64ToBigEndian(i), bigendian.Uint64ToBigEndian(i))
+			_ = tableImmutable.Put(byteutils.Uint64ToBigEndian(i), byteutils.Uint64ToBigEndian(i))
 			if i == testPairsNum/2 { // a half of data is flushed, other half isn't
 				_ = flushableDb.Flush()
 			}
@@ -60,8 +60,8 @@ func TestFlushableParallel(t *testing.T) {
 		i := uint64(0)
 		for ; it.Next(); i++ {
 			require.NoError(it.Error(), i)
-			require.Equal(bigendian.Uint64ToBigEndian(i), it.Key(), i)
-			require.Equal(bigendian.Uint64ToBigEndian(i), it.Value(), i)
+			require.Equal(byteutils.Uint64ToBigEndian(i), it.Key(), i)
+			require.Equal(byteutils.Uint64ToBigEndian(i), it.Value(), i)
 		}
 		require.Equal(testPairsNum, i) // !here
 
@@ -82,7 +82,7 @@ func TestFlushableParallel(t *testing.T) {
 
 		// fill data
 		for i := uint64(0); i < testPairsNum; i++ {
-			_ = tableImmutable.Put(bigendian.Uint64ToBigEndian(i), bigendian.Uint64ToBigEndian(i))
+			_ = tableImmutable.Put(byteutils.Uint64ToBigEndian(i), byteutils.Uint64ToBigEndian(i))
 			if i == testPairsNum/2 { // a half of data is flushed, other half isn't
 				_ = flushableDb.Flush()
 			}
@@ -112,8 +112,8 @@ func TestFlushableParallel(t *testing.T) {
 					i := uint64(0)
 					for ; it.Next(); i++ {
 						require.NoError(it.Error(), i)
-						require.Equal(bigendian.Uint64ToBigEndian(i), it.Key(), i)
-						require.Equal(bigendian.Uint64ToBigEndian(i), it.Value(), i)
+						require.Equal(byteutils.Uint64ToBigEndian(i), it.Key(), i)
+						require.Equal(byteutils.Uint64ToBigEndian(i), it.Value(), i)
 					}
 					require.Equal(testPairsNum, i)
 				}
@@ -126,8 +126,8 @@ func TestFlushableParallel(t *testing.T) {
 				r := rand.New(rand.NewSource(0)) // nolint:gosec
 				for !stopped() {
 					// try to spoil data in tableImmutable by updating other tables
-					_ = tableMutable1.Put(bigendian.Uint64ToBigEndian(r.Uint64()%testPairsNum), bigendian.Uint64ToBigEndian(r.Uint64()))
-					_ = tableMutable2.Put(bigendian.Uint64ToBigEndian(r.Uint64() % testPairsNum)[:7], bigendian.Uint64ToBigEndian(r.Uint64()))
+					_ = tableMutable1.Put(byteutils.Uint64ToBigEndian(r.Uint64()%testPairsNum), byteutils.Uint64ToBigEndian(r.Uint64()))
+					_ = tableMutable2.Put(byteutils.Uint64ToBigEndian(r.Uint64() % testPairsNum)[:7], byteutils.Uint64ToBigEndian(r.Uint64()))
 					if r.Int63n(100) == 0 {
 						_ = flushableDb.Flush() // flush with 1% chance
 					}
