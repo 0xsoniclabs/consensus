@@ -12,9 +12,8 @@ package abft
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/consensus/vecmt"
 	"math/rand"
-
-	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/dag"
@@ -93,7 +92,7 @@ func NewCoreLachesis(nodes []idx.ValidatorID, weights []pos.Weight, mods ...memo
 	input := NewEventStore()
 
 	config := LiteConfig()
-	dagIndexer := &adapters.VectorToDagIndexer{Engine: vecengine.NewIndex(crit, vecengine.LiteConfig(), vecengine.GetEngineCallbacks)}
+	dagIndexer := &adapters.VectorToDagIndexer{Index: vecmt.NewIndex(crit, vecmt.LiteConfig())}
 	lch := NewIndexedLachesis(store, input, dagIndexer, crit, config)
 
 	extended := &CoreLachesis{
