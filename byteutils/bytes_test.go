@@ -8,20 +8,16 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package common
+package byteutils
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/0xsoniclabs/consensus/common/bigendian"
-	"github.com/0xsoniclabs/consensus/common/littleendian"
 )
 
 func Test_IntToBytes(t *testing.T) {
 	assertar := assert.New(t)
-
 	for _, n1 := range []uint64{
 		0,
 		9,
@@ -31,15 +27,15 @@ func Test_IntToBytes(t *testing.T) {
 		47528346792,
 	} {
 		{
-			b := bigendian.Uint64ToBytes(n1)
+			b := Uint64ToBigEndian(n1)
 			assertar.Equal(8, len(b))
-			n2 := bigendian.BytesToUint64(b)
+			n2 := BigEndianToUint64(b)
 			assertar.Equal(n1, n2)
 		}
 		{
-			b := littleendian.Uint64ToBytes(n1)
+			b := Uint64ToLittleEndian(n1)
 			assertar.Equal(8, len(b))
-			n2 := littleendian.BytesToUint64(b)
+			n2 := LittleEndianToUint64(b)
 			assertar.Equal(n1, n2)
 		}
 	}
@@ -50,15 +46,15 @@ func Test_IntToBytes(t *testing.T) {
 		475283467,
 	} {
 		{
-			b := bigendian.Uint32ToBytes(n1)
+			b := Uint32ToBigEndian(n1)
 			assertar.Equal(4, len(b))
-			n2 := bigendian.BytesToUint32(b)
+			n2 := BigEndianToUint32(b)
 			assertar.Equal(n1, n2)
 		}
 		{
-			b := littleendian.Uint32ToBytes(n1)
+			b := Uint32ToLittleEndian(n1)
 			assertar.Equal(4, len(b))
-			n2 := littleendian.BytesToUint32(b)
+			n2 := LittleEndianToUint32(b)
 			assertar.Equal(n1, n2)
 		}
 	}
@@ -69,15 +65,15 @@ func Test_IntToBytes(t *testing.T) {
 		47528,
 	} {
 		{
-			b := bigendian.Uint16ToBytes(n1)
+			b := Uint16ToBigEndian(n1)
 			assertar.Equal(2, len(b))
-			n2 := bigendian.BytesToUint16(b)
+			n2 := BigEndianToUint16(b)
 			assertar.Equal(n1, n2)
 		}
 		{
-			b := littleendian.Uint16ToBytes(n1)
+			b := Uint16ToLittleEndian(n1)
 			assertar.Equal(2, len(b))
-			n2 := littleendian.BytesToUint16(b)
+			n2 := LittleEndianToUint16(b)
 			assertar.Equal(n1, n2)
 		}
 	}

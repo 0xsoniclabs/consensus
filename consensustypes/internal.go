@@ -11,7 +11,7 @@
 package consensustypes
 
 import (
-	"github.com/0xsoniclabs/consensus/common/bigendian"
+	"github.com/0xsoniclabs/consensus/byteutils/bigendian"
 )
 
 // ValidatorIndex represents a normalized value of ValidatorID for slice/array packing purposes
@@ -19,10 +19,10 @@ type ValidatorIndex uint32
 
 // Bytes gets the byte representation of the index.
 func (v ValidatorIndex) Bytes() []byte {
-	return bigendian.Uint32ToBytes(uint32(v))
+	return bigendian.Uint32ToBigEndian(uint32(v))
 }
 
 // BytesToValidator converts bytes to validator index.
 func BytesToValidator(b []byte) ValidatorIndex {
-	return ValidatorIndex(bigendian.BytesToUint32(b))
+	return ValidatorIndex(bigendian.BigEndianToUint32(b))
 }

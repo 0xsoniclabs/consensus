@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"github.com/0xsoniclabs/consensus/common/bigendian"
+	"github.com/0xsoniclabs/consensus/byteutils/bigendian"
 	"github.com/0xsoniclabs/consensus/kvdb"
 	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
 	"github.com/0xsoniclabs/consensus/kvdb/table"
@@ -371,8 +371,8 @@ func benchmarkFlushable(db *Flushable, goroutines, recs, flushPeriod int, readin
 
 			for op := 0; op < ops; op++ {
 				step := op & 0xff
-				key := bigendian.Uint64ToBytes(uint64(step << 48))
-				val := bigendian.Uint64ToBytes(uint64(step))
+				key := bigendian.Uint64ToBigEndian(uint64(step << 48))
+				val := bigendian.Uint64ToBigEndian(uint64(step))
 
 				rare := time.Now().Unix()%100 == 0
 				if readingExtensive == rare {
