@@ -15,6 +15,7 @@ go 1.22.0
 toolchain go1.23.6
 
 require (
+	github.com/0xsoniclabs/kvdb v0.0.0-20250224113306-fe6d2ca29563
 	github.com/cockroachdb/pebble v1.1.4
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethereum/go-ethereum v1.15.0

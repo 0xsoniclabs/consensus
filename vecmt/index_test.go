@@ -2,10 +2,10 @@ package vecmt
 
 import (
 	"fmt"
-	"github.com/0xsoniclabs/consensus/kvdb"
-	"github.com/0xsoniclabs/consensus/kvdb/flushable"
-	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
 	"github.com/0xsoniclabs/consensus/vecflushable"
+	"github.com/0xsoniclabs/kvdb"
+	"github.com/0xsoniclabs/kvdb/flushable"
+	"github.com/0xsoniclabs/kvdb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"io/ioutil"
 	"testing"
@@ -14,7 +14,7 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/dag"
 	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
 	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
+	"github.com/0xsoniclabs/kvdb/memorydb"
 )
 
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {
