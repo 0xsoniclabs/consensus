@@ -14,8 +14,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/0xsoniclabs/consensus/utils/cachescale"
-	"github.com/0xsoniclabs/consensus/utils/simplewlru"
+	"github.com/0xsoniclabs/cacheutils/cachescale"
+	"github.com/0xsoniclabs/cacheutils/simplewlru"
 
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/dag"

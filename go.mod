@@ -15,9 +15,9 @@ go 1.22.0
 toolchain go1.23.6
 
 require (
+	github.com/0xsoniclabs/cacheutils v0.0.0-20250308100204-fee51bd05c4d
 	github.com/0xsoniclabs/kvdb v0.0.0-20250224113306-fe6d2ca29563
 	github.com/ethereum/go-ethereum v1.15.0
-	github.com/hashicorp/golang-lru v1.0.2
 	github.com/kelindar/simd v1.1.2
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/pkg/errors v0.9.1
