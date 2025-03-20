@@ -11,8 +11,8 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/dagidx"
 )
 
 var _ consensus.Consensus = (*Lachesis)(nil)

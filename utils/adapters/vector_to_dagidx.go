@@ -11,8 +11,8 @@
 package adapters
 
 import (
-	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/dagidx"
 	"github.com/0xsoniclabs/consensus/vecengine"
 )
 

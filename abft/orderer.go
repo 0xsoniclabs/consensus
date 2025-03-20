@@ -11,9 +11,9 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/abft/election"
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/dagidx"
 )
 
 type OrdererCallbacks struct {

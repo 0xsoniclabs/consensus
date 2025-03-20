@@ -15,8 +15,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/dagidx"
 	"github.com/0xsoniclabs/kvdb"
 	"github.com/0xsoniclabs/kvdb/flushable"
 )
