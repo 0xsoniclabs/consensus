@@ -15,7 +15,7 @@ go 1.22.0
 toolchain go1.23.6
 
 require (
-	github.com/0xsoniclabs/cacheutils v0.0.0-20250308100204-fee51bd05c4d
+	github.com/0xsoniclabs/cacheutils v0.0.0-20250320134355-5a9aa4df3861
 	github.com/0xsoniclabs/kvdb v0.0.0-20250224113306-fe6d2ca29563
 	github.com/ethereum/go-ethereum v1.15.0
 	github.com/kelindar/simd v1.1.2

@@ -1,5 +1,5 @@
-github.com/0xsoniclabs/cacheutils v0.0.0-20250308100204-fee51bd05c4d h1:EepqBu0KcUUwejF5JiB2jY+XYTP7LEp4h50nPIbF/0Q=
-github.com/0xsoniclabs/cacheutils v0.0.0-20250308100204-fee51bd05c4d/go.mod h1:6AsuUipd1QMZGaEhlaAFzt8p5C46HupuYqX0QKVn1MM=
+github.com/0xsoniclabs/cacheutils v0.0.0-20250320134355-5a9aa4df3861 h1:bPq81jZ4v6+JT/tVaDH/LTMc+KnS4Ik7P6a5nN0A+zk=
+github.com/0xsoniclabs/cacheutils v0.0.0-20250320134355-5a9aa4df3861/go.mod h1:h8zoP6oh9hqWigMrCY+4WAZBBJBLgphzf4SRYDdFB4A=
 github.com/0xsoniclabs/kvdb v0.0.0-20250224113306-fe6d2ca29563 h1:jx+6rC5/buNABHcuxfL2gdd7zbqvHMMN2u+RdEJO/FY=
 github.com/0xsoniclabs/kvdb v0.0.0-20250224113306-fe6d2ca29563/go.mod h1:XLn2g8LW77Epa6P/ecyXokB/8OlO0JLshufhtN87cA0=
 github.com/cpuguy83/go-md2man/v2 v2.0.5 h1:ZtcqGrnekaHpVLArFSe4HK5DoKx1T0rq2DwVB0alcyc=
