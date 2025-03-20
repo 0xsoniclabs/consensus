@@ -17,12 +17,11 @@ import (
 
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/kvdb"
 	"github.com/0xsoniclabs/kvdb/flushable"
 )
 
-var _ lachesis.Consensus = (*IndexedLachesis)(nil)
+var _ consensus.Consensus = (*IndexedLachesis)(nil)
 
 // IndexedLachesis performs events ordering and detects cheaters
 // It's a wrapper around Orderer, which adds features which might potentially be application-specific:
@@ -89,7 +88,7 @@ func (p *IndexedLachesis) Process(e consensus.Event) (err error) {
 	return nil
 }
 
-func (p *IndexedLachesis) Bootstrap(callback lachesis.ConsensusCallbacks) error {
+func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error {
 	base := p.Lachesis.OrdererCallbacks()
 	ordererCallbacks := OrdererCallbacks{
 		ApplyAtropos: base.ApplyAtropos,

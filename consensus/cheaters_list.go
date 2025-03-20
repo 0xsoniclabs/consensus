@@ -8,19 +8,18 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package lachesis
+package consensus
 
 import (
-	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 // Cheaters is a slice type for storing cheaters list.
-type Cheaters []consensus.ValidatorID
+type Cheaters []ValidatorID
 
 // Set returns map of cheaters
-func (s Cheaters) Set() map[consensus.ValidatorID]struct{} {
-	set := map[consensus.ValidatorID]struct{}{}
+func (s Cheaters) Set() map[ValidatorID]struct{} {
+	set := map[ValidatorID]struct{}{}
 	for _, element := range s {
 		set[element] = struct{}{}
 	}

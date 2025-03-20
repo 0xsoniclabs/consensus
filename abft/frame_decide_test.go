@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
 func TestConfirmBlocks_1(t *testing.T) {
@@ -70,9 +69,9 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 
 	var (
 		frames []consensus.Frame
-		blocks []*lachesis.Block
+		blocks []*consensus.Block
 	)
-	lch.applyBlock = func(block *lachesis.Block) *consensus.Validators {
+	lch.applyBlock = func(block *consensus.Block) *consensus.Validators {
 		frames = append(frames, lch.store.GetLastDecidedFrame()+1)
 		blocks = append(blocks, block)
 

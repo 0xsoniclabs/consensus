@@ -19,8 +19,8 @@ type (
 	// Seq numeration.
 	Seq uint32
 
-	// Block numeration.
-	Block uint64
+	// BlockID numeration.
+	BlockID uint64
 
 	// Lamport numeration.
 	Lamport uint32
@@ -46,7 +46,7 @@ func (e Seq) Bytes() []byte {
 }
 
 // Bytes gets the byte representation of the index.
-func (b Block) Bytes() []byte {
+func (b BlockID) Bytes() []byte {
 	return byteutils.Uint64ToBigEndian(uint64(b))
 }
 
@@ -81,8 +81,8 @@ func BytesToSeq(b []byte) Seq {
 }
 
 // BytesToBlock converts bytes to block index.
-func BytesToBlock(b []byte) Block {
-	return Block(byteutils.BigEndianToUint64(b))
+func BytesToBlock(b []byte) BlockID {
+	return BlockID(byteutils.BigEndianToUint64(b))
 }
 
 // BytesToLamport converts bytes to block index.

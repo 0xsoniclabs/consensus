@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
 const (
@@ -98,7 +97,7 @@ func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutate
 	// seal epoch on decided frame == maxEpochBlocks
 	for _, _lch := range lchs {
 		lch := _lch // capture
-		lch.applyBlock = func(block *lachesis.Block) *consensus.Validators {
+		lch.applyBlock = func(block *consensus.Block) *consensus.Validators {
 			if lch.store.GetLastDecidedFrame()+1 == consensus.Frame(maxEpochBlocks) {
 				// seal epoch
 				if mutateWeights {

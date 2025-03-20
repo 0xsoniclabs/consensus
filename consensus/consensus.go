@@ -8,24 +8,19 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package lachesis
+package consensus
 
-import (
-	"github.com/0xsoniclabs/consensus/consensus"
-)
-
-// Consensus is a consensus interface.
 type Consensus interface {
 	// Process takes event for processing.
-	Process(e consensus.Event) error
+	Process(e Event) error
 	// Build sets consensus fields. Returns an error if event should be dropped.
-	Build(e consensus.MutableEvent) error
+	Build(e MutableEvent) error
 	// Reset switches epoch state to a new empty epoch.
-	Reset(epoch consensus.Epoch, validators *consensus.Validators) error
+	Reset(epoch Epoch, validators *Validators) error
 }
 
-type ApplyEventFn func(event consensus.Event)
-type EndBlockFn func() (sealEpoch *consensus.Validators)
+type ApplyEventFn func(event Event)
+type EndBlockFn func() (sealEpoch *Validators)
 
 type BlockCallbacks struct {
 	// ApplyEvent is called on confirmation of each event during block processing.

@@ -17,7 +17,6 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/vecengine"
 
-	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/consensus/utils/adapters"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
@@ -35,7 +34,7 @@ func (e *dbEvent) String() string {
 	return fmt.Sprintf("{Epoch:%d Validator:%d Frame:%d Seq:%d Lamport:%d}", e.hash.Epoch(), e.validatorId, e.frame, e.seq, e.lamportTs)
 }
 
-type applyBlockFn func(block *lachesis.Block) *consensus.Validators
+type applyBlockFn func(block *consensus.Block) *consensus.Validators
 
 type BlockKey struct {
 	Epoch consensus.Epoch
@@ -44,7 +43,7 @@ type BlockKey struct {
 
 type BlockResult struct {
 	Atropos    consensus.EventHash
-	Cheaters   lachesis.Cheaters
+	Cheaters   consensus.Cheaters
 	Validators *consensus.Validators
 }
 
@@ -94,9 +93,9 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 		epochBlocks:     map[consensus.Epoch]consensus.Frame{},
 	}
 
-	err = extended.Bootstrap(lachesis.ConsensusCallbacks{
-		BeginBlock: func(block *lachesis.Block) lachesis.BlockCallbacks {
-			return lachesis.BlockCallbacks{
+	err = extended.Bootstrap(consensus.ConsensusCallbacks{
+		BeginBlock: func(block *consensus.Block) consensus.BlockCallbacks {
+			return consensus.BlockCallbacks{
 				EndBlock: func() (sealEpoch *consensus.Validators) {
 					// track blocks
 					key := BlockKey{

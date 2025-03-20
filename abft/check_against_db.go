@@ -16,7 +16,6 @@ import (
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
 func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *EventStore, map[consensus.EventHash]*dbEvent, []*dbEvent, error) {
@@ -57,7 +56,7 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
 
 	recalculatedAtropoi := make([]consensus.EventHash, 0)
 	// Capture the elected atropoi by planting the `applyBlock` callback (nil by default)
-	testLachesis.applyBlock = func(block *lachesis.Block) *consensus.Validators {
+	testLachesis.applyBlock = func(block *consensus.Block) *consensus.Validators {
 		recalculatedAtropoi = append(recalculatedAtropoi, block.Atropos)
 		return nil
 	}

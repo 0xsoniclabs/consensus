@@ -8,12 +8,10 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package lachesis
-
-import "github.com/0xsoniclabs/consensus/consensus"
+package consensus
 
 // Block is a part of an ordered chain of batches of events.
 type Block struct {
-	Atropos  consensus.EventHash
+	Atropos  EventHash
 	Cheaters Cheaters
 }

@@ -13,10 +13,9 @@ package abft
 import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
-var _ lachesis.Consensus = (*Lachesis)(nil)
+var _ consensus.Consensus = (*Lachesis)(nil)
 
 type DagIndex interface {
 	dagidx.VectorClock
@@ -30,7 +29,7 @@ type DagIndex interface {
 type Lachesis struct {
 	*Orderer
 	dagIndex DagIndex
-	callback lachesis.ConsensusCallbacks
+	callback consensus.ConsensusCallbacks
 }
 
 // NewLachesis creates Lachesis instance.
@@ -74,7 +73,7 @@ func (p *Lachesis) applyAtropos(decidedFrame consensus.Frame, atropos consensus.
 	if p.callback.BeginBlock == nil {
 		return nil
 	}
-	blockCallback := p.callback.BeginBlock(&lachesis.Block{
+	blockCallback := p.callback.BeginBlock(&consensus.Block{
 		Atropos:  atropos,
 		Cheaters: cheaters,
 	})
@@ -91,11 +90,11 @@ func (p *Lachesis) applyAtropos(decidedFrame consensus.Frame, atropos consensus.
 	return nil
 }
 
-func (p *Lachesis) Bootstrap(callback lachesis.ConsensusCallbacks) error {
+func (p *Lachesis) Bootstrap(callback consensus.ConsensusCallbacks) error {
 	return p.BootstrapWithOrderer(callback, p.OrdererCallbacks())
 }
 
-func (p *Lachesis) BootstrapWithOrderer(callback lachesis.ConsensusCallbacks, ordererCallbacks OrdererCallbacks) error {
+func (p *Lachesis) BootstrapWithOrderer(callback consensus.ConsensusCallbacks, ordererCallbacks OrdererCallbacks) error {
 	err := p.Orderer.Bootstrap(ordererCallbacks)
 	if err != nil {
 		return err
