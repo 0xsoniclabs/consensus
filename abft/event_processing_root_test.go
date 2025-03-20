@@ -17,7 +17,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 func TestLachesisClassicRoots(t *testing.T) {
@@ -262,30 +262,30 @@ func testSpecialNamedRoots(t *testing.T, scheme string) {
 	assertar := assert.New(t)
 
 	// decode is a event name parser
-	decode := func(name string) (frameN consensustypes.Frame, isRoot bool) {
+	decode := func(name string) (frameN consensus.Frame, isRoot bool) {
 		n, err := strconv.ParseUint(strings.Split(name, ".")[0][1:2], 10, 64)
 		if err != nil {
 			panic(err.Error() + ". Name event " + name + " properly: <UpperCaseForRoot><FrameN><Engine>")
 		}
-		frameN = consensustypes.Frame(n)
+		frameN = consensus.Frame(n)
 
 		isRoot = name == strings.ToUpper(name)
 		return
 	}
 
 	// get nodes only
-	nodes, _, _ := consensustypes.ASCIIschemeToDAG(scheme)
+	nodes, _, _ := consensus.ASCIIschemeToDAG(scheme)
 	// init abft
 	lch, _, input, _ := NewCoreLachesis(nodes, nil)
 
 	// process events
-	_, _, names := consensustypes.ASCIIschemeForEach(scheme, consensustypes.ForEachEvent{
-		Process: func(e consensustypes.Event, name string) {
+	_, _, names := consensus.ASCIIschemeForEach(scheme, consensus.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			input.SetEvent(e)
 			assertar.NoError(
 				lch.Process(e))
 		},
-		Build: func(e consensustypes.MutableEvent, name string) error {
+		Build: func(e consensus.MutableEvent, name string) error {
 			e.SetEpoch(lch.store.GetEpoch())
 			return lch.Build(e)
 		},
@@ -294,7 +294,7 @@ func testSpecialNamedRoots(t *testing.T, scheme string) {
 	// check each
 	for name, event := range names {
 		mustBeFrame, mustBeRoot := decode(name)
-		var selfParentFrame consensustypes.Frame
+		var selfParentFrame consensus.Frame
 		if event.SelfParent() != nil {
 			selfParentFrame = input.GetEvent(*event.SelfParent()).Frame()
 		}

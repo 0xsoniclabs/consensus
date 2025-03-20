@@ -10,10 +10,10 @@
 
 package lachesis
 
-import "github.com/0xsoniclabs/consensus/consensustypes"
+import "github.com/0xsoniclabs/consensus/consensus"
 
 // Block is a part of an ordered chain of batches of events.
 type Block struct {
-	Atropos  consensustypes.EventHash
+	Atropos  consensus.EventHash
 	Cheaters Cheaters
 }

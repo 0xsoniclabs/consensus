@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
@@ -23,29 +23,29 @@ import (
 )
 
 type dbEvent struct {
-	hash        consensustypes.EventHash
-	validatorId consensustypes.ValidatorID
-	seq         consensustypes.Seq
-	frame       consensustypes.Frame
-	lamportTs   consensustypes.Lamport
-	parents     []consensustypes.EventHash
+	hash        consensus.EventHash
+	validatorId consensus.ValidatorID
+	seq         consensus.Seq
+	frame       consensus.Frame
+	lamportTs   consensus.Lamport
+	parents     []consensus.EventHash
 }
 
 func (e *dbEvent) String() string {
 	return fmt.Sprintf("{Epoch:%d Validator:%d Frame:%d Seq:%d Lamport:%d}", e.hash.Epoch(), e.validatorId, e.frame, e.seq, e.lamportTs)
 }
 
-type applyBlockFn func(block *lachesis.Block) *consensustypes.Validators
+type applyBlockFn func(block *lachesis.Block) *consensus.Validators
 
 type BlockKey struct {
-	Epoch consensustypes.Epoch
-	Frame consensustypes.Frame
+	Epoch consensus.Epoch
+	Frame consensus.Frame
 }
 
 type BlockResult struct {
-	Atropos    consensustypes.EventHash
+	Atropos    consensus.EventHash
 	Cheaters   lachesis.Cheaters
-	Validators *consensustypes.Validators
+	Validators *consensus.Validators
 }
 
 // CoreLachesis extends Indexed Orderer for tests.
@@ -54,14 +54,14 @@ type CoreLachesis struct {
 
 	blocks      map[BlockKey]*BlockResult
 	lastBlock   BlockKey
-	epochBlocks map[consensustypes.Epoch]consensustypes.Frame
+	epochBlocks map[consensus.Epoch]consensus.Frame
 
 	applyBlock applyBlockFn
 }
 
 // NewCoreLachesis creates empty abft consensus with mem store and optional node weights w.o. some callbacks usually instantiated by Client
-func NewCoreLachesis(nodes []consensustypes.ValidatorID, weights []consensustypes.Weight, mods ...memorydb.Mod) (*CoreLachesis, *Store, *EventStore, *adapters.VectorToDagIndexer) {
-	validators := make(consensustypes.ValidatorsBuilder, len(nodes))
+func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *Store, *EventStore, *adapters.VectorToDagIndexer) {
+	validators := make(consensus.ValidatorsBuilder, len(nodes))
 	for i, v := range nodes {
 		if weights == nil {
 			validators[v] = 1
@@ -91,13 +91,13 @@ func NewCoreLachesis(nodes []consensustypes.ValidatorID, weights []consensustype
 	extended := &CoreLachesis{
 		IndexedLachesis: lch,
 		blocks:          map[BlockKey]*BlockResult{},
-		epochBlocks:     map[consensustypes.Epoch]consensustypes.Frame{},
+		epochBlocks:     map[consensus.Epoch]consensus.Frame{},
 	}
 
 	err = extended.Bootstrap(lachesis.ConsensusCallbacks{
 		BeginBlock: func(block *lachesis.Block) lachesis.BlockCallbacks {
 			return lachesis.BlockCallbacks{
-				EndBlock: func() (sealEpoch *consensustypes.Validators) {
+				EndBlock: func() (sealEpoch *consensus.Validators) {
 					// track blocks
 					key := BlockKey{
 						Epoch: extended.store.GetEpoch(),
@@ -129,12 +129,12 @@ func NewCoreLachesis(nodes []consensustypes.ValidatorID, weights []consensustype
 	return extended, store, input, dagIndexer
 }
 
-func mutateValidators(validators *consensustypes.Validators) *consensustypes.Validators {
+func mutateValidators(validators *consensus.Validators) *consensus.Validators {
 	r := rand.New(rand.NewSource(int64(validators.TotalWeight()))) // nolint:gosec
-	builder := consensustypes.NewBuilder()
+	builder := consensus.NewBuilder()
 	for _, vid := range validators.IDs() {
 		stake := uint64(validators.Get(vid))*uint64(500+r.Intn(500))/1000 + 1
-		builder.Set(vid, consensustypes.Weight(stake))
+		builder.Set(vid, consensus.Weight(stake))
 	}
 	return builder.Build()
 }
@@ -142,13 +142,13 @@ func mutateValidators(validators *consensustypes.Validators) *consensustypes.Val
 // EventStore is a abft event storage for test purpose.
 // It implements EventSource interface.
 type EventStore struct {
-	db map[consensustypes.EventHash]consensustypes.Event
+	db map[consensus.EventHash]consensus.Event
 }
 
 // NewEventStore creates store over memory map.
 func NewEventStore() *EventStore {
 	return &EventStore{
-		db: map[consensustypes.EventHash]consensustypes.Event{},
+		db: map[consensus.EventHash]consensus.Event{},
 	}
 }
 
@@ -158,17 +158,17 @@ func (s *EventStore) Close() {
 }
 
 // SetEvent stores event.
-func (s *EventStore) SetEvent(e consensustypes.Event) {
+func (s *EventStore) SetEvent(e consensus.Event) {
 	s.db[e.ID()] = e
 }
 
 // GetEvent returns stored event.
-func (s *EventStore) GetEvent(h consensustypes.EventHash) consensustypes.Event {
+func (s *EventStore) GetEvent(h consensus.EventHash) consensus.Event {
 	return s.db[h]
 }
 
 // HasEvent returns true if event exists.
-func (s *EventStore) HasEvent(h consensustypes.EventHash) bool {
+func (s *EventStore) HasEvent(h consensus.EventHash) bool {
 	_, ok := s.db[h]
 	return ok
 }

@@ -20,20 +20,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 type fakeEdge struct {
-	from consensustypes.EventHash
-	to   consensustypes.EventHash
+	from consensus.EventHash
+	to   consensus.EventHash
 }
 
 type (
-	weights map[string]consensustypes.Weight
+	weights map[string]consensus.Weight
 )
 
 type testExpected struct {
-	DecidedFrame   consensustypes.Frame
+	DecidedFrame   consensus.Frame
 	DecidedAtropos string
 	DecisiveRoots  map[string]bool
 }
@@ -205,14 +205,14 @@ func TestProcessRoot(t *testing.T) {
 }
 
 type slot struct {
-	frame       consensustypes.Frame
-	validatorID consensustypes.ValidatorID
+	frame       consensus.Frame
+	validatorID consensus.ValidatorID
 }
 
 type testState struct {
-	ordered    consensustypes.TestEvents
-	frameRoots map[consensustypes.Frame][]RootContext
-	vertices   map[consensustypes.EventHash]slot
+	ordered    consensus.TestEvents
+	frameRoots map[consensus.Frame][]RootContext
+	vertices   map[consensus.EventHash]slot
 	edges      map[fakeEdge]bool
 }
 
@@ -227,28 +227,28 @@ func testVoteAndAggregate(
 	assertar := assert.New(t)
 
 	state := testState{
-		ordered:    make(consensustypes.TestEvents, 0),
-		frameRoots: make(map[consensustypes.Frame][]RootContext),
-		vertices:   make(map[consensustypes.EventHash]slot),
+		ordered:    make(consensus.TestEvents, 0),
+		frameRoots: make(map[consensus.Frame][]RootContext),
+		vertices:   make(map[consensus.EventHash]slot),
 		edges:      make(map[fakeEdge]bool),
 	}
 
-	nodes, _, _ := consensustypes.ASCIIschemeForEach(dagAscii, consensustypes.ForEachEvent{
-		Process: func(_root consensustypes.Event, name string) {
-			root := _root.(*consensustypes.TestEvent)
+	nodes, _, _ := consensus.ASCIIschemeForEach(dagAscii, consensus.ForEachEvent{
+		Process: func(_root consensus.Event, name string) {
+			root := _root.(*consensus.TestEvent)
 			indexTestEvent(&state, root, false)
 			if forkedRootName, ok := forks[name]; ok {
 				forkedRoot := *root
 				forkedRoot.Name = forkedRootName
-				forkedRoot.SetID(consensustypes.CalcHashForTestEvent(&forkedRoot))
+				forkedRoot.SetID(consensus.CalcHashForTestEvent(&forkedRoot))
 				indexTestEvent(&state, &forkedRoot, true)
 			}
 		},
 	})
 
-	validatorsBuilder := consensustypes.NewBuilder()
+	validatorsBuilder := consensus.NewBuilder()
 	for _, node := range nodes {
-		nodeName := consensustypes.GetNodeName(node)
+		nodeName := consensus.GetNodeName(node)
 		if len(nodeName) == 0 {
 			nodeName = fmt.Sprintf("%d", node)
 		}
@@ -256,19 +256,19 @@ func testVoteAndAggregate(
 	}
 	validators := validatorsBuilder.Build()
 
-	forklessCauseFn := func(a consensustypes.EventHash, b consensustypes.EventHash) bool {
+	forklessCauseFn := func(a consensus.EventHash, b consensus.EventHash) bool {
 		edge := fakeEdge{
 			from: a,
 			to:   b,
 		}
 		return state.edges[edge]
 	}
-	getFrameRootsFn := func(f consensustypes.Frame) []RootContext {
+	getFrameRootsFn := func(f consensus.Frame) []RootContext {
 		return state.frameRoots[f]
 	}
 
 	// re-order events randomly, preserving parents order
-	unordered := make(consensustypes.TestEvents, len(state.ordered))
+	unordered := make(consensus.TestEvents, len(state.ordered))
 	for i, j := range rand.Perm(len(state.ordered)) {
 		unordered[i] = state.ordered[j]
 	}
@@ -302,16 +302,16 @@ func testVoteAndAggregate(
 	}
 }
 
-func frameOf(dsc string) consensustypes.Frame {
+func frameOf(dsc string) consensus.Frame {
 	s := strings.Split(dsc, "_")[1]
 	h, err := strconv.ParseUint(s, 10, 32)
 	if err != nil {
 		panic(err)
 	}
-	return consensustypes.Frame(h)
+	return consensus.Frame(h)
 }
 
-func indexTestEvent(state *testState, root *consensustypes.TestEvent, isFork bool) {
+func indexTestEvent(state *testState, root *consensus.TestEvent, isFork bool) {
 	state.ordered = append(state.ordered, root)
 	slt := slot{
 		frame:       frameOf(root.Name),
@@ -346,9 +346,9 @@ func indexTestEvent(state *testState, root *consensustypes.TestEvent, isFork boo
 	} else {
 		selfParent := root.SelfParent()
 		if selfParent != nil {
-			root.SetParents(consensustypes.EventHashes{*selfParent})
+			root.SetParents(consensus.EventHashes{*selfParent})
 		} else {
-			root.SetParents(consensustypes.EventHashes{})
+			root.SetParents(consensus.EventHashes{})
 		}
 	}
 }

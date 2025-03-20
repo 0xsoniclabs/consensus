@@ -14,23 +14,23 @@ import (
 	"encoding/binary"
 	"math"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 type LowestAfterI interface {
-	InitWithEvent(i consensustypes.ValidatorIndex, e consensustypes.Event)
-	Visit(i consensustypes.ValidatorIndex, e consensustypes.Event) bool
+	InitWithEvent(i consensus.ValidatorIndex, e consensus.Event)
+	Visit(i consensus.ValidatorIndex, e consensus.Event) bool
 }
 
 type HighestBeforeI interface {
-	InitWithEvent(i consensustypes.ValidatorIndex, e consensustypes.Event)
-	IsEmpty(i consensustypes.ValidatorIndex) bool
-	IsForkDetected(i consensustypes.ValidatorIndex) bool
-	Seq(i consensustypes.ValidatorIndex) consensustypes.Seq
-	MinSeq(i consensustypes.ValidatorIndex) consensustypes.Seq
-	SetForkDetected(i consensustypes.ValidatorIndex)
-	CollectFrom(other HighestBeforeI, branches consensustypes.ValidatorIndex)
-	GatherFrom(to consensustypes.ValidatorIndex, other HighestBeforeI, from []consensustypes.ValidatorIndex)
+	InitWithEvent(i consensus.ValidatorIndex, e consensus.Event)
+	IsEmpty(i consensus.ValidatorIndex) bool
+	IsForkDetected(i consensus.ValidatorIndex) bool
+	Seq(i consensus.ValidatorIndex) consensus.Seq
+	MinSeq(i consensus.ValidatorIndex) consensus.Seq
+	SetForkDetected(i consensus.ValidatorIndex)
+	CollectFrom(other HighestBeforeI, branches consensus.ValidatorIndex)
+	GatherFrom(to consensus.ValidatorIndex, other HighestBeforeI, from []consensus.ValidatorIndex)
 }
 
 type allVecs struct {
@@ -50,38 +50,38 @@ type (
 
 	// BranchSeq encodes Seq and MinSeq into 8 bytes
 	BranchSeq struct {
-		Seq    consensustypes.Seq
-		MinSeq consensustypes.Seq
+		Seq    consensus.Seq
+		MinSeq consensus.Seq
 	}
 )
 
 // NewLowestAfterSeq creates new LowestAfterSeq vector.
-func NewLowestAfterSeq(size consensustypes.ValidatorIndex) *LowestAfterSeq {
+func NewLowestAfterSeq(size consensus.ValidatorIndex) *LowestAfterSeq {
 	b := make(LowestAfterSeq, size*4)
 	return &b
 }
 
 // NewHighestBeforeSeq creates new HighestBeforeSeq vector.
-func NewHighestBeforeSeq(size consensustypes.ValidatorIndex) *HighestBeforeSeq {
+func NewHighestBeforeSeq(size consensus.ValidatorIndex) *HighestBeforeSeq {
 	b := make(HighestBeforeSeq, size*8)
 	return &b
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b LowestAfterSeq) Get(i consensustypes.ValidatorIndex) consensustypes.Seq {
+func (b LowestAfterSeq) Get(i consensus.ValidatorIndex) consensus.Seq {
 	for i >= b.Size() {
 		return 0
 	}
-	return consensustypes.Seq(binary.LittleEndian.Uint32(b[i*4 : (i+1)*4]))
+	return consensus.Seq(binary.LittleEndian.Uint32(b[i*4 : (i+1)*4]))
 }
 
 // Size of the vector clock
-func (b LowestAfterSeq) Size() consensustypes.ValidatorIndex {
-	return consensustypes.ValidatorIndex(len(b)) / 4
+func (b LowestAfterSeq) Size() consensus.ValidatorIndex {
+	return consensus.ValidatorIndex(len(b)) / 4
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *LowestAfterSeq) Set(i consensustypes.ValidatorIndex, seq consensustypes.Seq) {
+func (b *LowestAfterSeq) Set(i consensus.ValidatorIndex, seq consensus.Seq) {
 	for i >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0}...)
@@ -96,7 +96,7 @@ func (b HighestBeforeSeq) Size() int {
 }
 
 // Get i's position in the byte-encoded vector clock
-func (b HighestBeforeSeq) Get(i consensustypes.ValidatorIndex) BranchSeq {
+func (b HighestBeforeSeq) Get(i consensus.ValidatorIndex) BranchSeq {
 	for int(i) >= b.Size() {
 		return BranchSeq{}
 	}
@@ -104,13 +104,13 @@ func (b HighestBeforeSeq) Get(i consensustypes.ValidatorIndex) BranchSeq {
 	seq2 := binary.LittleEndian.Uint32(b[i*8+4 : i*8+8])
 
 	return BranchSeq{
-		Seq:    consensustypes.Seq(seq1),
-		MinSeq: consensustypes.Seq(seq2),
+		Seq:    consensus.Seq(seq1),
+		MinSeq: consensus.Seq(seq2),
 	}
 }
 
 // Set i's position in the byte-encoded vector clock
-func (b *HighestBeforeSeq) Set(i consensustypes.ValidatorIndex, seq BranchSeq) {
+func (b *HighestBeforeSeq) Set(i consensus.ValidatorIndex, seq BranchSeq) {
 	for int(i) >= b.Size() {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
@@ -123,7 +123,7 @@ var (
 	// forkDetectedSeq is a special marker of observed fork by a creator
 	forkDetectedSeq = BranchSeq{
 		Seq:    0,
-		MinSeq: consensustypes.Seq(math.MaxInt32),
+		MinSeq: consensus.Seq(math.MaxInt32),
 	}
 )
 

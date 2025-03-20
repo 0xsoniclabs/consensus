@@ -11,14 +11,14 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 // onFrameDecided moves LastDecidedFrameN to frame.
 // It includes: moving current decided frame, txs ordering and execution, epoch sealing.
-func (p *Orderer) onFrameDecided(frame consensustypes.Frame, atropos consensustypes.EventHash) (bool, error) {
+func (p *Orderer) onFrameDecided(frame consensus.Frame, atropos consensus.EventHash) (bool, error) {
 	// new checkpoint
-	var newValidators *consensustypes.Validators
+	var newValidators *consensus.Validators
 	if p.callback.ApplyAtropos != nil {
 		newValidators = p.callback.ApplyAtropos(frame, atropos)
 	}
@@ -38,7 +38,7 @@ func (p *Orderer) onFrameDecided(frame consensustypes.Frame, atropos consensusty
 	return newValidators != nil, nil
 }
 
-func (p *Orderer) resetEpochStore(newEpoch consensustypes.Epoch) error {
+func (p *Orderer) resetEpochStore(newEpoch consensus.Epoch) error {
 	err := p.store.dropEpochDB()
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (p *Orderer) resetEpochStore(newEpoch consensustypes.Epoch) error {
 	return nil
 }
 
-func (p *Orderer) sealEpoch(newValidators *consensustypes.Validators) error {
+func (p *Orderer) sealEpoch(newValidators *consensus.Validators) error {
 	// new PrevEpoch state
 	epochState := *p.store.GetEpochState()
 	epochState.Epoch++

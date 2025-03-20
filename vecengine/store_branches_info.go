@@ -15,7 +15,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/kvdb"
 )
 
@@ -64,17 +64,17 @@ func (vi *Engine) getBranchesInfo() *BranchesInfo {
 }
 
 // SetEventBranchID stores the event's global branch ID
-func (vi *Engine) SetEventBranchID(id consensustypes.EventHash, branchID consensustypes.ValidatorIndex) {
+func (vi *Engine) SetEventBranchID(id consensus.EventHash, branchID consensus.ValidatorIndex) {
 	vi.setBytes(vi.table.EventBranch, id, branchID.Bytes())
 }
 
 // GetEventBranchID reads the event's global branch ID
-func (vi *Engine) GetEventBranchID(id consensustypes.EventHash) consensustypes.ValidatorIndex {
+func (vi *Engine) GetEventBranchID(id consensus.EventHash) consensus.ValidatorIndex {
 	b := vi.getBytes(vi.table.EventBranch, id)
 	if b == nil {
 		vi.crit(errors.New("failed to read event's branch ID (inconsistent DB)"))
 		return 0
 	}
-	branchID := consensustypes.BytesToValidator(b)
+	branchID := consensus.BytesToValidator(b)
 	return branchID
 }

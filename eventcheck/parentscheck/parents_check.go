@@ -13,7 +13,7 @@ package parentscheck
 import (
 	"errors"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 var (
@@ -31,7 +31,7 @@ func New() *Checker {
 }
 
 // Validate event
-func (v *Checker) Validate(e consensustypes.Event, parents consensustypes.Events) error {
+func (v *Checker) Validate(e consensus.Event, parents consensus.Events) error {
 	if len(e.Parents()) != len(parents) {
 		panic("parentscheck: expected event's parents as an argument")
 	}
@@ -39,9 +39,9 @@ func (v *Checker) Validate(e consensustypes.Event, parents consensustypes.Events
 	// double parents are checked by basiccheck
 
 	// lamport
-	maxLamport := consensustypes.Lamport(0)
+	maxLamport := consensus.Lamport(0)
 	for _, p := range parents {
-		maxLamport = consensustypes.MaxLamport(maxLamport, p.Lamport())
+		maxLamport = consensus.MaxLamport(maxLamport, p.Lamport())
 	}
 	if e.Lamport() != maxLamport+1 {
 		return ErrWrongLamport

@@ -17,21 +17,21 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 func TestAtroposHeap_RandomPushPop(t *testing.T) {
 	atroposHeap := NewAtroposHeap()
 	atropoi := make([]*AtroposDecision, 100)
 	for i := range atropoi {
-		atropoi[i] = &AtroposDecision{AtroposHash: consensustypes.EventHash{byte(i)}, Frame: consensustypes.Frame(i)}
+		atropoi[i] = &AtroposDecision{AtroposHash: consensus.EventHash{byte(i)}, Frame: consensus.Frame(i)}
 	}
 	rand.Shuffle(len(atropoi), func(i, j int) { atropoi[i], atropoi[j] = atropoi[j], atropoi[i] })
 	for _, atroposDecision := range atropoi {
 		heap.Push(atroposHeap, atroposDecision)
 	}
 	for i := range atropoi {
-		want, got := consensustypes.EventHash{byte(i)}, heap.Pop(atroposHeap).(*AtroposDecision).AtroposHash
+		want, got := consensus.EventHash{byte(i)}, heap.Pop(atroposHeap).(*AtroposDecision).AtroposHash
 		if want != got {
 			t.Errorf("expected popped atropos hash to be %v, got: %v", want, got)
 		}
@@ -42,8 +42,8 @@ func TestAtroposHeap_SingleDeliveredSequence(t *testing.T) {
 	testAtroposHeapDelivery(
 		t,
 		100,
-		[]*AtroposDecision{{100, consensustypes.EventHash{100}}, {101, consensustypes.EventHash{101}}, {102, consensustypes.EventHash{102}}},
-		[]*AtroposDecision{{100, consensustypes.EventHash{100}}, {101, consensustypes.EventHash{101}}, {102, consensustypes.EventHash{102}}},
+		[]*AtroposDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
+		[]*AtroposDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
 		[]*AtroposDecision{},
 	)
 }
@@ -51,24 +51,24 @@ func TestAtroposHeap_EmptyDeliverySequence(t *testing.T) {
 	testAtroposHeapDelivery(
 		t,
 		100,
-		[]*AtroposDecision{{101, consensustypes.EventHash{101}}, {102, consensustypes.EventHash{102}}},
+		[]*AtroposDecision{{101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
 		[]*AtroposDecision{},
-		[]*AtroposDecision{{101, consensustypes.EventHash{101}}, {102, consensustypes.EventHash{102}}},
+		[]*AtroposDecision{{101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
 	)
 }
 func TestAtroposHeap_BrokenDeliverySequence(t *testing.T) {
 	testAtroposHeapDelivery(
 		t,
 		100,
-		[]*AtroposDecision{{100, consensustypes.EventHash{100}}, {101, consensustypes.EventHash{101}}, {104, consensustypes.EventHash{104}}, {105, consensustypes.EventHash{105}}},
-		[]*AtroposDecision{{100, consensustypes.EventHash{100}}, {101, consensustypes.EventHash{101}}},
-		[]*AtroposDecision{{104, consensustypes.EventHash{104}}, {105, consensustypes.EventHash{105}}},
+		[]*AtroposDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {104, consensus.EventHash{104}}, {105, consensus.EventHash{105}}},
+		[]*AtroposDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}},
+		[]*AtroposDecision{{104, consensus.EventHash{104}}, {105, consensus.EventHash{105}}},
 	)
 }
 
 func testAtroposHeapDelivery(
 	t *testing.T,
-	frameToDeliver consensustypes.Frame,
+	frameToDeliver consensus.Frame,
 	atropoi []*AtroposDecision,
 	expectedDelivered []*AtroposDecision,
 	expectedContainer []*AtroposDecision,

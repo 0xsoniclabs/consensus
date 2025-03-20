@@ -3,15 +3,15 @@ package abft
 import (
 	"testing"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 func TestGenesis_Sucess(t *testing.T) {
 	store := NewMemStore()
-	validatorBuilder := consensustypes.NewBuilder()
+	validatorBuilder := consensus.NewBuilder()
 	validatorBuilder.Set(1, 10)
 	validators := validatorBuilder.Build()
-	epoch := consensustypes.Epoch(3)
+	epoch := consensus.Epoch(3)
 	if err := store.ApplyGenesis(&Genesis{Epoch: epoch, Validators: validators}); err != nil {
 		t.Fatal(err)
 	}
@@ -38,10 +38,10 @@ func TestGenesis_Fail(t *testing.T) {
 	if err := store.ApplyGenesis(nil); err == nil {
 		t.Fatal("error expected but not received")
 	}
-	if err := store.ApplyGenesis(&Genesis{Epoch: 1, Validators: &consensustypes.Validators{}}); err == nil {
+	if err := store.ApplyGenesis(&Genesis{Epoch: 1, Validators: &consensus.Validators{}}); err == nil {
 		t.Fatal("error expected but not received")
 	}
-	validatorBuilder := consensustypes.NewBuilder()
+	validatorBuilder := consensus.NewBuilder()
 	validatorBuilder.Set(1, 10)
 	store.table.LastDecidedState.Put([]byte(dsKey), []byte{})
 	if err := store.ApplyGenesis(&Genesis{Epoch: 1, Validators: validatorBuilder.Build()}); err == nil {

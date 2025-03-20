@@ -10,7 +10,7 @@
 
 package cachescale
 
-import "github.com/0xsoniclabs/consensus/consensustypes"
+import "github.com/0xsoniclabs/consensus/consensus"
 
 type Func interface {
 	I(int) int
@@ -21,7 +21,7 @@ type Func interface {
 	U64(uint64) uint64
 	F32(float32) float32
 	F64(float64) float64
-	Events(v consensustypes.Seq) consensustypes.Seq
-	Blocks(v consensustypes.Block) consensustypes.Block
-	Frames(v consensustypes.Frame) consensustypes.Frame
+	Events(v consensus.Seq) consensus.Seq
+	Blocks(v consensus.Block) consensus.Block
+	Frames(v consensus.Frame) consensus.Frame
 }

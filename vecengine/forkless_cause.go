@@ -13,11 +13,11 @@ package vecengine
 import (
 	"fmt"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 type kv struct {
-	a, b consensustypes.EventHash
+	a, b consensus.EventHash
 }
 
 // ForklessCause calculates "sufficient coherence" between the events.
@@ -34,7 +34,7 @@ type kv struct {
 // unless more than 1/3W are Byzantine.
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
-func (vi *Engine) ForklessCause(aID, bID consensustypes.EventHash) bool {
+func (vi *Engine) ForklessCause(aID, bID consensus.EventHash) bool {
 	if res, ok := vi.cache.ForklessCause.Get(kv{aID, bID}); ok {
 		return res.(bool)
 	}
@@ -46,7 +46,7 @@ func (vi *Engine) ForklessCause(aID, bID consensustypes.EventHash) bool {
 	return res
 }
 
-func (vi *Engine) forklessCause(aID, bID consensustypes.EventHash) bool {
+func (vi *Engine) forklessCause(aID, bID consensus.EventHash) bool {
 	// Get events by hash
 	a := vi.GetHighestBefore(aID)
 	if a == nil {
@@ -73,7 +73,7 @@ func (vi *Engine) forklessCause(aID, bID consensustypes.EventHash) bool {
 	// calculate forkless causing using the indexes
 	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
-		branchID := consensustypes.ValidatorIndex(branchIDint)
+		branchID := consensus.ValidatorIndex(branchIDint)
 
 		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
 		bLowestAfter := b.Get(branchID)   // lowest event from creator on branchID, which observes B
@@ -90,7 +90,7 @@ func (vi *Engine) forklessCause(aID, bID consensustypes.EventHash) bool {
 	return yes.HasQuorum()
 }
 
-func (vi *Engine) ForklessCauseProgress(aID, bID consensustypes.EventHash, candidateParents, chosenParents consensustypes.EventHashes) (*consensustypes.WeightCounter, []*consensustypes.WeightCounter) {
+func (vi *Engine) ForklessCauseProgress(aID, bID consensus.EventHash, candidateParents, chosenParents consensus.EventHashes) (*consensus.WeightCounter, []*consensus.WeightCounter) {
 	// This function is used to determine progress of event bID in forkless causing aID.
 	// It may be used to determine progress toward the forkless cause condition for an event not in vi, but whose parents are in vi.
 	// To do so, aID should be the self-parent while chosenParents should be the parents of the not-yet-created event.
@@ -103,7 +103,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensustypes.EventHash, candi
 	// slice corresponding to each candidate parent in candidateParents.
 
 	// create the counters that measure the forkless cause progress
-	candidateParentsFCProgress := make([]*consensustypes.WeightCounter, len(candidateParents))
+	candidateParentsFCProgress := make([]*consensus.WeightCounter, len(candidateParents))
 	for i, _ := range candidateParentsFCProgress {
 		candidateParentsFCProgress[i] = vi.validators.NewCounter() // initialise the counter for each candidate parent
 	}
@@ -171,7 +171,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensustypes.EventHash, candi
 	// calculate forkless causing using the indexes
 	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
-		branchID := consensustypes.ValidatorIndex(branchIDint)
+		branchID := consensus.ValidatorIndex(branchIDint)
 
 		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
 		bLowestAfter := bLA.Get(branchID)  // lowest event from creator on branchID, which observes B
@@ -217,7 +217,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensustypes.EventHash, candi
 	return chosenParentsFCProgress, candidateParentsFCProgress
 }
 
-func maxEvent(a consensustypes.Seq, b consensustypes.Seq) consensustypes.Seq {
+func maxEvent(a consensus.Seq, b consensus.Seq) consensus.Seq {
 	if a > b {
 		return a
 	}

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/vecflushable"
 
 	"github.com/stretchr/testify/assert"
@@ -51,11 +51,11 @@ func benchForklessCauseMain(b *testing.B, idx *int, inmem bool) {
 func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 	b.Helper()
 	b.StopTimer()
-	nodes := consensustypes.GenNodes(10)
-	validators := consensustypes.EqualWeightValidators(nodes, 1)
+	nodes := consensus.GenNodes(10)
+	validators := consensus.EqualWeightValidators(nodes, 1)
 
-	events := make(map[consensustypes.EventHash]consensustypes.Event)
-	getEvent := func(id consensustypes.EventHash) consensustypes.Event {
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
 		return events[id]
 	}
 
@@ -76,8 +76,8 @@ func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(db, 10000000), getEvent)
 
-	consensustypes.ForEachRandEvent(nodes, 10, 2, nil, consensustypes.ForEachEvent{
-		Process: func(e consensustypes.Event, name string) {
+	consensus.ForEachRandEvent(nodes, 10, 2, nil, consensus.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			events[e.ID()] = e
 			err := vi.Add(e)
 			if err != nil {
@@ -156,19 +156,19 @@ func testForklessCaused(t *testing.T, dagAscii string) {
 	t.Helper()
 	assertar := assert.New(t)
 
-	nodes, _, _ := consensustypes.ASCIIschemeToDAG(dagAscii)
-	validators := consensustypes.EqualWeightValidators(nodes, 1)
+	nodes, _, _ := consensus.ASCIIschemeToDAG(dagAscii)
+	validators := consensus.EqualWeightValidators(nodes, 1)
 
-	events := make(map[consensustypes.EventHash]consensustypes.Event)
-	getEvent := func(id consensustypes.EventHash) consensustypes.Event {
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
 		return events[id]
 	}
 
 	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-	_, _, named := consensustypes.ASCIIschemeForEach(dagAscii, consensustypes.ForEachEvent{
-		Process: func(e consensustypes.Event, name string) {
+	_, _, named := consensus.ASCIIschemeForEach(dagAscii, consensus.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			events[e.ID()] = e
 			err := vi.Add(e)
 			if err != nil {
@@ -493,17 +493,17 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 		"d019": {"a000": {}, "a001": {}, "a002": {}, "a003": {}, "a004": {}, "a005": {}, "a006": {}, "a007": {}, "a008": {}, "a009": {}, "a010": {}, "a011": {}, "a012": {}, "a013": {}, "a014": {}, "a015": {}, "a016": {}, "a017": {}, "a018": {}, "a019": {}, "b000": {}, "b001": {}, "b002": {}, "b003": {}, "b004": {}, "b005": {}, "b006": {}, "b007": {}, "b008": {}, "b009": {}, "b010": {}, "b011": {}, "b012": {}, "b013": {}, "b014": {}, "b015": {}, "b016": {}, "b017": {}, "b018": {}, "c000": {}, "c001": {}, "c002": {}, "c003": {}, "c004": {}, "c005": {}, "c006": {}, "c007": {}, "c008": {}, "c009": {}, "c010": {}, "c011": {}, "c012": {}, "c013": {}, "c014": {}, "c015": {}, "c016": {}, "c017": {}, "c018": {}, "d000": {}, "d001": {}, "d002": {}, "d003": {}, "d004": {}, "d005": {}, "d006": {}, "d007": {}, "d008": {}, "d009": {}, "d010": {}, "d011": {}, "d012": {}, "d013": {}, "d014": {}, "d015": {}, "d016": {}, "d017": {}, "d018": {}},
 	}
 
-	ordered := make(consensustypes.Events, 0)
-	nodes, _, named := consensustypes.ASCIIschemeForEach(dagAscii, consensustypes.ForEachEvent{
-		Process: func(e consensustypes.Event, name string) {
+	ordered := make(consensus.Events, 0)
+	nodes, _, named := consensus.ASCIIschemeForEach(dagAscii, consensus.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			ordered = append(ordered, e)
 		},
 	})
 
-	validators := consensustypes.EqualWeightValidators(nodes, 1)
+	validators := consensus.EqualWeightValidators(nodes, 1)
 
-	events := make(map[consensustypes.EventHash]consensustypes.Event)
-	getEvent := func(id consensustypes.EventHash) consensustypes.Event {
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
 		return events[id]
 	}
 
@@ -536,16 +536,16 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 }
 
 type eventSlot struct {
-	seq     consensustypes.Seq
-	creator consensustypes.ValidatorID
+	seq     consensus.Seq
+	creator consensus.ValidatorID
 }
 
 // naive implementation of fork detection, O(n)
-func testForksDetected(vi *Engine, head consensustypes.Event) (cheaters map[consensustypes.ValidatorID]bool, err error) {
-	cheaters = map[consensustypes.ValidatorID]bool{}
-	visited := consensustypes.EventHashSet{}
+func testForksDetected(vi *Engine, head consensus.Event) (cheaters map[consensus.ValidatorID]bool, err error) {
+	cheaters = map[consensus.ValidatorID]bool{}
+	visited := consensus.EventHashSet{}
 	detected := map[eventSlot]int{}
-	onWalk := func(id consensustypes.EventHash) (godeeper bool) {
+	onWalk := func(id consensus.EventHash) (godeeper bool) {
 		// ensure visited once
 		if visited.Contains(id) {
 			return false
@@ -571,21 +571,21 @@ func testForksDetected(vi *Engine, head consensustypes.Event) (cheaters map[cons
 }
 
 func TestRandomForksSanity(t *testing.T) {
-	nodes := consensustypes.GenNodes(8)
-	cheaters := []consensustypes.ValidatorID{nodes[0], nodes[1], nodes[2]}
+	nodes := consensus.GenNodes(8)
+	cheaters := []consensus.ValidatorID{nodes[0], nodes[1], nodes[2]}
 
-	validatorsBuilder := consensustypes.NewBuilder()
+	validatorsBuilder := consensus.NewBuilder()
 	for _, peer := range nodes {
-		validatorsBuilder.Set(peer, consensustypes.Weight(1))
+		validatorsBuilder.Set(peer, consensus.Weight(1))
 	}
 
-	validatorsBuilder.Set(cheaters[0], consensustypes.Weight(2))
-	validatorsBuilder.Set(nodes[3], consensustypes.Weight(2))
-	validatorsBuilder.Set(nodes[4], consensustypes.Weight(3))
+	validatorsBuilder.Set(cheaters[0], consensus.Weight(2))
+	validatorsBuilder.Set(nodes[3], consensus.Weight(2))
+	validatorsBuilder.Set(nodes[4], consensus.Weight(3))
 	validators := validatorsBuilder.Build()
 
-	processed := make(map[consensustypes.EventHash]consensustypes.Event)
-	getEvent := func(id consensustypes.EventHash) consensustypes.Event {
+	processed := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
 		return processed[id]
 	}
 
@@ -593,8 +593,8 @@ func TestRandomForksSanity(t *testing.T) {
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 	// Many forks from each node in large graph, so probability of not seeing a fork is negligible
-	events := consensustypes.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, consensustypes.ForEachEvent{
-		Process: func(e consensustypes.Event, name string) {
+	events := consensus.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, consensus.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			if _, ok := processed[e.ID()]; ok {
 				return
 			}
@@ -620,9 +620,9 @@ func TestRandomForksSanity(t *testing.T) {
 			isCheater := n < len(cheaters)
 			assertar.Equal(isCheater, branchSeq.IsForkDetected(), cheater)
 			if isCheater {
-				assertar.Equal(consensustypes.Seq(0), branchSeq.Seq, cheater)
+				assertar.Equal(consensus.Seq(0), branchSeq.Seq, cheater)
 			} else {
-				assertar.NotEqual(consensustypes.Seq(0), branchSeq.Seq, cheater)
+				assertar.NotEqual(consensus.Seq(0), branchSeq.Seq, cheater)
 			}
 		}
 	}
@@ -705,22 +705,22 @@ func TestRandomForks(t *testing.T) {
 		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
 			r := rand.New(rand.NewSource(int64(i))) // nolint:gosec
 
-			nodes := consensustypes.GenNodes(test.nodesNum)
+			nodes := consensus.GenNodes(test.nodesNum)
 			cheaters := nodes[:test.cheatersNum]
 
-			validators := consensustypes.EqualWeightValidators(nodes, 1)
+			validators := consensus.EqualWeightValidators(nodes, 1)
 
-			processedArr := consensustypes.Events{}
-			processed := make(map[consensustypes.EventHash]consensustypes.Event)
-			getEvent := func(id consensustypes.EventHash) consensustypes.Event {
+			processedArr := consensus.Events{}
+			processed := make(map[consensus.EventHash]consensus.Event)
+			getEvent := func(id consensus.EventHash) consensus.Event {
 				return processed[id]
 			}
 
 			vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 			vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-			_ = consensustypes.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, consensustypes.ForEachEvent{
-				Process: func(e consensustypes.Event, name string) {
+			_ = consensus.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, consensus.ForEachEvent{
+				Process: func(e consensus.Event, name string) {
 					if _, ok := processed[e.ID()]; ok {
 						return
 					}
@@ -746,7 +746,7 @@ func TestRandomForks(t *testing.T) {
 					branchSeq := highestBefore.Get(idxs[cheater])
 					assertar.Equal(expectedCheater, branchSeq.IsForkDetected(), e.String())
 					if expectedCheater {
-						assertar.Equal(consensustypes.Seq(0), branchSeq.Seq, e.String())
+						assertar.Equal(consensus.Seq(0), branchSeq.Seq, e.String())
 					}
 				}
 			}
@@ -772,11 +772,11 @@ func TestRandomForks(t *testing.T) {
 			// check that events re-order doesn't change forklessCause result
 			for reorderTry := 0; reorderTry < test.reorderChecks; reorderTry++ {
 				// re-order events randomly, preserving parents order
-				unordered := make(consensustypes.Events, len(processedArr))
+				unordered := make(consensus.Events, len(processedArr))
 				for i, j := range r.Perm(len(processedArr)) {
 					unordered[i] = processedArr[j]
 				}
-				processedArr = consensustypes.ByParents(unordered)
+				processedArr = consensus.ByParents(unordered)
 
 				for _, a := range processedArr {
 					assertar.NoError(vi.Add(a))

@@ -11,11 +11,11 @@
 package abft
 
 import (
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 // SetEventConfirmedOn stores confirmed event ctype.
-func (s *Store) SetEventConfirmedOn(e consensustypes.EventHash, on consensustypes.Frame) {
+func (s *Store) SetEventConfirmedOn(e consensus.EventHash, on consensus.Frame) {
 	key := e.Bytes()
 
 	if err := s.epochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
@@ -24,7 +24,7 @@ func (s *Store) SetEventConfirmedOn(e consensustypes.EventHash, on consensustype
 }
 
 // GetEventConfirmedOn returns confirmed event ctype.
-func (s *Store) GetEventConfirmedOn(e consensustypes.EventHash) consensustypes.Frame {
+func (s *Store) GetEventConfirmedOn(e consensus.EventHash) consensus.Frame {
 	key := e.Bytes()
 
 	buf, err := s.epochTable.ConfirmedEvent.Get(key)
@@ -35,5 +35,5 @@ func (s *Store) GetEventConfirmedOn(e consensustypes.EventHash) consensustypes.F
 		return 0
 	}
 
-	return consensustypes.BytesToFrame(buf)
+	return consensus.BytesToFrame(buf)
 }

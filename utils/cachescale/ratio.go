@@ -10,7 +10,7 @@
 
 package cachescale
 
-import "github.com/0xsoniclabs/consensus/consensustypes"
+import "github.com/0xsoniclabs/consensus/consensus"
 
 // Ratio alters the cache sizes proportionally to a ratio
 type Ratio struct {
@@ -59,14 +59,14 @@ func (r Ratio) I64(v int64) int64 {
 	return int64(r.U64(uint64(v)))
 }
 
-func (r Ratio) Events(v consensustypes.Seq) consensustypes.Seq {
-	return consensustypes.Seq(r.U64(uint64(v)))
+func (r Ratio) Events(v consensus.Seq) consensus.Seq {
+	return consensus.Seq(r.U64(uint64(v)))
 }
 
-func (r Ratio) Blocks(v consensustypes.Block) consensustypes.Block {
-	return consensustypes.Block(r.U64(uint64(v)))
+func (r Ratio) Blocks(v consensus.Block) consensus.Block {
+	return consensus.Block(r.U64(uint64(v)))
 }
 
-func (r Ratio) Frames(v consensustypes.Frame) consensustypes.Frame {
-	return consensustypes.Frame(r.U64(uint64(v)))
+func (r Ratio) Frames(v consensus.Frame) consensus.Frame {
+	return consensus.Frame(r.U64(uint64(v)))
 }

@@ -16,7 +16,7 @@ import (
 	"os"
 
 	"github.com/0xsoniclabs/consensus/abft"
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli/v2"
 )
@@ -67,10 +67,10 @@ func run(ctx *cli.Context) error {
 		return err
 	}
 	if ctx.IsSet(EpochMinFlag.Name) {
-		epochMin = max(epochMin, consensustypes.Epoch(ctx.Uint(EpochMinFlag.Name)))
+		epochMin = max(epochMin, consensus.Epoch(ctx.Uint(EpochMinFlag.Name)))
 	}
 	if ctx.IsSet(EpochMaxFlag.Name) {
-		epochMax = min(epochMax, consensustypes.Epoch(ctx.Uint(EpochMaxFlag.Name)))
+		epochMax = min(epochMax, consensus.Epoch(ctx.Uint(EpochMaxFlag.Name)))
 	}
 	if epochMin > epochMax {
 		return fmt.Errorf("invalid range of epochs requested: [%d, %d]", epochMin, epochMax)

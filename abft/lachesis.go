@@ -12,7 +12,7 @@ package abft
 
 import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
-	"github.com/0xsoniclabs/consensus/consensustypes"
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/lachesis"
 )
 
@@ -43,8 +43,8 @@ func NewLachesis(store *Store, input EventSource, dagIndex DagIndex, crit func(e
 	return p
 }
 
-func (p *Lachesis) confirmEvents(frame consensustypes.Frame, atropos consensustypes.EventHash, onEventConfirmed func(consensustypes.Event)) error {
-	err := p.dfsSubgraph(atropos, func(e consensustypes.Event) bool {
+func (p *Lachesis) confirmEvents(frame consensus.Frame, atropos consensus.EventHash, onEventConfirmed func(consensus.Event)) error {
+	err := p.dfsSubgraph(atropos, func(e consensus.Event) bool {
 		decidedFrame := p.store.GetEventConfirmedOn(e.ID())
 		if decidedFrame != 0 {
 			return false
@@ -59,14 +59,14 @@ func (p *Lachesis) confirmEvents(frame consensustypes.Frame, atropos consensusty
 	return err
 }
 
-func (p *Lachesis) applyAtropos(decidedFrame consensustypes.Frame, atropos consensustypes.EventHash) *consensustypes.Validators {
+func (p *Lachesis) applyAtropos(decidedFrame consensus.Frame, atropos consensus.EventHash) *consensus.Validators {
 	atroposVecClock := p.dagIndex.GetMergedHighestBefore(atropos)
 
 	validators := p.store.GetValidators()
 	// cheaters are ordered deterministically
-	cheaters := make([]consensustypes.ValidatorID, 0, validators.Len())
+	cheaters := make([]consensus.ValidatorID, 0, validators.Len())
 	for creatorIdx, creator := range validators.SortedIDs() {
-		if atroposVecClock.Get(consensustypes.ValidatorIndex(creatorIdx)).IsForkDetected() {
+		if atroposVecClock.Get(consensus.ValidatorIndex(creatorIdx)).IsForkDetected() {
 			cheaters = append(cheaters, creator)
 		}
 	}
