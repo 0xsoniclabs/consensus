@@ -14,8 +14,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/0xsoniclabs/consensus/abft/election"
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/abft/election"
 )
 
 const (

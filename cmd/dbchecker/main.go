@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/0xsoniclabs/consensus/abft"
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/abft"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli/v2"
 )

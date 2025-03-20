@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/0xsoniclabs/consensus/abft/election"
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/abft/election"
 )
 
 func TestStore_StatePersisting(t *testing.T) {
