@@ -16,7 +16,7 @@ import (
 	"os"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/abft"
+	"github.com/0xsoniclabs/consensus/consensus/consensusengine"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli/v2"
 )
@@ -62,7 +62,7 @@ func run(ctx *cli.Context) error {
 		return err
 	}
 
-	epochMin, epochMax, err := abft.GetEpochRange(conn)
+	epochMin, epochMax, err := consensusengine.GetEpochRange(conn)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func run(ctx *cli.Context) error {
 	}
 
 	for epoch := epochMin; epoch <= epochMax; epoch++ {
-		if err := abft.CheckEpochAgainstDB(conn, epoch); err != nil {
+		if err := consensusengine.CheckEpochAgainstDB(conn, epoch); err != nil {
 			return err
 		}
 	}

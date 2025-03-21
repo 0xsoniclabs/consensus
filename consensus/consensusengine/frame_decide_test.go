@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"math"
@@ -92,14 +92,14 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 
 		},
 		Build: func(e consensus.MutableEvent, name string) error {
-			e.SetEpoch(FirstEpoch)
+			e.SetEpoch(consensus.FirstEpoch)
 			return lch.Build(e)
 		},
 	})
 
 	// unconfirm all events
-	it := lch.store.epochTable.ConfirmedEvent.NewIterator(nil, nil)
-	batch := lch.store.epochTable.ConfirmedEvent.NewBatch()
+	it := lch.store.EpochTable.ConfirmedEvent.NewIterator(nil, nil)
+	batch := lch.store.EpochTable.ConfirmedEvent.NewBatch()
 	for it.Next() {
 		assertar.NoError(batch.Delete(it.Key()))
 	}

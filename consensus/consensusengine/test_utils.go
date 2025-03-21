@@ -8,13 +8,14 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"fmt"
 	"math/rand"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/0xsoniclabs/consensus/utils/adapters"
@@ -54,12 +55,11 @@ type CoreLachesis struct {
 	blocks      map[BlockKey]*BlockResult
 	lastBlock   BlockKey
 	epochBlocks map[consensus.Epoch]consensus.Frame
-
-	applyBlock applyBlockFn
+	applyBlock  applyBlockFn
 }
 
 // NewCoreLachesis creates empty abft consensus with mem store and optional node weights w.o. some callbacks usually instantiated by Client
-func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *Store, *EventStore, *adapters.VectorToDagIndexer) {
+func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *consensusstore.Store, *EventStore, *adapters.VectorToDagIndexer) {
 	validators := make(consensus.ValidatorsBuilder, len(nodes))
 	for i, v := range nodes {
 		if weights == nil {
@@ -68,11 +68,11 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 			validators[v] = weights[i]
 		}
 	}
-	store := NewMemStore()
+	store := consensusstore.NewMemStore()
 
-	err := store.ApplyGenesis(&Genesis{
+	err := store.ApplyGenesis(&consensusstore.Genesis{
 		Validators: validators.Build(),
-		Epoch:      FirstEpoch,
+		Epoch:      consensus.FirstEpoch,
 	})
 	if err != nil {
 		panic(err)

@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusstore
 
 import (
 	"fmt"
@@ -26,10 +26,10 @@ func (s *Store) ApplyGenesis(g *Genesis) error {
 	if ok, _ := s.table.LastDecidedState.Has([]byte(dsKey)); ok {
 		return fmt.Errorf("genesis already applied")
 	}
-	return s.switchGenesis(g)
+	return s.SwitchGenesis(g)
 }
 
-func (s *Store) switchGenesis(g *Genesis) error {
+func (s *Store) SwitchGenesis(g *Genesis) error {
 	if g == nil {
 		return fmt.Errorf("genesis config shouldn't be nil")
 	}
@@ -40,7 +40,7 @@ func (s *Store) switchGenesis(g *Genesis) error {
 	ds := &LastDecidedState{}
 	es.Validators = g.Validators
 	es.Epoch = g.Epoch
-	ds.LastDecidedFrame = FirstFrame - 1
+	ds.LastDecidedFrame = consensus.FirstFrame - 1
 	s.SetEpochState(es)
 	s.SetLastDecidedState(ds)
 	return nil

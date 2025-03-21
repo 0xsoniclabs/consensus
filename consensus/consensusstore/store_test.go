@@ -1,4 +1,4 @@
-package abft
+package consensusstore
 
 import (
 	"math/rand"
@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/abft/election"
+	"github.com/0xsoniclabs/consensus/consensus/consensusengine/election"
 )
 
 func TestStore_StatePersisting(t *testing.T) {
@@ -53,13 +53,13 @@ func TestStore_Close(t *testing.T) {
 	if store.table.LastDecidedState != nil {
 		t.Fatalf("expected LastDecidedState table to be nil")
 	}
-	if store.epochTable.Roots != nil {
+	if store.EpochTable.Roots != nil {
 		t.Fatalf("expected Roots table to be nil")
 	}
 }
 
 func populateWithRoots(store *Store) [][]*consensus.TestEvent {
-	store.openEpochDB(1)
+	store.OpenEpochDB(1)
 	roots := make([][]*consensus.TestEvent, 100)
 	for frame := range consensus.Frame(100) {
 		roots[frame] = make([]*consensus.TestEvent, 100)

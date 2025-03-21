@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusstore
 
 import (
 	"errors"
@@ -22,13 +22,15 @@ import (
 	"github.com/0xsoniclabs/kvdb/table"
 )
 
+var _ ConsensusStore = (*Store)(nil)
+
 // Store is a abft persistent storage working over parent key-value database.
 type Store struct {
-	getEpochDB EpochDBProducer
+	GetEpochDB EpochDBProducer
 	cfg        StoreConfig
 	crit       func(error)
 
-	mainDB kvdb.Store
+	MainDB kvdb.Store
 	table  struct {
 		LastDecidedState kvdb.Store `table:"c"`
 		EpochState       kvdb.Store `table:"e"`
@@ -40,8 +42,8 @@ type Store struct {
 		FrameRoots       *simplewlru.Cache `cache:"-"` // store by pointer
 	}
 
-	epochDB    kvdb.Store
-	epochTable struct {
+	EpochDB    kvdb.Store
+	EpochTable struct {
 		Roots          kvdb.Store `table:"r"`
 		VectorIndex    kvdb.Store `table:"v"`
 		ConfirmedEvent kvdb.Store `table:"C"`
@@ -57,13 +59,13 @@ type EpochDBProducer func(epoch consensus.Epoch) kvdb.Store
 // NewStore creates store over key-value db.
 func NewStore(mainDB kvdb.Store, getDB EpochDBProducer, crit func(error), cfg StoreConfig) *Store {
 	s := &Store{
-		getEpochDB: getDB,
+		GetEpochDB: getDB,
 		cfg:        cfg,
 		crit:       crit,
-		mainDB:     mainDB,
+		MainDB:     mainDB,
 	}
 
-	table.MigrateTables(&s.table, s.mainDB)
+	table.MigrateTables(&s.table, s.MainDB)
 
 	s.initCache()
 
@@ -95,14 +97,14 @@ func (s *Store) Close() error {
 
 	table.MigrateTables(&s.table, nil)
 	table.MigrateCaches(&s.cache, setnil)
-	table.MigrateTables(&s.epochTable, nil)
-	err := s.mainDB.Close()
+	table.MigrateTables(&s.EpochTable, nil)
+	err := s.MainDB.Close()
 	if err != nil {
 		return err
 	}
 
-	if s.epochDB != nil {
-		err = s.epochDB.Close()
+	if s.EpochDB != nil {
+		err = s.EpochDB.Close()
 		if err != nil {
 			return err
 		}
@@ -110,9 +112,9 @@ func (s *Store) Close() error {
 	return nil
 }
 
-// dropEpochDB drops existing epoch DB
-func (s *Store) dropEpochDB() error {
-	prevDb := s.epochDB
+// DropEpochDB drops existing epoch DB
+func (s *Store) DropEpochDB() error {
+	prevDb := s.EpochDB
 	if prevDb != nil {
 		err := prevDb.Close()
 		if err != nil {
@@ -123,13 +125,13 @@ func (s *Store) dropEpochDB() error {
 	return nil
 }
 
-// openEpochDB makes new epoch DB
-func (s *Store) openEpochDB(n consensus.Epoch) error {
+// OpenEpochDB makes new epoch DB
+func (s *Store) OpenEpochDB(n consensus.Epoch) error {
 	// Clear full LRU cache.
 	s.cache.FrameRoots.Purge()
 
-	s.epochDB = s.getEpochDB(n)
-	table.MigrateTables(&s.epochTable, s.epochDB)
+	s.EpochDB = s.GetEpochDB(n)
+	table.MigrateTables(&s.EpochTable, s.EpochDB)
 	return nil
 }
 

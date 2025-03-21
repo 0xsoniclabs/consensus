@@ -1,4 +1,4 @@
-package abft
+package consensusstore
 
 import (
 	"testing"
@@ -29,7 +29,7 @@ func TestGenesis_Sucess(t *testing.T) {
 	if !exists {
 		t.Fatal("last decided state not set")
 	}
-	if want, got := lastDecidedState.LastDecidedFrame, FirstFrame-1; want != got {
+	if want, got := lastDecidedState.LastDecidedFrame, consensus.FirstFrame-1; want != got {
 		t.Fatalf("expected frame for last state: %d, got: %d", want, got)
 	}
 }

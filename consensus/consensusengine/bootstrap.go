@@ -8,37 +8,15 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/abft/election"
+	"github.com/0xsoniclabs/consensus/consensus/consensusengine/election"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
-
-const (
-	FirstFrame = consensus.Frame(1)
-	FirstEpoch = consensus.Epoch(1)
-)
-
-// LastDecidedState is for persistent storing.
-type LastDecidedState struct {
-	// fields can change only after a frame is decided
-	LastDecidedFrame consensus.Frame
-}
-
-type EpochState struct {
-	// stored values
-	// these values change only after a change of epoch
-	Epoch      consensus.Epoch
-	Validators *consensus.Validators
-}
-
-func (es EpochState) String() string {
-	return fmt.Sprintf("%d/%s", es.Epoch, es.Validators.String())
-}
 
 // Bootstrap restores abft's state from store.
 func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
@@ -65,7 +43,7 @@ func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 
 // Reset switches epoch state to a new empty epoch.
 func (p *Orderer) Reset(epoch consensus.Epoch, validators *consensus.Validators) error {
-	if err := p.store.switchGenesis(&Genesis{Epoch: epoch, Validators: validators}); err != nil {
+	if err := p.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: validators}); err != nil {
 		return err
 	}
 	// reset internal epoch DB
@@ -76,10 +54,10 @@ func (p *Orderer) Reset(epoch consensus.Epoch, validators *consensus.Validators)
 	if p.callback.EpochDBLoaded != nil {
 		p.callback.EpochDBLoaded(p.store.GetEpoch())
 	}
-	p.election.ResetEpoch(FirstFrame, validators)
+	p.election.ResetEpoch(consensus.FirstFrame, validators)
 	return nil
 }
 
 func (p *Orderer) loadEpochDB() error {
-	return p.store.openEpochDB(p.store.GetEpoch())
+	return p.store.OpenEpochDB(p.store.GetEpoch())
 }

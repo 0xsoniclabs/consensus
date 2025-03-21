@@ -8,10 +8,11 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/dagidx"
 )
 
@@ -33,7 +34,7 @@ type Lachesis struct {
 }
 
 // NewLachesis creates Lachesis instance.
-func NewLachesis(store *Store, input EventSource, dagIndex DagIndex, crit func(error), config Config) *Lachesis {
+func NewLachesis(store *consensusstore.Store, input EventSource, dagIndex DagIndex, crit func(error), config Config) *Lachesis {
 	p := &Lachesis{
 		Orderer:  NewOrderer(store, input, dagIndex, crit, config),
 		dagIndex: dagIndex,

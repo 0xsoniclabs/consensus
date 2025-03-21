@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -25,12 +25,12 @@ func (p *Orderer) onFrameDecided(frame consensus.Frame, atropos consensus.EventH
 
 	lastDecidedState := *p.store.GetLastDecidedState()
 	if newValidators != nil {
-		lastDecidedState.LastDecidedFrame = FirstFrame - 1
+		lastDecidedState.LastDecidedFrame = consensus.FirstFrame - 1
 		err := p.sealEpoch(newValidators)
 		if err != nil {
 			return true, err
 		}
-		p.election.ResetEpoch(FirstFrame, newValidators)
+		p.election.ResetEpoch(consensus.FirstFrame, newValidators)
 	} else {
 		lastDecidedState.LastDecidedFrame = frame
 	}
@@ -39,11 +39,11 @@ func (p *Orderer) onFrameDecided(frame consensus.Frame, atropos consensus.EventH
 }
 
 func (p *Orderer) resetEpochStore(newEpoch consensus.Epoch) error {
-	err := p.store.dropEpochDB()
+	err := p.store.DropEpochDB()
 	if err != nil {
 		return err
 	}
-	err = p.store.openEpochDB(newEpoch)
+	err = p.store.OpenEpochDB(newEpoch)
 	if err != nil {
 		return err
 	}

@@ -8,14 +8,14 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusstore
 
 import (
 	"bytes"
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/abft/election"
+	"github.com/0xsoniclabs/consensus/consensus/consensusengine/election"
 )
 
 func rootRecordKey(frame consensus.Frame, root *election.RootContext) []byte {
@@ -38,7 +38,7 @@ func (s *Store) addRoot(root consensus.Event, frame consensus.Frame) {
 		RootHash:    root.ID(),
 	}
 
-	if err := s.epochTable.Roots.Put(rootRecordKey(frame, &r), []byte{}); err != nil {
+	if err := s.EpochTable.Roots.Put(rootRecordKey(frame, &r), []byte{}); err != nil {
 		s.crit(err)
 	}
 
@@ -63,7 +63,7 @@ func (s *Store) GetFrameRoots(frame consensus.Frame) []election.RootContext {
 		return rr.([]election.RootContext)
 	}
 	roots := make([]election.RootContext, 0, 100)
-	it := s.epochTable.Roots.NewIterator(frame.Bytes(), nil)
+	it := s.EpochTable.Roots.NewIterator(frame.Bytes(), nil)
 	defer it.Release()
 	for it.Next() {
 		key := it.Key()

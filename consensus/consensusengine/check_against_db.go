@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"database/sql"
@@ -16,6 +16,7 @@ import (
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *EventStore, map[consensus.EventHash]*dbEvent, []*dbEvent, error) {
@@ -28,7 +29,7 @@ func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *EventSt
 	}
 
 	testLachesis, _, eventStore, _ := NewCoreLachesis(validators, weights)
-	testLachesis.store.switchGenesis(&Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()})
+	testLachesis.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()})
 
 	eventsOrdered, eventMap, err := getEvents(conn, epoch)
 	if err != nil {

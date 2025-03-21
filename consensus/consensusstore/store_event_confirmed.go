@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusstore
 
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -18,7 +18,7 @@ import (
 func (s *Store) SetEventConfirmedOn(e consensus.EventHash, on consensus.Frame) {
 	key := e.Bytes()
 
-	if err := s.epochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
+	if err := s.EpochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
 		s.crit(err)
 	}
 }
@@ -27,7 +27,7 @@ func (s *Store) SetEventConfirmedOn(e consensus.EventHash, on consensus.Frame) {
 func (s *Store) GetEventConfirmedOn(e consensus.EventHash) consensus.Frame {
 	key := e.Bytes()
 
-	buf, err := s.epochTable.ConfirmedEvent.Get(key)
+	buf, err := s.EpochTable.ConfirmedEvent.Get(key)
 	if err != nil {
 		s.crit(err)
 	}

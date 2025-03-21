@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"math/big"
@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/dagidx"
 	"github.com/0xsoniclabs/kvdb"
 	"github.com/0xsoniclabs/kvdb/flushable"
@@ -45,7 +46,7 @@ type DagIndexer interface {
 }
 
 // NewIndexedLachesis creates IndexedLachesis instance.
-func NewIndexedLachesis(store *Store, input EventSource, dagIndexer DagIndexer, crit func(error), config Config) *IndexedLachesis {
+func NewIndexedLachesis(store *consensusstore.Store, input EventSource, dagIndexer DagIndexer, crit func(error), config Config) *IndexedLachesis {
 	p := &IndexedLachesis{
 		Lachesis:      NewLachesis(store, input, dagIndexer, crit, config),
 		DagIndexer:    dagIndexer,
@@ -96,7 +97,7 @@ func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error
 			if base.EpochDBLoaded != nil {
 				base.EpochDBLoaded(epoch)
 			}
-			p.DagIndexer.Reset(p.store.GetValidators(), flushable.Wrap(p.store.epochTable.VectorIndex), p.Input.GetEvent)
+			p.DagIndexer.Reset(p.store.GetValidators(), flushable.Wrap(p.store.EpochTable.VectorIndex), p.Input.GetEvent)
 		},
 	}
 	return p.Lachesis.BootstrapWithOrderer(callback, ordererCallbacks)

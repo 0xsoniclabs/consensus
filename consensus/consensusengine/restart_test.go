@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"errors"
@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/stretchr/testify/assert"
@@ -119,7 +120,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 	if parentCount > len(nodes) {
 		parentCount = len(nodes)
 	}
-	epochStates := map[consensus.Epoch]*EpochState{}
+	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
 		consensus.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensus.ForEachEvent{
@@ -165,25 +166,25 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 		if r.Intn(10) == 0 {
 			prev := lchs[RESTORED]
 
-			store := NewMemStore()
+			store := consensusstore.NewMemStore()
 			// copy prev DB into new one
 			{
-				it := prev.store.mainDB.NewIterator(nil, nil)
+				it := prev.store.MainDB.NewIterator(nil, nil)
 				for it.Next() {
-					assertar.NoError(store.mainDB.Put(it.Key(), it.Value()))
+					assertar.NoError(store.MainDB.Put(it.Key(), it.Value()))
 				}
 				it.Release()
 			}
 			restartEpochDB := memorydb.New()
 			{
-				it := prev.store.epochDB.NewIterator(nil, nil)
+				it := prev.store.EpochDB.NewIterator(nil, nil)
 				for it.Next() {
 					assertar.NoError(restartEpochDB.Put(it.Key(), it.Value()))
 				}
 				it.Release()
 			}
 			restartEpoch := prev.store.GetEpoch()
-			store.getEpochDB = func(epoch consensus.Epoch) kvdb.Store {
+			store.GetEpochDB = func(epoch consensus.Epoch) kvdb.Store {
 				if epoch == restartEpoch {
 					return restartEpochDB
 				}

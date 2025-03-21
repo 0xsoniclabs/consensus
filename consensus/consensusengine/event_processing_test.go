@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package abft
+package consensusengine
 
 import (
 	"errors"
@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 const (
@@ -115,7 +116,7 @@ func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutate
 	if parentCount > len(nodes) {
 		parentCount = len(nodes)
 	}
-	epochStates := map[consensus.Epoch]*EpochState{}
+	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
 		consensus.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensus.ForEachEvent{

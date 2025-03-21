@@ -35,6 +35,11 @@ type (
 	ValidatorID uint32
 )
 
+const (
+	FirstFrame = Frame(1)
+	FirstEpoch = Epoch(1)
+)
+
 // Bytes gets the byte representation of the index.
 func (e Epoch) Bytes() []byte {
 	return byteutils.Uint32ToBigEndian(uint32(e))
