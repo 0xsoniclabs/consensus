@@ -39,7 +39,7 @@ func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 		temp := HighestBeforeTime(vi.getBytes(vi.table.HighestBeforeTime, id))
 		vTime = &temp
 		if vTime != nil {
-			vi.cache.HighestBeforeTime.Add(id, &vTime, uint(len(*vTime)))
+			vi.cache.HighestBeforeTime.Add(id, vTime, uint(len(*vTime)))
 		}
 	}
 
