@@ -30,6 +30,9 @@ func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 	} else {
 		temp := HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
 		vSeq = &temp
+		if vSeq != nil {
+			vi.cache.HighestBeforeSeq.Add(id, vSeq, uint(len(*vSeq)))
+		}
 	}
 
 	var vTime *HighestBeforeTime
@@ -43,7 +46,6 @@ func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
 		}
 	}
 
-	vi.cache.HighestBeforeSeq.Add(id, vSeq, uint(len(*vSeq)))
 	return &HighestBefore{
 		VSeq:  vSeq,
 		VTime: vTime,
