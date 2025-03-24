@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusengine/election"
 )
 
 func TestStore_StatePersisting(t *testing.T) {
@@ -33,7 +32,7 @@ func TestStore_FrameRootPersisting(t *testing.T) {
 		if want, got := len(roots[frame]), len(frameRoots); want != got {
 			t.Fatalf("incorrect number of roots retrieved for frame %d, expected: %d, got: %d", frame, want, got)
 		}
-		slices.SortFunc(frameRoots, func(r1, r2 election.RootContext) int { return int(r1.ValidatorID) - int(r2.ValidatorID) })
+		slices.SortFunc(frameRoots, func(r1, r2 RootDescriptor) int { return int(r1.ValidatorID) - int(r2.ValidatorID) })
 		for validatorID := range len(frameRoots) {
 			if want, got := roots[frame][validatorID].ID(), frameRoots[validatorID].RootHash; want != got {
 				t.Fatalf("incorrect root retrieved for [frame, validator]: [%d, %d], expected: %s, got: %s", frame, validatorID, want, got)

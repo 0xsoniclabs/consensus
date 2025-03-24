@@ -12,7 +12,6 @@ package consensusengine
 
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusengine/election"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/dagidx"
 )
@@ -35,7 +34,7 @@ type Orderer struct {
 	store  *consensusstore.Store
 	Input  EventSource
 
-	election *election.Election
+	election *election
 	dagIndex OrdererDagIndex
 
 	callback OrdererCallbacks

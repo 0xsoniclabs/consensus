@@ -14,7 +14,6 @@ import (
 	"errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusengine/election"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
@@ -34,7 +33,7 @@ func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 	if p.callback.EpochDBLoaded != nil {
 		p.callback.EpochDBLoaded(p.store.GetEpoch())
 	}
-	p.election = election.New(p.store.GetLastDecidedFrame()+1, p.store.GetValidators(), p.dagIndex.ForklessCause, p.store.GetFrameRoots)
+	p.election = NewElection(p.store.GetLastDecidedFrame()+1, p.store.GetValidators(), p.dagIndex.ForklessCause, p.store.GetFrameRoots)
 
 	// events reprocessing
 	err = p.bootstrapElection()

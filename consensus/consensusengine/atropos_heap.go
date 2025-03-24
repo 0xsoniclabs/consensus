@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package election
+package consensusengine
 
 import (
 	"container/heap"
@@ -18,11 +18,11 @@ import (
 
 // atroposHeap is a min-heap of Atropos decisions ordered by Frames.
 type atroposHeap struct {
-	container []*AtroposDecision
+	container []*atroposDecision
 }
 
 func NewAtroposHeap() *atroposHeap {
-	return &atroposHeap{make([]*AtroposDecision, 0)}
+	return &atroposHeap{make([]*atroposDecision, 0)}
 }
 
 func (h atroposHeap) Len() int           { return len(h.container) }
@@ -30,7 +30,7 @@ func (h atroposHeap) Less(i, j int) bool { return h.container[i].Frame < h.conta
 func (h atroposHeap) Swap(i, j int)      { h.container[i], h.container[j] = h.container[j], h.container[i] }
 
 func (h *atroposHeap) Push(x any) {
-	h.container = append(h.container, x.(*AtroposDecision))
+	h.container = append(h.container, x.(*atroposDecision))
 }
 
 func (h *atroposHeap) Pop() any {
@@ -45,10 +45,10 @@ func (h *atroposHeap) Pop() any {
 // example 1: frameToDeliver = 100, heapBuffer = [100, 101, 102] -> deliveredAtropoi = [100, 101, 102], heapBuffer = []
 // example 2: frameToDeliver = 100, heapBuffer = [101, 102] -> deliveredAtropoi = [], heapBuffer = [101, 102]
 // example 3: frameToDeliver = 100, heapBuffer = [100, 101, 104, 105] -> deliveredAtropoi = [100, 101], heapBuffer=[104, 105]
-func (ah *atroposHeap) getDeliveryReadyAtropoi(frameToDeliver consensus.Frame) []*AtroposDecision {
-	atropoi := make([]*AtroposDecision, 0)
+func (ah *atroposHeap) getDeliveryReadyAtropoi(frameToDeliver consensus.Frame) []*atroposDecision {
+	atropoi := make([]*atroposDecision, 0)
 	for len(ah.container) > 0 && ah.container[0].Frame == frameToDeliver {
-		atropoi = append(atropoi, heap.Pop(ah).(*AtroposDecision))
+		atropoi = append(atropoi, heap.Pop(ah).(*atroposDecision))
 		frameToDeliver++
 	}
 	return atropoi

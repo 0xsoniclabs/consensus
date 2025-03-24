@@ -22,8 +22,6 @@ import (
 	"github.com/0xsoniclabs/kvdb/table"
 )
 
-var _ ConsensusStore = (*Store)(nil)
-
 // Store is a abft persistent storage working over parent key-value database.
 type Store struct {
 	GetEpochDB EpochDBProducer

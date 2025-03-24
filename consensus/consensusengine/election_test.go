@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package election
+package consensusengine
 
 import (
 	"fmt"
@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 type fakeEdge struct {
@@ -211,7 +212,7 @@ type slot struct {
 
 type testState struct {
 	ordered    consensus.TestEvents
-	frameRoots map[consensus.Frame][]RootContext
+	frameRoots map[consensus.Frame][]consensusstore.RootDescriptor
 	vertices   map[consensus.EventHash]slot
 	edges      map[fakeEdge]bool
 }
@@ -228,7 +229,7 @@ func testVoteAndAggregate(
 
 	state := testState{
 		ordered:    make(consensus.TestEvents, 0),
-		frameRoots: make(map[consensus.Frame][]RootContext),
+		frameRoots: make(map[consensus.Frame][]consensusstore.RootDescriptor),
 		vertices:   make(map[consensus.EventHash]slot),
 		edges:      make(map[fakeEdge]bool),
 	}
@@ -263,7 +264,7 @@ func testVoteAndAggregate(
 		}
 		return state.edges[edge]
 	}
-	getFrameRootsFn := func(f consensus.Frame) []RootContext {
+	getFrameRootsFn := func(f consensus.Frame) []consensusstore.RootDescriptor {
 		return state.frameRoots[f]
 	}
 
@@ -274,7 +275,7 @@ func testVoteAndAggregate(
 	}
 	state.ordered = unordered.ByParents()
 
-	el := New(1, validators, forklessCauseFn, getFrameRootsFn)
+	election := NewElection(consensus.FirstFrame, validators, forklessCauseFn, getFrameRootsFn)
 
 	// processing:
 	for _, root := range state.ordered {
@@ -283,7 +284,7 @@ func testVoteAndAggregate(
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		atropoi, err := el.VoteAndAggregate(rootSlot.frame, rootSlot.validatorID, rootHash)
+		atropoi, err := election.VoteAndAggregate(rootSlot.frame, rootSlot.validatorID, rootHash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -321,7 +322,7 @@ func indexTestEvent(state *testState, root *consensus.TestEvent, isFork bool) {
 	hsh := root.ID()
 	state.frameRoots[frameOf(root.Name)] = append(
 		state.frameRoots[frameOf(root.Name)],
-		RootContext{
+		consensusstore.RootDescriptor{
 			RootHash:    hsh,
 			ValidatorID: slt.validatorID,
 		},

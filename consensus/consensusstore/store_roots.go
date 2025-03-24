@@ -15,10 +15,21 @@ import (
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusengine/election"
 )
 
-func rootRecordKey(frame consensus.Frame, root *election.RootContext) []byte {
+const (
+	frameSize       = 4
+	validatorIDSize = 4
+	eventIDSize     = 32
+)
+
+// RootDescriptor wraps the root context retrieved from the ConsensusStore
+type RootDescriptor struct {
+	ValidatorID consensus.ValidatorID
+	RootHash    consensus.EventHash
+}
+
+func rootRecordKey(frame consensus.Frame, root *RootDescriptor) []byte {
 	key := bytes.Buffer{}
 	key.Write(frame.Bytes())
 	key.Write(root.ValidatorID.Bytes())
@@ -33,7 +44,7 @@ func (s *Store) AddRoot(root consensus.Event) {
 }
 
 func (s *Store) addRoot(root consensus.Event, frame consensus.Frame) {
-	r := election.RootContext{
+	r := RootDescriptor{
 		ValidatorID: root.Creator(),
 		RootHash:    root.ID(),
 	}
@@ -44,25 +55,19 @@ func (s *Store) addRoot(root consensus.Event, frame consensus.Frame) {
 
 	// Add to cache.
 	if c, ok := s.cache.FrameRoots.Get(frame); ok {
-		rr := c.([]election.RootContext)
+		rr := c.([]RootDescriptor)
 		rr = append(rr, r)
 		s.cache.FrameRoots.Add(frame, rr, uint(len(rr)))
 	}
 }
 
-const (
-	frameSize       = 4
-	validatorIDSize = 4
-	eventIDSize     = 32
-)
-
 // GetFrameRoots returns all the roots in the specified frame
 // Not safe for concurrent use due to the complex mutable cache!
-func (s *Store) GetFrameRoots(frame consensus.Frame) []election.RootContext {
+func (s *Store) GetFrameRoots(frame consensus.Frame) []RootDescriptor {
 	if rr, ok := s.cache.FrameRoots.Get(frame); ok {
-		return rr.([]election.RootContext)
+		return rr.([]RootDescriptor)
 	}
-	roots := make([]election.RootContext, 0, 100)
+	roots := make([]RootDescriptor, 0, 100)
 	it := s.EpochTable.Roots.NewIterator(frame.Bytes(), nil)
 	defer it.Release()
 	for it.Next() {
@@ -71,7 +76,7 @@ func (s *Store) GetFrameRoots(frame consensus.Frame) []election.RootContext {
 			s.crit(fmt.Errorf("roots table: incorrect key len=%d", len(key)))
 		}
 
-		r := election.RootContext{
+		r := RootDescriptor{
 			RootHash:    consensus.BytesToEvent(key[frameSize+validatorIDSize:]),
 			ValidatorID: consensus.BytesToValidatorID(key[frameSize : frameSize+validatorIDSize]),
 		}
