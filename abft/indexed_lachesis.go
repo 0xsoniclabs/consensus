@@ -22,7 +22,6 @@ import (
 	"github.com/0xsoniclabs/consensus/inter/pos"
 	"github.com/0xsoniclabs/consensus/lachesis"
 	"github.com/0xsoniclabs/kvdb"
-	"github.com/0xsoniclabs/kvdb/flushable"
 )
 
 var _ lachesis.Consensus = (*IndexedLachesis)(nil)
@@ -100,7 +99,7 @@ func (p *IndexedLachesis) Bootstrap(callback lachesis.ConsensusCallbacks) error 
 			if base.EpochDBLoaded != nil {
 				base.EpochDBLoaded(epoch)
 			}
-			p.DagIndexer.Reset(p.store.GetValidators(), flushable.Wrap(p.store.epochTable.VectorIndex), p.Input.GetEvent)
+			p.DagIndexer.Reset(p.store.GetValidators(), p.store.epochTable.VectorIndex, p.Input.GetEvent)
 		},
 	}
 	return p.Lachesis.BootstrapWithOrderer(callback, ordererCallbacks)
