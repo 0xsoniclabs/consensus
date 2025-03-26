@@ -16,6 +16,8 @@ import (
 	"math/rand"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/utils/byteutils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // GenNodes generates nodes.
@@ -184,6 +186,52 @@ func CalcHashForTestEvent(event *TestEvent) [24]byte {
 func delPeerIndex(events map[consensus.ValidatorID]consensus.Events) (res consensus.Events) {
 	for _, ee := range events {
 		res = append(res, ee...)
+	}
+	return
+}
+
+// FakePeer generates random fake peer id for testing purpose.
+func FakePeer() consensus.ValidatorID {
+	return consensus.BytesToValidatorID(FakeHash().Bytes()[:4])
+}
+
+// FakeEpoch gives fixed value of fake epoch for testing purpose.
+func FakeEpoch() consensus.Epoch {
+	return 123456
+}
+
+// FakeEventHash generates random fake event hash with the same epoch for testing purpose.
+func FakeEventHash() (h consensus.EventHash) {
+	_, err := rand.Read(h[:]) // nolint:gosec
+	if err != nil {
+		panic(err)
+	}
+	copy(h[0:4], byteutils.Uint32ToBigEndian(uint32(FakeEpoch())))
+	return
+}
+
+// FakeEventHashes generates random hashes of fake event with the same epoch for testing purpose.
+func FakeEventHashes(n int) consensus.EventHashes {
+	res := consensus.EventHashes{}
+	for i := 0; i < n; i++ {
+		res.Add(FakeEventHash())
+	}
+	return res
+}
+
+// FakeHash generates random fake hash for testing purpose.
+func FakeHash(seed ...int64) (h common.Hash) {
+	randRead := rand.Read
+
+	if len(seed) > 0 {
+		src := rand.NewSource(seed[0])
+		rnd := rand.New(src) // nolint:gosec
+		randRead = rnd.Read
+	}
+
+	_, err := randRead(h[:])
+	if err != nil {
+		panic(err)
 	}
 	return
 }

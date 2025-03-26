@@ -29,7 +29,7 @@ func TestEventStore(t *testing.T) {
 	t.Run("NotExisting", func(t *testing.T) {
 		assertar := assert.New(t)
 
-		h := consensustest.FakeEvent()
+		h := consensustest.FakeEventHash()
 		e1 := store.GetEvent(h)
 		assertar.Nil(e1)
 	})
