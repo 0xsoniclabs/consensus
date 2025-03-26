@@ -18,6 +18,7 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/stretchr/testify/assert"
@@ -85,10 +86,10 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 		EXPECTED  = 1 // sample
 		RESTORED  = 2 // compare with sample
 	)
-	nodes := consensus.GenNodes(len(weights))
+	nodes := consensustest.GenNodes(len(weights))
 
 	lchs := make([]*CoreLachesis, 0, COUNT)
-	inputs := make([]*EventStore, 0, COUNT)
+	inputs := make([]*consensustest.TestEventSource, 0, COUNT)
 	for i := 0; i < COUNT; i++ {
 		lch, _, input, _ := NewCoreLachesis(nodes, weights)
 		lchs = append(lchs, lch)
@@ -123,7 +124,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
-		consensus.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensus.ForEachEvent{
+		consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 			Process: func(e consensus.Event, name string) {
 				inputs[GENERATOR].SetEvent(e)
 				assertar.NoError(

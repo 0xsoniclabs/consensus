@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
 func TestConfirmBlocks_1(t *testing.T) {
@@ -64,7 +65,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 	t.Helper()
 	assertar := assert.New(t)
 
-	nodes := consensus.GenNodes(len(weights))
+	nodes := consensustest.GenNodes(len(weights))
 	lch, _, input, _ := NewCoreLachesis(nodes, weights)
 
 	var (
@@ -84,7 +85,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 		parentCount = len(nodes)
 	}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
-	consensus.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensus.ForEachEvent{
+	consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			input.SetEvent(e)
 			assertar.NoError(

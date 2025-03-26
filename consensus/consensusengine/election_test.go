@@ -22,6 +22,7 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
 type fakeEdge struct {
@@ -211,7 +212,7 @@ type slot struct {
 }
 
 type testState struct {
-	ordered    consensus.TestEvents
+	ordered    consensustest.TestEvents
 	frameRoots map[consensus.Frame][]consensusstore.RootDescriptor
 	vertices   map[consensus.EventHash]slot
 	edges      map[fakeEdge]bool
@@ -228,20 +229,20 @@ func testVoteAndAggregate(
 	assertar := assert.New(t)
 
 	state := testState{
-		ordered:    make(consensus.TestEvents, 0),
+		ordered:    make(consensustest.TestEvents, 0),
 		frameRoots: make(map[consensus.Frame][]consensusstore.RootDescriptor),
 		vertices:   make(map[consensus.EventHash]slot),
 		edges:      make(map[fakeEdge]bool),
 	}
 
-	nodes, _, _ := consensus.ASCIIschemeForEach(dagAscii, consensus.ForEachEvent{
+	nodes, _, _ := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
 		Process: func(_root consensus.Event, name string) {
-			root := _root.(*consensus.TestEvent)
+			root := _root.(*consensustest.TestEvent)
 			indexTestEvent(&state, root, false)
 			if forkedRootName, ok := forks[name]; ok {
 				forkedRoot := *root
 				forkedRoot.Name = forkedRootName
-				forkedRoot.SetID(consensus.CalcHashForTestEvent(&forkedRoot))
+				forkedRoot.SetID(consensustest.CalcHashForTestEvent(&forkedRoot))
 				indexTestEvent(&state, &forkedRoot, true)
 			}
 		},
@@ -269,7 +270,7 @@ func testVoteAndAggregate(
 	}
 
 	// re-order events randomly, preserving parents order
-	unordered := make(consensus.TestEvents, len(state.ordered))
+	unordered := make(consensustest.TestEvents, len(state.ordered))
 	for i, j := range rand.Perm(len(state.ordered)) {
 		unordered[i] = state.ordered[j]
 	}
@@ -312,7 +313,7 @@ func frameOf(dsc string) consensus.Frame {
 	return consensus.Frame(h)
 }
 
-func indexTestEvent(state *testState, root *consensus.TestEvent, isFork bool) {
+func indexTestEvent(state *testState, root *consensustest.TestEvent, isFork bool) {
 	state.ordered = append(state.ordered, root)
 	slt := slot{
 		frame:       frameOf(root.Name),

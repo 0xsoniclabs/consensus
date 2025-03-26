@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
 func TestCalFrameIdx_10000(t *testing.T) {
@@ -22,7 +23,7 @@ func TestCalFrameIdx_10000(t *testing.T) {
 
 // testCalcFrameIdx verifies that lagging validator calculates correct frame numbers after a (large) pause
 func testCalcFrameIdx(t *testing.T, gap int) {
-	nodes := consensus.GenNodes(2)
+	nodes := consensustest.GenNodes(2)
 	// Give one validator quorum power to advance the frames on it's own
 	lch, _, store, _ := NewCoreLachesis(nodes, []consensus.Weight{1, 3})
 
@@ -42,8 +43,8 @@ func testCalcFrameIdx(t *testing.T, gap int) {
 var maxLamport consensus.Lamport = 0
 
 // processTestEvent builds and pipes the event through main Lacehsis' DAG manipulation pipeline
-func processTestEvent(t *testing.T, lch *CoreLachesis, store *EventStore, validatorId consensus.ValidatorID, seq consensus.Seq, parents consensus.EventHashes) *consensus.TestEvent {
-	event := &consensus.TestEvent{}
+func processTestEvent(t *testing.T, lch *CoreLachesis, store *consensustest.TestEventSource, validatorId consensus.ValidatorID, seq consensus.Seq, parents consensus.EventHashes) *consensustest.TestEvent {
+	event := &consensustest.TestEvent{}
 	event.SetSeq(seq)
 	event.SetCreator(validatorId)
 	event.SetParents(parents)

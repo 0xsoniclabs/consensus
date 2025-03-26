@@ -8,13 +8,14 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package consensus
+package consensustest
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/utils/textcolumns"
 )
 
@@ -409,7 +410,7 @@ func testDAGtoASCIIschemeOptimisation(t *testing.T, origScheme string, refs map[
 	checkParents(t, named, refs)
 }
 
-func checkParents(t *testing.T, named map[string]Event, expected map[string][]string) {
+func checkParents(t *testing.T, named map[string]consensus.Event, expected map[string][]string) {
 	t.Helper()
 	assertar := assert.New(t)
 
@@ -430,7 +431,7 @@ func checkParents(t *testing.T, named map[string]Event, expected map[string][]st
 	}
 }
 
-func edges2text(e Event) map[string]struct{} {
+func edges2text(e consensus.Event) map[string]struct{} {
 	res := make(map[string]struct{}, len(e.Parents()))
 	for _, p := range e.Parents() {
 		res[p.String()] = struct{}{}

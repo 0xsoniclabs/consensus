@@ -17,9 +17,23 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
-func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *EventStore, map[consensus.EventHash]*dbEvent, []*dbEvent, error) {
+type dbEvent struct {
+	hash        consensus.EventHash
+	validatorId consensus.ValidatorID
+	seq         consensus.Seq
+	frame       consensus.Frame
+	lamportTs   consensus.Lamport
+	parents     []consensus.EventHash
+}
+
+func (e *dbEvent) String() string {
+	return fmt.Sprintf("{Epoch:%d Validator:%d Frame:%d Seq:%d Lamport:%d}", e.hash.Epoch(), e.validatorId, e.frame, e.seq, e.lamportTs)
+}
+
+func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *consensustest.TestEventSource, map[consensus.EventHash]*dbEvent, []*dbEvent, error) {
 	validators, weights, err := getValidator(conn, epoch)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -39,7 +53,7 @@ func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *EventSt
 	return testLachesis, eventStore, eventMap, eventsOrdered, nil
 }
 
-func executeElection(testLachesis *CoreLachesis, eventStore *EventStore, eventsOrdered []*dbEvent) error {
+func executeElection(testLachesis *CoreLachesis, eventStore *consensustest.TestEventSource, eventsOrdered []*dbEvent) error {
 	for _, event := range eventsOrdered {
 		if err := ingestEvent(testLachesis, eventStore, event); err != nil {
 			return err
@@ -103,8 +117,8 @@ func GetEpochRange(conn *sql.DB) (consensus.Epoch, consensus.Epoch, error) {
 	return epochMin, epochMax, nil
 }
 
-func ingestEvent(testLachesis *CoreLachesis, eventStore *EventStore, event *dbEvent) error {
-	testEvent := &consensus.TestEvent{}
+func ingestEvent(testLachesis *CoreLachesis, eventStore *consensustest.TestEventSource, event *dbEvent) error {
+	testEvent := &consensustest.TestEvent{}
 	testEvent.SetSeq(event.seq)
 	testEvent.SetCreator(event.validatorId)
 	testEvent.SetParents(event.parents)
@@ -119,7 +133,7 @@ func ingestEvent(testLachesis *CoreLachesis, eventStore *EventStore, event *dbEv
 // processLocalEvent simulates a flattened (without redudantant indexing and frame (re)calculations)
 // event lifecycle in local computation intensive consensus components - DAG indexing, frame calculation, election
 // Conditions and order in which the components are invoked are identical to production Consensus behaviour
-func processLocalEvent(testLachesis *CoreLachesis, event *consensus.TestEvent, targetFrame consensus.Frame) error {
+func processLocalEvent(testLachesis *CoreLachesis, event *consensustest.TestEvent, targetFrame consensus.Frame) error {
 	if err := testLachesis.DagIndexer.Add(event); err != nil {
 		return fmt.Errorf("error wihile indexing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
