@@ -32,13 +32,18 @@ type rootVoteContext struct {
 	voteMatrix           []int32
 }
 
+type validatorRootKey struct {
+	validatorID consensus.ValidatorID
+	rootHash    consensus.EventHash
+}
+
 type election struct {
 	validators *consensus.Validators
 
 	forklessCauses ForklessCauseFn
 	getFrameRoots  GetFrameRootsFn
 
-	vote           map[consensus.Frame]map[consensus.ValidatorID]map[consensus.EventHash]*rootVoteContext
+	vote           map[consensus.Frame]map[validatorRootKey]*rootVoteContext
 	validatorIDMap map[consensus.ValidatorID]consensus.ValidatorIndex
 	validatorCount consensus.Frame
 
@@ -65,7 +70,7 @@ func (el *election) ResetEpoch(frameToDeliver consensus.Frame, validators *conse
 	el.atroposDeliveryBuffer = NewAtroposHeap()
 	el.frameToDeliver = frameToDeliver
 	el.validators = validators
-	el.vote = make(map[consensus.Frame]map[consensus.ValidatorID]map[consensus.EventHash]*rootVoteContext)
+	el.vote = make(map[consensus.Frame]map[validatorRootKey]*rootVoteContext)
 	el.validatorCount = consensus.Frame(validators.Len())
 	el.validatorIDMap = validators.Idxs()
 }
@@ -79,25 +84,35 @@ func (el *election) VoteAndAggregate(
 	if frame <= el.frameToDeliver {
 		return []*atroposDecision{}, nil
 	}
+
 	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
 	directVoteVector := initInt32WithConst(-1, int(el.validatorCount))
 
 	observedRoots := el.observedRoots(rootHash, frame-1)
 	observedRootsWeight := int32(0)
+
 	for _, observedRoot := range observedRoots {
-		directVoteVector[el.validatorIDMap[observedRoot.ValidatorID]] = 1.
-		observedRootsWeight += int32(el.validators.GetWeightByIdx(el.validatorIDMap[observedRoot.ValidatorID]))
-		if rootContext, ok := el.vote[frame-1][observedRoot.ValidatorID][observedRoot.RootHash]; ok {
+		validatorIdx := el.validatorIDMap[observedRoot.ValidatorID]
+		directVoteVector[validatorIdx] = 1
+		observedRootsWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
+
+		rootKey := validatorRootKey{observedRoot.ValidatorID, observedRoot.RootHash}
+		if rootContext, ok := el.vote[frame-1][rootKey]; ok {
 			nonDeliveredFramesOffset := (el.frameToDeliver - rootContext.frameToDeliverOffset) * el.validatorCount
 			addInt32Vecs(aggregationMatrix, aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
 		}
 	}
+
 	el.decide(frame, aggregationMatrix, observedRootsWeight)
 
 	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
 	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
-	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(el.validatorIDMap[validatorId])))
-	el.vote[frame][validatorId][rootHash].voteMatrix = aggregationMatrix
+
+	validatorIdx := el.validatorIDMap[validatorId]
+	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(validatorIdx)))
+
+	rootKey := validatorRootKey{validatorId, rootHash}
+	el.vote[frame][rootKey].voteMatrix = aggregationMatrix
 
 	atropoi := el.atroposDeliveryBuffer.getDeliveryReadyAtropoi(el.frameToDeliver)
 	el.frameToDeliver += consensus.Frame(len(atropoi))
@@ -131,24 +146,32 @@ func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []i
 	}
 }
 
-// elect picks the final atropos event once it's frame and validator number have been finalized
+// elect picks the final atropos event once its frame and validator number have been finalized
 // by the "upper frame" root votes'. This is trivial in case of non-forking events as such
 // roots are uniquely identified by (frame, validator).
-// In the case of a fork, a tiebreaker algorithms has to be run.
+// In the case of a fork, a tiebreaker algorithm has to be run.
 func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.ValidatorID) consensus.EventHash {
-	candidateMap := el.vote[frame][validatorCandidate]
-	// get any hash identifed by (frame, validatorCandidate) tuple
-	// for non-forking scenarios, only a single such root is possible
+	// Find all roots for this validator at this frame
+	candidateRoots := make(map[consensus.EventHash]struct{})
+
+	for rootKey := range el.vote[frame] {
+		if rootKey.validatorID == validatorCandidate {
+			candidateRoots[rootKey.rootHash] = struct{}{}
+		}
+	}
+
+	// Get any hash from the candidate roots
 	atroposHash := consensus.EventHash{}
-	for hash := range candidateMap {
+	for hash := range candidateRoots {
 		atroposHash = hash
 	}
+
 	// tiebreaker can simply pick the first encountered root that is forkless caused by any event.
 	// It is easiest to look for any vote (forkless cause) by frame + 1 roots.
-	// Due to forkless cause semantics, only one forking root can exist with specified frame and validator number.
-	if len(candidateMap) > 1 {
+	// Due to forkless cause semantics, only one forkless-caused root can exist with specified frame and validator number.
+	if len(candidateRoots) > 1 {
 		judgeRoots := el.getFrameRoots(frame + 1)
-		for atroposCandidateHash := range candidateMap {
+		for atroposCandidateHash := range candidateRoots {
 			for _, judge := range judgeRoots {
 				if el.forklessCauses(judge.RootHash, atroposCandidateHash) {
 					return atroposCandidateHash
@@ -156,6 +179,7 @@ func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.Va
 			}
 		}
 	}
+
 	return atroposHash
 }
 
@@ -171,13 +195,13 @@ func (el *election) observedRoots(root consensus.EventHash, frame consensus.Fram
 }
 
 func (el *election) prepareNewElectorRoot(frame consensus.Frame, validatorId consensus.ValidatorID, root consensus.EventHash) {
+	rootKey := validatorRootKey{validatorId, root}
+
 	if _, ok := el.vote[frame]; !ok {
-		el.vote[frame] = make(map[consensus.ValidatorID]map[consensus.EventHash]*rootVoteContext)
+		el.vote[frame] = make(map[validatorRootKey]*rootVoteContext)
 	}
-	if _, ok := el.vote[frame][validatorId]; !ok {
-		el.vote[frame][validatorId] = make(map[consensus.EventHash]*rootVoteContext)
-	}
-	el.vote[frame][validatorId][root] = &rootVoteContext{frameToDeliverOffset: el.frameToDeliver}
+
+	el.vote[frame][rootKey] = &rootVoteContext{frameToDeliverOffset: el.frameToDeliver}
 }
 
 func (el *election) cleanupDecidedFrame(frame consensus.Frame) {
