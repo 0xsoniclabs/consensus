@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 	"github.com/0xsoniclabs/consensus/vecflushable"
 
 	"github.com/stretchr/testify/assert"
@@ -51,7 +52,7 @@ func benchForklessCauseMain(b *testing.B, idx *int, inmem bool) {
 func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 	b.Helper()
 	b.StopTimer()
-	nodes := consensus.GenNodes(10)
+	nodes := consensustest.GenNodes(10)
 	validators := consensus.EqualWeightValidators(nodes, 1)
 
 	events := make(map[consensus.EventHash]consensus.Event)
@@ -76,7 +77,7 @@ func benchForklessCauseProcess(b *testing.B, idx *int, inmem bool) {
 	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(db, 10000000), getEvent)
 
-	consensus.ForEachRandEvent(nodes, 10, 2, nil, consensus.ForEachEvent{
+	consensustest.ForEachRandEvent(nodes, 10, 2, nil, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			events[e.ID()] = e
 			err := vi.Add(e)
@@ -156,7 +157,7 @@ func testForklessCaused(t *testing.T, dagAscii string) {
 	t.Helper()
 	assertar := assert.New(t)
 
-	nodes, _, _ := consensus.ASCIIschemeToDAG(dagAscii)
+	nodes, _, _ := consensustest.ASCIIschemeToDAG(dagAscii)
 	validators := consensus.EqualWeightValidators(nodes, 1)
 
 	events := make(map[consensus.EventHash]consensus.Event)
@@ -167,7 +168,7 @@ func testForklessCaused(t *testing.T, dagAscii string) {
 	vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-	_, _, named := consensus.ASCIIschemeForEach(dagAscii, consensus.ForEachEvent{
+	_, _, named := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			events[e.ID()] = e
 			err := vi.Add(e)
@@ -494,7 +495,7 @@ func testForklessCausedRandom(t *testing.T, dbProducer func() kvdb.FlushableKVSt
 	}
 
 	ordered := make(consensus.Events, 0)
-	nodes, _, named := consensus.ASCIIschemeForEach(dagAscii, consensus.ForEachEvent{
+	nodes, _, named := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			ordered = append(ordered, e)
 		},
@@ -571,7 +572,7 @@ func testForksDetected(vi *Engine, head consensus.Event) (cheaters map[consensus
 }
 
 func TestRandomForksSanity(t *testing.T) {
-	nodes := consensus.GenNodes(8)
+	nodes := consensustest.GenNodes(8)
 	cheaters := []consensus.ValidatorID{nodes[0], nodes[1], nodes[2]}
 
 	validatorsBuilder := consensus.NewBuilder()
@@ -593,7 +594,7 @@ func TestRandomForksSanity(t *testing.T) {
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
 	// Many forks from each node in large graph, so probability of not seeing a fork is negligible
-	events := consensus.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, consensus.ForEachEvent{
+	events := consensustest.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			if _, ok := processed[e.ID()]; ok {
 				return
@@ -705,7 +706,7 @@ func TestRandomForks(t *testing.T) {
 		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
 			r := rand.New(rand.NewSource(int64(i))) // nolint:gosec
 
-			nodes := consensus.GenNodes(test.nodesNum)
+			nodes := consensustest.GenNodes(test.nodesNum)
 			cheaters := nodes[:test.cheatersNum]
 
 			validators := consensus.EqualWeightValidators(nodes, 1)
@@ -719,7 +720,7 @@ func TestRandomForks(t *testing.T) {
 			vi := NewIndex(tCrit, LiteConfig(), GetEngineCallbacks)
 			vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-			_ = consensus.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, consensus.ForEachEvent{
+			_ = consensustest.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, consensustest.ForEachEvent{
 				Process: func(e consensus.Event, name string) {
 					if _, ok := processed[e.ID()]; ok {
 						return
@@ -776,7 +777,7 @@ func TestRandomForks(t *testing.T) {
 				for i, j := range r.Perm(len(processedArr)) {
 					unordered[i] = processedArr[j]
 				}
-				processedArr = consensus.ByParents(unordered)
+				processedArr = consensustest.ByParents(unordered)
 
 				for _, a := range processedArr {
 					assertar.NoError(vi.Add(a))

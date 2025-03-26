@@ -20,6 +20,7 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
 const (
@@ -80,10 +81,10 @@ func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutate
 	assertar := assert.New(t)
 
 	const lchCount = 3
-	nodes := consensus.GenNodes(len(weights))
+	nodes := consensustest.GenNodes(len(weights))
 
 	lchs := make([]*CoreLachesis, 0, lchCount)
-	inputs := make([]*EventStore, 0, lchCount)
+	inputs := make([]*consensustest.TestEventSource, 0, lchCount)
 	for i := 0; i < lchCount; i++ {
 		lch, _, input, _ := NewCoreLachesis(nodes, weights)
 		lchs = append(lchs, lch)
@@ -119,7 +120,7 @@ func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutate
 	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
 	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
-		consensus.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensus.ForEachEvent{
+		consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 			Process: func(e consensus.Event, name string) {
 				ordered[epoch] = append(ordered[epoch], e)
 
@@ -178,7 +179,7 @@ func reorder(events consensus.Events) consensus.Events {
 		unordered[j] = events[i]
 	}
 
-	reordered := consensus.ByParents(unordered)
+	reordered := consensustest.ByParents(unordered)
 	return reordered
 }
 

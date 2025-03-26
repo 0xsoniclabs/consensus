@@ -14,10 +14,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"strings"
 
-	"github.com/0xsoniclabs/consensus/utils/byteutils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -246,8 +244,8 @@ func (s *EventHashStack) Pop() *EventHash {
 	return res
 }
 
-// Of returns hash of data
-func Of(data ...[]byte) (hash Hash) {
+// EventHashFromBytes returns hash of data
+func EventHashFromBytes(data ...[]byte) (hash Hash) {
 	d := sha256.New()
 	for _, b := range data {
 		_, err := d.Write(b)
@@ -257,37 +255,4 @@ func Of(data ...[]byte) (hash Hash) {
 	}
 	d.Sum(hash[:0])
 	return hash
-}
-
-/*
- * Utils:
- */
-
-// FakePeer generates random fake peer id for testing purpose.
-func FakePeer() ValidatorID {
-	return BytesToValidatorID(FakeHash().Bytes()[:4])
-}
-
-// FakeEpoch gives fixed value of fake epoch for testing purpose.
-func FakeEpoch() Epoch {
-	return 123456
-}
-
-// FakeEvent generates random fake event hash with the same epoch for testing purpose.
-func FakeEvent() (h EventHash) {
-	_, err := rand.Read(h[:]) // nolint:gosec
-	if err != nil {
-		panic(err)
-	}
-	copy(h[0:4], byteutils.Uint32ToBigEndian(uint32(FakeEpoch())))
-	return
-}
-
-// FakeEvents generates random hashes of fake event with the same epoch for testing purpose.
-func FakeEvents(n int) EventHashes {
-	res := EventHashes{}
-	for i := 0; i < n; i++ {
-		res.Add(FakeEvent())
-	}
-	return res
 }

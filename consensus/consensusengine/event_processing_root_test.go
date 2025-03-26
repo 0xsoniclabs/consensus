@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
 func TestLachesisClassicRoots(t *testing.T) {
@@ -274,12 +275,12 @@ func testSpecialNamedRoots(t *testing.T, scheme string) {
 	}
 
 	// get nodes only
-	nodes, _, _ := consensus.ASCIIschemeToDAG(scheme)
+	nodes, _, _ := consensustest.ASCIIschemeToDAG(scheme)
 	// init abft
 	lch, _, input, _ := NewCoreLachesis(nodes, nil)
 
 	// process events
-	_, _, names := consensus.ASCIIschemeForEach(scheme, consensus.ForEachEvent{
+	_, _, names := consensustest.ASCIIschemeForEach(scheme, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			input.SetEvent(e)
 			assertar.NoError(

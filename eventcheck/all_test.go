@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 	"github.com/0xsoniclabs/consensus/eventcheck/basiccheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/epochcheck"
 	"github.com/0xsoniclabs/consensus/eventcheck/parentscheck"
@@ -36,7 +37,7 @@ func TestBasicEventValidation(t *testing.T) {
 		wantErr error
 	}{
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(1)
 			e.SetEpoch(1)
@@ -44,7 +45,7 @@ func TestBasicEventValidation(t *testing.T) {
 			return e
 		}(), nil},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(0)
 			e.SetLamport(1)
 			e.SetEpoch(1)
@@ -52,7 +53,7 @@ func TestBasicEventValidation(t *testing.T) {
 			return e
 		}(), basiccheck.ErrNotInited},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(1)
 			e.SetEpoch(1)
@@ -60,7 +61,7 @@ func TestBasicEventValidation(t *testing.T) {
 			return e
 		}(), basiccheck.ErrNoParents},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(math.MaxInt32 - 1)
 			e.SetLamport(1)
 			e.SetEpoch(1)
@@ -81,19 +82,19 @@ func TestEpochEventValidation(t *testing.T) {
 		wantErr error
 	}{
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetEpoch(1)
 			e.SetCreator(1)
 			return e
 		}(), nil},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetEpoch(2)
 			e.SetCreator(1)
 			return e
 		}(), epochcheck.ErrNotRelevant},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetEpoch(1)
 			e.SetCreator(2)
 			return e
@@ -115,18 +116,18 @@ func TestParentsEventValidation(t *testing.T) {
 		wantPanic bool
 	}{
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
 			e.SetCreator(1)
-			selfParent := &consensus.TestEvent{}
+			selfParent := &consensustest.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{1})
 			e.SetParents(consensus.EventHashes{selfParent.ID()})
 			return e
 		}(),
 			func() consensus.Events {
-				e := &consensus.TestEvent{}
+				e := &consensustest.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				e.SetCreator(1)
@@ -135,18 +136,18 @@ func TestParentsEventValidation(t *testing.T) {
 			}(),
 			nil, false},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
 			e.SetCreator(1)
-			selfParent := &consensus.TestEvent{}
+			selfParent := &consensustest.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{2})
 			e.SetParents(consensus.EventHashes{selfParent.ID()})
 			return e
 		}(),
 			func() consensus.Events {
-				e := &consensus.TestEvent{}
+				e := &consensustest.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				e.SetCreator(1)
@@ -155,45 +156,45 @@ func TestParentsEventValidation(t *testing.T) {
 			}(),
 			parentscheck.ErrWrongSelfParent, false},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(1)
 			e.SetParents(consensus.EventHashes{e.ID()})
 			return e
 		}(),
 			func() consensus.Events {
-				e := &consensus.TestEvent{}
+				e := &consensustest.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				return consensus.Events{e}
 			}(),
 			parentscheck.ErrWrongLamport, false},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(2)
 			e.SetParents(consensus.EventHashes{e.ID()})
 			return e
 		}(),
 			func() consensus.Events {
-				e := &consensus.TestEvent{}
+				e := &consensustest.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				return consensus.Events{e}
 			}(),
 			parentscheck.ErrWrongSelfParent, false},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
-			selfParent := &consensus.TestEvent{}
+			selfParent := &consensustest.TestEvent{}
 			selfParent.SetLamport(1)
 			selfParent.SetID([24]byte{1})
 			e.SetParents(consensus.EventHashes{selfParent.ID()})
 			return e
 		}(),
 			func() consensus.Events {
-				e := &consensus.TestEvent{}
+				e := &consensustest.TestEvent{}
 				e.SetSeq(2)
 				e.SetLamport(1)
 				e.SetID([24]byte{1})
@@ -201,7 +202,7 @@ func TestParentsEventValidation(t *testing.T) {
 			}(),
 			parentscheck.ErrWrongSeq, false},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(1)
 			return e
@@ -209,7 +210,7 @@ func TestParentsEventValidation(t *testing.T) {
 			nil,
 			parentscheck.ErrWrongSeq, false},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(1)
 			e.SetParents(consensus.EventHashes{e.ID()})
@@ -241,7 +242,7 @@ func TestAllEventValidation(t *testing.T) {
 		wantErr error
 	}{
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
 			e.SetParents(consensus.EventHashes{e.ID()})
@@ -250,7 +251,7 @@ func TestAllEventValidation(t *testing.T) {
 			nil,
 			basiccheck.ErrNotInited},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(1)
 			e.SetEpoch(1)
@@ -260,7 +261,7 @@ func TestAllEventValidation(t *testing.T) {
 			nil,
 			epochcheck.ErrAuth},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(2)
 			e.SetLamport(2)
 			e.SetCreator(1)
@@ -270,14 +271,14 @@ func TestAllEventValidation(t *testing.T) {
 			return e
 		}(),
 			func() consensus.Events {
-				e := &consensus.TestEvent{}
+				e := &consensustest.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				return consensus.Events{e}
 			}(),
 			parentscheck.ErrWrongSelfParent},
 		{func() consensus.Event {
-			e := &consensus.TestEvent{}
+			e := &consensustest.TestEvent{}
 			e.SetSeq(1)
 			e.SetLamport(2)
 			e.SetCreator(1)
@@ -287,7 +288,7 @@ func TestAllEventValidation(t *testing.T) {
 			return e
 		}(),
 			func() consensus.Events {
-				e := &consensus.TestEvent{}
+				e := &consensustest.TestEvent{}
 				e.SetSeq(1)
 				e.SetLamport(1)
 				return consensus.Events{e}

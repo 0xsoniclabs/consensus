@@ -8,26 +8,22 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package consensus
+package consensustest
 
 import (
+	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type TestEventMarshaling struct {
-	Epoch Epoch
-	Seq   Seq
-
-	Frame Frame
-
-	Creator ValidatorID
-
-	Parents EventHashes
-
-	Lamport Lamport
-
-	ID   EventHash
-	Name string
+	Epoch   consensus.Epoch
+	Seq     consensus.Seq
+	Frame   consensus.Frame
+	Creator consensus.ValidatorID
+	Parents consensus.EventHashes
+	Lamport consensus.Lamport
+	ID      consensus.EventHash
+	Name    string
 }
 
 // EventToBytes serializes events

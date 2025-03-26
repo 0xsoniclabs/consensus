@@ -11,29 +11,16 @@
 package consensusengine
 
 import (
-	"fmt"
 	"math/rand"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 	"github.com/0xsoniclabs/consensus/vecengine"
 
 	"github.com/0xsoniclabs/consensus/utils/adapters"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
-
-type dbEvent struct {
-	hash        consensus.EventHash
-	validatorId consensus.ValidatorID
-	seq         consensus.Seq
-	frame       consensus.Frame
-	lamportTs   consensus.Lamport
-	parents     []consensus.EventHash
-}
-
-func (e *dbEvent) String() string {
-	return fmt.Sprintf("{Epoch:%d Validator:%d Frame:%d Seq:%d Lamport:%d}", e.hash.Epoch(), e.validatorId, e.frame, e.seq, e.lamportTs)
-}
 
 type applyBlockFn func(block *consensus.Block) *consensus.Validators
 
@@ -59,7 +46,7 @@ type CoreLachesis struct {
 }
 
 // NewCoreLachesis creates empty abft consensus with mem store and optional node weights w.o. some callbacks usually instantiated by Client
-func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *consensusstore.Store, *EventStore, *adapters.VectorToDagIndexer) {
+func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *consensusstore.Store, *consensustest.TestEventSource, *adapters.VectorToDagIndexer) {
 	validators := make(consensus.ValidatorsBuilder, len(nodes))
 	for i, v := range nodes {
 		if weights == nil {
@@ -78,7 +65,7 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 		panic(err)
 	}
 
-	input := NewEventStore()
+	input := consensustest.NewTestEventSource()
 
 	config := LiteConfig()
 	crit := func(err error) {
@@ -136,38 +123,4 @@ func mutateValidators(validators *consensus.Validators) *consensus.Validators {
 		builder.Set(vid, consensus.Weight(stake))
 	}
 	return builder.Build()
-}
-
-// EventStore is a abft event storage for test purpose.
-// It implements EventSource interface.
-type EventStore struct {
-	db map[consensus.EventHash]consensus.Event
-}
-
-// NewEventStore creates store over memory map.
-func NewEventStore() *EventStore {
-	return &EventStore{
-		db: map[consensus.EventHash]consensus.Event{},
-	}
-}
-
-// Close leaves underlying database.
-func (s *EventStore) Close() {
-	s.db = nil
-}
-
-// SetEvent stores event.
-func (s *EventStore) SetEvent(e consensus.Event) {
-	s.db[e.ID()] = e
-}
-
-// GetEvent returns stored event.
-func (s *EventStore) GetEvent(h consensus.EventHash) consensus.Event {
-	return s.db[h]
-}
-
-// HasEvent returns true if event exists.
-func (s *EventStore) HasEvent(h consensus.EventHash) bool {
-	_, ok := s.db[h]
-	return ok
 }

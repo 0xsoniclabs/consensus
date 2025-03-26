@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
 func TestStore_StatePersisting(t *testing.T) {
@@ -57,13 +58,13 @@ func TestStore_Close(t *testing.T) {
 	}
 }
 
-func populateWithRoots(store *Store) [][]*consensus.TestEvent {
+func populateWithRoots(store *Store) [][]*consensustest.TestEvent {
 	store.OpenEpochDB(1)
-	roots := make([][]*consensus.TestEvent, 100)
+	roots := make([][]*consensustest.TestEvent, 100)
 	for frame := range consensus.Frame(100) {
-		roots[frame] = make([]*consensus.TestEvent, 100)
+		roots[frame] = make([]*consensustest.TestEvent, 100)
 		for validatorID := range consensus.ValidatorID(100) {
-			root := &consensus.TestEvent{}
+			root := &consensustest.TestEvent{}
 			root.SetID([24]byte{byte(frame), byte(validatorID)})
 			store.addRoot(root, frame)
 			roots[frame][validatorID] = root

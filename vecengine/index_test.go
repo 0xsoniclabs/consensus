@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 	"github.com/0xsoniclabs/consensus/vecflushable"
 
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -58,9 +59,9 @@ func BenchmarkIndex_Add_vecflushable_Backup(b *testing.B) {
 func benchmark_Index_Add(b *testing.B, dbProducer func() kvdb.FlushableKVStore) {
 	b.StopTimer()
 
-	nodes := consensus.GenNodes(70)
+	nodes := consensustest.GenNodes(70)
 	ordered := make(consensus.Events, 0)
-	consensus.ForEachRandEvent(nodes, 10, 10, nil, consensus.ForEachEvent{
+	consensustest.ForEachRandEvent(nodes, 10, 10, nil, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			ordered = append(ordered, e)
 		},

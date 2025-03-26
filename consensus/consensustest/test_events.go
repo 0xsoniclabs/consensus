@@ -8,10 +8,12 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package consensus
+package consensustest
 
 import (
 	"strings"
+
+	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 // TestEvents is a ordered slice of events.
@@ -28,14 +30,14 @@ func (ee TestEvents) String() string {
 
 // ByParents returns events topologically ordered by parent dependency.
 // Used only for tests.
-func ByParents(ee Events) (res Events) {
-	unsorted := make(Events, len(ee))
-	exists := EventHashSet{}
+func ByParents(ee consensus.Events) (res consensus.Events) {
+	unsorted := make(consensus.Events, len(ee))
+	exists := consensus.EventHashSet{}
 	for i, e := range ee {
 		unsorted[i] = e
 		exists.Add(e.ID())
 	}
-	ready := EventHashSet{}
+	ready := consensus.EventHashSet{}
 	for len(unsorted) > 0 {
 	EVENTS:
 		for i, e := range unsorted {
@@ -59,7 +61,7 @@ func ByParents(ee Events) (res Events) {
 // ByParents returns events topologically ordered by parent dependency.
 // Used only for tests.
 func (ee TestEvents) ByParents() (res TestEvents) {
-	unsorted := make(Events, len(ee))
+	unsorted := make(consensus.Events, len(ee))
 	for i, e := range ee {
 		unsorted[i] = e
 	}

@@ -13,11 +13,9 @@ package consensus
 import (
 	"fmt"
 	"math/big"
-	"math/rand"
 	"reflect"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -105,23 +103,6 @@ func (h *Hash) SetBytes(b []byte) {
 	}
 
 	copy(h[HashLength-len(b):], b)
-}
-
-// FakeHash generates random fake hash for testing purpose.
-func FakeHash(seed ...int64) (h common.Hash) {
-	randRead := rand.Read
-
-	if len(seed) > 0 {
-		src := rand.NewSource(seed[0])
-		rnd := rand.New(src) // nolint:gosec
-		randRead = rnd.Read
-	}
-
-	_, err := randRead(h[:])
-	if err != nil {
-		panic(err)
-	}
-	return
 }
 
 /*
