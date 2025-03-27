@@ -24,7 +24,3 @@ func (e *TestEvent) AddParent(id consensus.EventHash) {
 	parents.Add(id)
 	e.SetParents(parents)
 }
-
-/*
- * Utils:
- */
