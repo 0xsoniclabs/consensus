@@ -24,31 +24,35 @@ func (vi *Index) setBytes(table kvdb.Store, id hash.Event, b []byte) {
 
 // GetHighestBefore reads the vector from DB
 func (vi *Index) GetHighestBefore(id hash.Event) *HighestBefore {
-	var vSeq *HighestBeforeSeq
+	var vSeq *HighestBeforeSeq = nil
 	if vSeqVal, ok := vi.cache.HighestBeforeSeq.Get(id); ok {
 		vSeq = vSeqVal.(*HighestBeforeSeq) // Assertion needed because of raw bytes.
 	} else {
-		temp := HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
-		vSeq = &temp
-		if vSeq != nil {
+		vSeqVal := HighestBeforeSeq(vi.getBytes(vi.table.HighestBeforeSeq, id))
+		if vSeqVal != nil {
+			vSeq = &vSeqVal
 			vi.cache.HighestBeforeSeq.Add(id, vSeq, uint(len(*vSeq)))
 		}
 	}
 
-	var vTime *HighestBeforeTime
+	var vTime *HighestBeforeTime = nil
 	if vTimeVal, ok := vi.cache.HighestBeforeTime.Get(id); ok {
 		vTime = vTimeVal.(*HighestBeforeTime) // Assertion needed because of raw bytes.
 	} else {
-		temp := HighestBeforeTime(vi.getBytes(vi.table.HighestBeforeTime, id))
-		vTime = &temp
-		if vTime != nil {
+		vTimeVal := HighestBeforeTime(vi.getBytes(vi.table.HighestBeforeTime, id))
+		if vTimeVal != nil {
+			vTime = &vTimeVal
 			vi.cache.HighestBeforeTime.Add(id, vTime, uint(len(*vTime)))
 		}
 	}
 
-	return &HighestBefore{
-		VSeq:  vSeq,
-		VTime: vTime,
+	if vSeq != nil && vTime != nil {
+		return &HighestBefore{
+			VSeq:  vSeq,
+			VTime: vTime,
+		}
+	} else {
+		return nil
 	}
 }
 
