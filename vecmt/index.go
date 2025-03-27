@@ -10,6 +10,7 @@ import (
 	"github.com/0xsoniclabs/consensus/utils/cachescale"
 	"github.com/0xsoniclabs/consensus/utils/simplewlru"
 	"github.com/0xsoniclabs/consensus/utils/wlru"
+	"github.com/0xsoniclabs/consensus/vecflushable"
 	"github.com/0xsoniclabs/kvdb"
 	"github.com/0xsoniclabs/kvdb/table"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -42,7 +43,7 @@ type Index struct {
 
 	getEvent func(hash.Event) dag.Event
 
-	vecDb *VecFlushable
+	vecDb *vecflushable.VecFlushable
 	table struct {
 		HighestBeforeTime kvdb.Store `table:"T"`
 		EventBranch       kvdb.Store `table:"b"`
@@ -134,7 +135,7 @@ func (vi *Index) DropNotFlushed() {
 
 // Reset resets buffers.
 func (vi *Index) Reset(validators *pos.Validators, db kvdb.Store, getEvent func(hash.Event) dag.Event) {
-	fdb := WrapByVecFlushable(db, vi.cfg.Caches.DBCache)
+	fdb := vecflushable.Wrap(db, vi.cfg.Caches.DBCache)
 	vi.vecDb = fdb
 	vi.getEvent = getEvent
 	vi.validators = validators
