@@ -11,7 +11,7 @@ type CreationTimer interface {
 
 func (b *HighestBefore) InitWithEvent(i idx.Validator, e dag.Event) {
 	b.VSeq.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq()})
-	if eCreationTimer, ok := e.(CreationTimer); ok { // Workaround for type-unsafe practices.
+	if eCreationTimer, ok := e.(CreationTimer); ok { // Workaround for existing type-unsafe practices.
 		b.VTime.Set(i, eCreationTimer.CreationTime())
 	}
 }
