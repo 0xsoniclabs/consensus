@@ -135,8 +135,17 @@ func (vi *Index) DropNotFlushed() {
 
 // Reset resets buffers.
 func (vi *Index) Reset(validators *pos.Validators, db kvdb.Store, getEvent func(hash.Event) dag.Event) {
-	fdb := vecflushable.Wrap(db, vi.cfg.Caches.DBCache)
-	vi.vecDb = fdb
+	// This check serves to alleviate the current imperfection of the system:
+	// On one hand, it is sometimes required that a non-flushable kvdb.Store is
+	// passed so that Index can wrap it using its own config for parameters.
+	// On the other hand, for the purposes of testing, we may want to override
+	// the sizeLimit parameter, and we pass a flushable. We want to avoid double
+	// wrapping as it shadows said parameter, and is unintuitive.
+	if fdb, ok := db.(*vecflushable.VecFlushable); ok {
+		vi.vecDb = fdb
+	} else {
+		vi.vecDb = vecflushable.Wrap(db, vi.cfg.Caches.DBCache)
+	}
 	vi.getEvent = getEvent
 	vi.validators = validators
 	vi.validatorIdxs = validators.Idxs()
