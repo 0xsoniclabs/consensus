@@ -1,4 +1,4 @@
-package vecmt
+package dagindexer
 
 import (
 	"errors"

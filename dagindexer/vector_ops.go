@@ -1,4 +1,4 @@
-package vecmt
+package dagindexer
 
 import (
 	"github.com/0xsoniclabs/consensus/inter/dag"

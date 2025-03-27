@@ -12,17 +12,17 @@ package adapters
 
 import (
 	"github.com/0xsoniclabs/consensus/abft/dagidx"
+	"github.com/0xsoniclabs/consensus/dagindexer"
 	"github.com/0xsoniclabs/consensus/hash"
 	"github.com/0xsoniclabs/consensus/inter/idx"
-	"github.com/0xsoniclabs/consensus/vecmt"
 )
 
 type VectorSeqToDagIndexSeq struct {
-	*vecmt.HighestBeforeSeq
+	*dagindexer.HighestBeforeSeq
 }
 
 type BranchSeq struct {
-	vecmt.BranchSeq
+	dagindexer.BranchSeq
 }
 
 // Seq is a maximum observed e.Seq in the branch
@@ -42,7 +42,7 @@ func (b VectorSeqToDagIndexSeq) Get(i idx.Validator) dagidx.Seq {
 }
 
 type VectorToDagIndexer struct {
-	*vecmt.Index
+	*dagindexer.Index
 }
 
 func (v *VectorToDagIndexer) GetMergedHighestBefore(id hash.Event) dagidx.HighestBeforeSeq {
