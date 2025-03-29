@@ -90,6 +90,41 @@ func (vi *Engine) forklessCause(aID, bID consensus.EventHash) bool {
 	return yes.HasQuorum()
 }
 
+func (vi *Engine) See(aID, bID consensus.EventHash) bool {
+	// Get events by hash
+	a := vi.GetHighestBefore(aID)
+	if a == nil {
+		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
+		return false
+	}
+
+	// check A observes that {QUORUM} non-cheater-validators observe B
+	b := vi.GetLowestAfter(bID)
+	if b == nil {
+		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
+		return false
+	}
+
+	// calculate forkless causing using the indexes
+	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
+	for branchIDint := range branchIDs {
+		branchID := consensus.ValidatorIndex(branchIDint)
+
+		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
+		bLowestAfter := b.Get(branchID)   // lowest event from creator on branchID, which observes B
+		aHighestBefore := a.Get(branchID) // highest event from creator, observed by A
+
+		// if lowest event from branchID which observes B <= highest from branchID observed by A
+		// then {highest from branchID observed by A} observes B
+		if bLowestAfter <= aHighestBefore.Seq && bLowestAfter != 0 && !aHighestBefore.IsForkDetected() {
+			// we may count the same creator multiple times (on different branches)!
+			// so not every call increases the counter
+			return true
+		}
+	}
+	return false
+}
+
 func (vi *Engine) ForklessCauseProgress(aID, bID consensus.EventHash, candidateParents, chosenParents consensus.EventHashes) (*consensus.WeightCounter, []*consensus.WeightCounter) {
 	// This function is used to determine progress of event bID in forkless causing aID.
 	// It may be used to determine progress toward the forkless cause condition for an event not in vi, but whose parents are in vi.

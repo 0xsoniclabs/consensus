@@ -12,7 +12,6 @@ package consensusengine
 
 import (
 	"container/heap"
-	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
@@ -75,11 +74,16 @@ func (el *electionB) RegisterRoot(frame consensus.Frame, validatorID consensus.V
 
 	//------------------------------------------------
 	if _, ok := el.voteB[frame]; !ok {
-		if frame == 1 {
-			fmt.Println()
-		}
 		el.voteB[frame] = make([]map[consensus.EventHash][]int32, 0)
 	}
+}
+
+func (el *electionB) GetBunch(frame consensus.Frame, layer consensus.Layer) []consensus.EventHash {
+	bunch := make([]consensus.EventHash, 0)
+	for eventHash := range el.voteB[frame][layer] {
+		bunch = append(bunch, eventHash)
+	}
+	return bunch
 }
 
 func (el *electionB) Vote(
@@ -87,6 +91,7 @@ func (el *electionB) Vote(
 	layer consensus.Layer,
 	validatorID consensus.ValidatorID,
 	voterHash consensus.EventHash,
+	bunch []consensusstore.RootDescriptor,
 ) ([]*atroposDecision, error) {
 	if el.frameToDeliver > frame {
 		return []*atroposDecision{}, nil
@@ -112,10 +117,11 @@ func (el *electionB) Vote(
 	//------------------------------------------------/
 	// layer is not 0
 	// get these from layer-1
-	var observedVoters []consensusstore.RootDescriptor
-	observedVoters = el.observedRoots(voterHash, frame+consensus.Frame(layer))
 	observedVotersWeight := int32(0)
-	for _, observedVoter := range observedVoters {
+	for _, observedVoter := range bunch {
+		if !el.forklessCauses(voterHash, observedVoter.RootHash) {
+			continue
+		}
 		observedVoterValidatorIdx := el.validatorIDMap[observedVoter.ValidatorID]
 		observedVotersWeight += int32(el.validators.GetWeightByIdx(observedVoterValidatorIdx))
 		addInt32Vecs(voteVec, voteVec, el.voteB[frame][layer-1][observedVoter.RootHash])
