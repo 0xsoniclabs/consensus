@@ -90,11 +90,19 @@ func (p *Orderer) checkAndSaveEvent(e consensus.Event) (error, consensus.Frame) 
 
 // calculates Atropos election for the root, calls p.onFrameDecided if election was decided
 func (p *Orderer) handleElection(root consensus.Event) error {
-	decisions, err := p.election.VoteAndAggregate(root.Frame(), root.Creator(), root.ID())
-	if err != nil {
-		return err
+	p.election.RegisterRoot(root.Frame(), root.Creator(), root.ID())
+	atroposDecisions := make([]*atroposDecision, 0)
+	for frame := range p.election.voteB {
+		layer := consensus.Layer(len(p.election.voteB[frame]) - 1)
+		for ; layer >= -1; layer-- {
+			if p.forklessCausedByQuorumOn(root, frame+consensus.Frame(layer+1)) {
+				newDecisions, _ := p.election.Vote(frame, layer+1, root.Creator(), root.ID())
+				atroposDecisions = append(atroposDecisions, newDecisions...)
+				break
+			}
+		}
 	}
-	for _, atroposDecision := range decisions {
+	for _, atroposDecision := range atroposDecisions {
 		p.callback.RegisterElectingEvent(root.ID())
 		sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
 		if err != nil {

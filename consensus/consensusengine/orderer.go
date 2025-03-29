@@ -36,7 +36,7 @@ type Orderer struct {
 	store  *consensusstore.Store
 	Input  EventSource
 
-	election *election
+	election *electionB
 	dagIndex OrdererDagIndex
 
 	callback OrdererCallbacks

@@ -28,6 +28,8 @@ type (
 	// Frame numeration.
 	Frame uint32
 
+	Layer int32
+
 	// Pack numeration.
 	Pack uint32
 
