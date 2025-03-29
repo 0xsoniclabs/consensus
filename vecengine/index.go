@@ -328,7 +328,7 @@ func DefaultConfig(scale cachescale.Func) IndexConfig {
 
 // LiteConfig returns default index config for tests
 func LiteConfig() IndexConfig {
-	return DefaultConfig(cachescale.Ratio{Base: 100, Target: 1})
+	return DefaultConfig(cachescale.Ratio{Base: 8 * 1024, Target: 16 * 1024})
 }
 
 func (vi *Engine) onDropNotFlushed() {

@@ -17,9 +17,11 @@ import (
 )
 
 type OrdererCallbacks struct {
-	ApplyAtropos func(decidedFrame consensus.Frame, atropos consensus.EventHash) (sealEpoch *consensus.Validators)
-
-	EpochDBLoaded func(consensus.Epoch)
+	ApplyAtropos          func(decidedFrame consensus.Frame, atropos consensus.EventHash) (sealEpoch *consensus.Validators)
+	RegisterElectingEvent func(electingHash consensus.EventHash)
+	RegisterElectedEvent  func(electingHash consensus.EventHash, electedHash consensus.EventHash)
+	EpochDBLoaded         func(consensus.Epoch)
+	LatestElectingHash    consensus.EventHash
 }
 
 type OrdererDagIndex interface {

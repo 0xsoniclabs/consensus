@@ -54,6 +54,7 @@ func (p *Lachesis) confirmEvents(frame consensus.Frame, atropos consensus.EventH
 		if onEventConfirmed != nil {
 			onEventConfirmed(e)
 		}
+		p.Orderer.callback.RegisterElectedEvent(p.Orderer.callback.LatestElectingHash, e.ID())
 		return true
 	})
 	return err

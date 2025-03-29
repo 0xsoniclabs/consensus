@@ -95,6 +95,7 @@ func (p *Orderer) handleElection(root consensus.Event) error {
 		return err
 	}
 	for _, atroposDecision := range decisions {
+		p.callback.RegisterElectingEvent(root.ID())
 		sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
 		if err != nil {
 			return err
