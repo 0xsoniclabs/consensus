@@ -94,7 +94,7 @@ func (el *electionB) Vote(
 	if len(el.voteB[frame]) <= int(layer) {
 		el.voteB[frame] = append(el.voteB[frame], make(map[consensus.EventHash][]int32))
 	}
-	el.voteB[frame][layer][voterHash] = make([]int32, el.validatorCount)
+	el.voteB[frame][layer][voterHash] = initInt32WithConst(-1, int(el.validatorCount))
 	voteVec := el.voteB[frame][layer][voterHash]
 	validatorIdx := el.validatorIDMap[validatorID]
 	//------------------------------------------------
@@ -118,12 +118,6 @@ func (el *electionB) Vote(
 	for _, observedVoter := range observedVoters {
 		observedVoterValidatorIdx := el.validatorIDMap[observedVoter.ValidatorID]
 		observedVotersWeight += int32(el.validators.GetWeightByIdx(observedVoterValidatorIdx))
-		if el.voteB[frame][layer-1][observedVoter.RootHash] == nil {
-			fmt.Println("AAA")
-		}
-		if len(el.voteB[frame][layer-1][observedVoter.RootHash]) == 0 {
-			continue
-		}
 		addInt32Vecs(voteVec, voteVec, el.voteB[frame][layer-1][observedVoter.RootHash])
 	}
 	if el.decideB(frame, voteVec, observedVotersWeight) {
@@ -190,9 +184,7 @@ func (el *electionB) decideB(frame consensus.Frame, aggregationMatr []int32, obs
 	for _, candidateValidator := range el.validators.SortedIDs() {
 		validatorIdx := el.validatorIDMap[candidateValidator]
 		if yesDecisions[validatorIdx] {
-			if frame == 259 {
-				fmt.Println()
-			}
+
 			heap.Push(el.atroposDeliveryBuffer, &atroposDecision{frame, el.evidence[frame][validatorIdx]})
 			el.cleanupDecidedFrame(frame)
 			return true
