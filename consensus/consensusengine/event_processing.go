@@ -79,6 +79,7 @@ func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus
 		return false, err
 	}
 	for _, leaderCertification := range certifications {
+		p.callback.RegisterElectingEvent(baseHash)
 		sealed, err := p.onFrameCertified(leaderCertification.Frame, leaderCertification.LeaderHash)
 		if err != nil {
 			return false, err

@@ -17,9 +17,11 @@ import (
 )
 
 type OrdererCallbacks struct {
-	ApplyLeader func(certifiedFrame consensus.Frame, leader consensus.EventHash) (sealEpoch *consensus.Validators)
-
-	EpochDBLoaded func(consensus.Epoch)
+	ApplyLeader           func(certifiedFrame consensus.Frame, leader consensus.EventHash) (sealEpoch *consensus.Validators)
+	RegisterElectingEvent func(electingHash consensus.EventHash)
+	RegisterElectedEvent  func(electingHash consensus.EventHash, electedHash consensus.EventHash)
+	EpochDBLoaded         func(consensus.Epoch)
+	LatestElectingHash    consensus.EventHash
 }
 
 // Orderer processes events to reach finality on their order.

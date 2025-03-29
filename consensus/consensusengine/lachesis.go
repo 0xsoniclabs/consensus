@@ -49,6 +49,7 @@ func (p *Lachesis) confirmEvents(frame consensus.Frame, leader consensus.EventHa
 		if onEventConfirmed != nil {
 			onEventConfirmed(e)
 		}
+		p.Orderer.callback.RegisterElectedEvent(p.Orderer.callback.LatestElectingHash, e.ID())
 		return true
 	})
 	return err

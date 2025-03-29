@@ -16,11 +16,28 @@ import (
 
 type TestEvent struct {
 	consensus.MutableBaseEvent
-	Name string
+	Name         string
+	CreationTime int
 }
 
 func (e *TestEvent) AddParent(id consensus.EventHash) {
 	parents := e.Parents()
 	parents.Add(id)
 	e.SetParents(parents)
+}
+
+func (t *TestEvent) CalcCreationTime(eventStore *TestEventSource) {
+	t.CreationTime = 0
+	selfParentHashPtr := t.SelfParent()
+	if selfParentHashPtr == nil {
+		return
+	}
+	for _, parentHash := range t.Parents() {
+		parentEvent := eventStore.GetEvent(parentHash).(*TestEvent)
+		candidateCreationTime := parentEvent.CreationTime
+		if parentHash != *selfParentHashPtr {
+			candidateCreationTime += 1
+		}
+		t.CreationTime = max(t.CreationTime, candidateCreationTime)
+	}
 }
