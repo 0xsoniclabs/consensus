@@ -11,14 +11,20 @@
 
 CXX = g++
 FLAGS = -Wall -O3 --std=c++17
-SRC = ./cmd/conf_tester/gen_eventdb.cpp ./cmd/conf_tester/lachesis.cpp ./cmd/conf_tester/gen_input.cpp ./cmd/conf_tester/driver.cpp
-HPP =./cmd/conf_tester/generator.h ./cmd/conf_tester/lachesis.h 
-TARGET = ./cmd/conf_tester/conf_tester
+CORE_SRC = ./cmd/conf_tester/gen_eventdb.cpp ./cmd/conf_tester/lachesis.cpp ./cmd/conf_tester/gen_input.cpp ./cmd/conf_tester/driver.cpp
+TEST_SRC = ./cmd/conf_tester/test/test.cpp ./cmd/conf_tester/gen_eventdb.cpp ./cmd/conf_tester/lachesis.cpp ./cmd/conf_tester/gen_input.cpp
+CORE_HPP =./cmd/conf_tester/generator.h ./cmd/conf_tester/lachesis.h 
+TEST_HPP = ./cmd/conf_tester/test/catch.hpp ./cmd/conf_tester/generator.h ./cmd/conf_tester/lachesis.h 
+CORE_TARGET = ./cmd/conf_tester/conf_tester
+TEST_TARGET = ./cmd/conf_tester/test/test
 
-all: conf_tester dbchecker
+all: conf_tester dbchecker conf_tester_tests
 
-conf_tester: $(SRC) $(HPP)
-	$(CXX) $(FLAGS) -o $(TARGET) $(SRC) -lsqlite3
+conf_tester: $(CORE_SRC) $(CORE_HPP)
+	$(CXX) $(FLAGS) -o $(CORE_TARGET) $(CORE_SRC) -lsqlite3
+
+conf_tester_tests: $(TEST_SRC) $(TEST_HPP)
+	$(CXX) $(FLAGS) -o $(TEST_TARGET) $(TEST_SRC) -lsqlite3
 
 dbchecker:
 	go build -ldflags="-s -w" -o build/dbchecker ./cmd/dbchecker
@@ -26,6 +32,7 @@ dbchecker:
 .PHONY : test
 test :
 	go test -shuffle=on ./...
+	$(TEST_TARGET)
 
 .PHONY : test-race
 test-race :
@@ -39,10 +46,11 @@ coverage:
 .PHONY : clean
 clean :
 	rm -fr ./build/*
-	rm -f $(TARGET) 
+	rm -f $(CORE_TARGET) 
 	rm -f ./cmd/conf_tester/*.o
+	rm  -f $(TEST_TARGET)
+	rm -f ./cmd/conf_tester/test/*.g
 	
-
 .PHONY : lint
 lint:
 	@./build/bin/golangci-lint run --config ./.golangci.yml
