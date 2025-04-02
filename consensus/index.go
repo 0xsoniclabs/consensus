@@ -33,6 +33,9 @@ type (
 
 	// ValidatorID numeration.
 	ValidatorID uint32
+
+	// ValidatorIndex represents a normalized value of ValidatorID for slice/array packing purposes
+	ValidatorIndex uint32
 )
 
 const (
@@ -116,4 +119,14 @@ func MaxLamport(x, y Lamport) Lamport {
 		return x
 	}
 	return y
+}
+
+// Bytes gets the byte representation of the index.
+func (v ValidatorIndex) Bytes() []byte {
+	return byteutils.Uint32ToBigEndian(uint32(v))
+}
+
+// BytesToValidator converts bytes to validator index.
+func BytesToValidator(b []byte) ValidatorIndex {
+	return ValidatorIndex(byteutils.BigEndianToUint32(b))
 }

@@ -36,6 +36,13 @@ type (
 
 	// ValidatorsBuilder is a helper to create Validators object
 	ValidatorsBuilder map[ValidatorID]Weight
+
+	// internal helper types
+	validatorEntry struct {
+		ID     ValidatorID
+		Weight Weight
+	}
+	validatorList []validatorEntry
 )
 
 // NewBuilder creates new mutable ValidatorsBuilder
@@ -169,10 +176,10 @@ func (vv *Validators) Idxs() map[ValidatorID]ValidatorIndex {
 }
 
 // sortedArray is sorted by weight and ID
-func (vv *Validators) sortedArray() validators {
-	array := make(validators, 0, len(vv.values))
+func (vv *Validators) sortedArray() validatorList {
+	array := make(validatorList, 0, len(vv.values))
 	for id, s := range vv.values {
-		array = append(array, validator{
+		array = append(array, validatorEntry{
 			ID:     id,
 			Weight: s,
 		})
@@ -208,7 +215,7 @@ func (vv *Validators) EncodeRLP(w io.Writer) error {
 
 // DecodeRLP is for RLP deserialization.
 func (vv *Validators) DecodeRLP(s *rlp.Stream) error {
-	var arr []validator
+	var arr []validatorEntry
 	if err := s.Decode(&arr); err != nil {
 		return err
 	}
@@ -231,4 +238,21 @@ func (vv *Validators) String() string {
 		str += fmt.Sprintf("[%d:%d]", vid, vv.GetWeightByIdx(ValidatorIndex(i)))
 	}
 	return str
+}
+
+// helper functions for internal types
+func (vv validatorList) Less(i, j int) bool {
+	if vv[i].Weight != vv[j].Weight {
+		return vv[i].Weight > vv[j].Weight
+	}
+
+	return vv[i].ID < vv[j].ID
+}
+
+func (vv validatorList) Len() int {
+	return len(vv)
+}
+
+func (vv validatorList) Swap(i, j int) {
+	vv[i], vv[j] = vv[j], vv[i]
 }
