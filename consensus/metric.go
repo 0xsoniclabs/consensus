@@ -15,7 +15,7 @@ import (
 )
 
 type Metric struct {
-	Num  Seq
+	Num  uint32
 	Size uint64
 }
 

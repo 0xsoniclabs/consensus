@@ -27,7 +27,7 @@ func (ee Events) String() string {
 }
 
 func (ee Events) Metric() (metric Metric) {
-	metric.Num = Seq(len(ee))
+	metric.Num = uint32(len(ee))
 	for _, e := range ee {
 		metric.Size += uint64(e.Size())
 	}
