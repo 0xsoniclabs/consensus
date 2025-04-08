@@ -27,22 +27,6 @@ import (
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
 
-func TestTestera(b *testing.T) {
-	consensustest.FakeHash()
-	consensustest.FakeHash()
-	consensustest.FakeHash()
-	consensustest.FakeHash()
-	consensustest.FakeHash()
-	fmt.Println()
-	for i := range 10 {
-		consensustest.FakeHash(int64(i))
-	}
-	fmt.Println()
-	for i := range 10 {
-		consensustest.FakeHash(int64(i))
-	}
-}
-
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {
 	dbProducer := func() kvdb.FlushableKVStore {
 		return flushable.Wrap(memorydb.New())
