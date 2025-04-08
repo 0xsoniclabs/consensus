@@ -13,7 +13,7 @@ package consensusengine
 import (
 	"errors"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -118,7 +118,7 @@ func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutate
 		parentCount = len(nodes)
 	}
 	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
-	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
+	r := consensustest.NewIntSeededRandGenerator(uint64(len(nodes) + cheatersCount))
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
 		consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 			Process: func(e consensus.Event, name string) {
@@ -145,7 +145,7 @@ func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutate
 	// connect events to other instances
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
 		for i := 1; i < len(lchs); i++ {
-			if reset && epoch != epochs-1 && r.Intn(2) == 0 {
+			if reset && epoch != epochs-1 && r.IntN(2) == 0 {
 				// never reset last epoch to be able to compare latest state
 				resetEpoch := epoch + 1
 				err := lchs[i].Reset(resetEpoch, epochStates[resetEpoch].Validators)

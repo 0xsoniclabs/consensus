@@ -50,7 +50,7 @@ func (vi *Engine) forklessCause(aID, bID consensus.EventHash) bool {
 	// Get events by hash
 	a := vi.GetHighestBefore(aID)
 	if a == nil {
-		vi.crit(fmt.Errorf("Event A=%s not found", aID.String()))
+		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
 		return false
 	}
 
@@ -65,7 +65,7 @@ func (vi *Engine) forklessCause(aID, bID consensus.EventHash) bool {
 	// check A observes that {QUORUM} non-cheater-validators observe B
 	b := vi.GetLowestAfter(bID)
 	if b == nil {
-		vi.crit(fmt.Errorf("Event B=%s not found", bID.String()))
+		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
 		return false
 	}
 
@@ -104,7 +104,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensus.EventHash, candidateP
 
 	// create the counters that measure the forkless cause progress
 	candidateParentsFCProgress := make([]*consensus.WeightCounter, len(candidateParents))
-	for i, _ := range candidateParentsFCProgress {
+	for i := range candidateParentsFCProgress {
 		candidateParentsFCProgress[i] = vi.validators.NewCounter() // initialise the counter for each candidate parent
 	}
 	chosenParentsFCProgress := vi.validators.NewCounter() // initialise the counter for chosen parents only
@@ -112,24 +112,24 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensus.EventHash, candidateP
 	// Get events by hash
 	aHB := vi.GetHighestBefore(aID)
 	if aHB == nil {
-		vi.crit(fmt.Errorf("Event A=%s not found", aID.String()))
+		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
 
 	candidateParentsHB := make([]*HighestBeforeSeq, len(candidateParents))
-	for i, _ := range candidateParents {
+	for i := range candidateParents {
 		candidateParentsHB[i] = vi.GetHighestBefore(candidateParents[i])
 		if candidateParentsHB[i] == nil {
-			vi.crit(fmt.Errorf("Candidate parent=%s not found", candidateParents[i].String()))
+			vi.crit(fmt.Errorf("candidate parent=%s not found", candidateParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
 	}
 
 	chosenParentsHB := make([]*HighestBeforeSeq, len(chosenParents))
-	for i, _ := range chosenParents {
+	for i := range chosenParents {
 		chosenParentsHB[i] = vi.GetHighestBefore(chosenParents[i])
 		if chosenParentsHB[i] == nil {
-			vi.crit(fmt.Errorf("Chosen parent=%s not found", chosenParents[i].String()))
+			vi.crit(fmt.Errorf("chosen parent=%s not found", chosenParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
 	}
@@ -164,7 +164,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensus.EventHash, candidateP
 
 	bLA := vi.GetLowestAfter(bID)
 	if bLA == nil {
-		vi.crit(fmt.Errorf("Event B=%s not found", bID.String()))
+		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
 
@@ -179,7 +179,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensus.EventHash, candidateP
 
 		IsForkDetected := HighestBefore.IsForkDetected()
 
-		for i, _ := range chosenParents {
+		for i := range chosenParents {
 			chosenParentHighestBefore := chosenParentsHB[i].Get(branchID)                  // highest event from creator, observed by a chosen parent
 			HighestBefore.Seq = maxEvent(HighestBefore.Seq, chosenParentHighestBefore.Seq) // find HighestBefore as observed by a and all chosen parents
 			IsForkDetected = IsForkDetected || chosenParentHighestBefore.IsForkDetected()
@@ -192,7 +192,7 @@ func (vi *Engine) ForklessCauseProgress(aID, bID consensus.EventHash, candidateP
 			chosenParentsFCProgress.CountByIdx(creatorIdx)
 		}
 		// now do forkless cause for a + chosenParents + each candidate parent
-		for i, _ := range candidateParents {
+		for i := range candidateParents {
 			candidateParentHighestBefore := candidateParentsHB[i].Get(branchID)
 			candidateParentIsForkDetected := IsForkDetected || candidateParentHighestBefore.IsForkDetected()
 			candidateParentHighestBefore.Seq = maxEvent(HighestBefore.Seq, candidateParentHighestBefore.Seq)

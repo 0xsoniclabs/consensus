@@ -12,7 +12,6 @@ package consensusengine
 
 import (
 	"math"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -84,7 +83,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 	if parentCount > len(nodes) {
 		parentCount = len(nodes)
 	}
-	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
+	r := consensustest.NewIntSeededRandGenerator(uint64(len(nodes) + cheatersCount))
 	consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			input.SetEvent(e)

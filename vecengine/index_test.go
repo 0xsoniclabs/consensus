@@ -12,7 +12,7 @@ package vecengine
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -26,6 +26,22 @@ import (
 	"github.com/0xsoniclabs/kvdb/leveldb"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
+
+func TestTestera(b *testing.T) {
+	consensustest.FakeHash()
+	consensustest.FakeHash()
+	consensustest.FakeHash()
+	consensustest.FakeHash()
+	consensustest.FakeHash()
+	fmt.Println()
+	for i := range 10 {
+		consensustest.FakeHash(int64(i))
+	}
+	fmt.Println()
+	for i := range 10 {
+		consensustest.FakeHash(int64(i))
+	}
+}
 
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {
 	dbProducer := func() kvdb.FlushableKVStore {
@@ -104,7 +120,7 @@ func tempLevelDB() (kvdb.Store, error) {
 	cache16mb := func(string) (int, int) {
 		return 16 * opt.MiB, 64
 	}
-	dir, err := ioutil.TempDir("", "bench")
+	dir, err := os.MkdirTemp("", "bench")
 	if err != nil {
 		panic(fmt.Sprintf("can't create temporary directory %s: %v", dir, err))
 	}

@@ -12,7 +12,7 @@ package vecflushable
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -229,7 +229,7 @@ func tempLevelDB() (kvdb.Store, error) {
 	cache16mb := func(string) (int, int) {
 		return 16 * opt.MiB, 64
 	}
-	dir, err := ioutil.TempDir("", "bench")
+	dir, err := os.MkdirTemp("", "bench")
 	if err != nil {
 		panic(fmt.Sprintf("can't create temporary directory %s: %v", dir, err))
 	}

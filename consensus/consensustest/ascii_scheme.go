@@ -89,7 +89,6 @@ func ASCIIschemeForEach(
 					nLinks[last][col] = 2
 				}
 			case "╫", "║", "║║": // don't mutate link array
-				break
 			default:
 				if strings.HasPrefix(symbol, "║") || strings.HasSuffix(symbol, "║") {
 					// it is a far ref

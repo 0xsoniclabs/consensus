@@ -11,8 +11,6 @@
 package consensusengine
 
 import (
-	"math/rand"
-
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
@@ -116,10 +114,10 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 }
 
 func mutateValidators(validators *consensus.Validators) *consensus.Validators {
-	r := rand.New(rand.NewSource(int64(validators.TotalWeight()))) // nolint:gosec
+	r := consensustest.NewIntSeededRandGenerator(uint64(validators.TotalWeight()))
 	builder := consensus.NewBuilder()
 	for _, vid := range validators.IDs() {
-		stake := uint64(validators.Get(vid))*uint64(500+r.Intn(500))/1000 + 1
+		stake := uint64(validators.Get(vid))*uint64(500+r.IntN(500))/1000 + 1
 		builder.Set(vid, consensus.Weight(stake))
 	}
 	return builder.Build()

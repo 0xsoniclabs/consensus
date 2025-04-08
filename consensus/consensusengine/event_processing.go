@@ -42,7 +42,7 @@ func (p *Orderer) Build(e consensus.MutableEvent) error {
 // All the event checkers must be launched.
 // Process is not safe for concurrent use.
 func (p *Orderer) Process(e consensus.Event) (err error) {
-	err, selfParentFrame := p.checkAndSaveEvent(e)
+	selfParentFrame, err := p.checkAndSaveEvent(e)
 	if err != nil {
 		return err
 	}
@@ -75,17 +75,17 @@ func (p *Orderer) ProcessLocalEvent(e consensus.Event) (err error) {
 }
 
 // checkAndSaveEvent checks consensus-related fields: Frame, IsRoot
-func (p *Orderer) checkAndSaveEvent(e consensus.Event) (error, consensus.Frame) {
+func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) {
 	// check frame & isRoot
 	selfParentFrame, frameIdx := p.calcFrameIdx(e)
 	if !p.config.SuppressFramePanic && e.Frame() != frameIdx {
-		return ErrWrongFrame, 0
+		return 0, ErrWrongFrame
 	}
 
 	if selfParentFrame != frameIdx {
 		p.store.AddRoot(e)
 	}
-	return nil, selfParentFrame
+	return selfParentFrame, nil
 }
 
 // calculates Atropos election for the root, calls p.onFrameDecided if election was decided

@@ -13,7 +13,6 @@ package consensusengine
 import (
 	"errors"
 	"math"
-	"math/rand"
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -122,7 +121,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 		parentCount = len(nodes)
 	}
 	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
-	r := rand.New(rand.NewSource(int64(len(nodes) + cheatersCount))) // nolint:gosec
+	r := consensustest.NewIntSeededRandGenerator(uint64(len(nodes) + cheatersCount))
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
 		consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 			Process: func(e consensus.Event, name string) {
@@ -153,7 +152,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 		if e.Epoch() < resetEpoch {
 			continue
 		}
-		if resets && epochStates[e.Epoch()+2] != nil && r.Intn(30) == 0 {
+		if resets && epochStates[e.Epoch()+2] != nil && r.IntN(30) == 0 {
 			// never reset last epoch to be able to compare latest state
 			resetEpoch = e.Epoch() + 1
 			err := lchs[EXPECTED].Reset(resetEpoch, epochStates[resetEpoch].Validators)
@@ -164,7 +163,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 		if e.Epoch() < resetEpoch {
 			continue
 		}
-		if r.Intn(10) == 0 {
+		if r.IntN(10) == 0 {
 			prev := lchs[RESTORED]
 
 			store := consensusstore.NewMemStore()

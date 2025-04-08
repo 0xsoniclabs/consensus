@@ -12,7 +12,6 @@ package vecengine
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -704,7 +703,7 @@ func TestRandomForks(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
-			r := rand.New(rand.NewSource(int64(i))) // nolint:gosec
+			r := consensustest.NewIntSeededRandGenerator(uint64(i))
 
 			nodes := consensustest.GenNodes(test.nodesNum)
 			cheaters := nodes[:test.cheatersNum]

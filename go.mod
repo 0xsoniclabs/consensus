@@ -10,9 +10,7 @@
 
 module github.com/0xsoniclabs/consensus
 
-go 1.22.0
-
-toolchain go1.23.6
+go 1.24.0
 
 require (
 	github.com/0xsoniclabs/cacheutils v0.0.0-20250320134355-5a9aa4df3861

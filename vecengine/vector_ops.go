@@ -54,7 +54,7 @@ func (b *HighestBeforeSeq) SetForkDetected(i consensus.ValidatorIndex) {
 	b.Set(i, forkDetectedSeq)
 }
 
-func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensus.ValidatorIndex) {
+func (b *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensus.ValidatorIndex) {
 	other := _other.(*HighestBeforeSeq)
 	for branchID := consensus.ValidatorIndex(0); branchID < num; branchID++ {
 		hisSeq := other.Get(branchID)
@@ -62,7 +62,7 @@ func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensus.V
 			// hisSeq doesn't observe anything about this branchID
 			continue
 		}
-		mySeq := self.Get(branchID)
+		mySeq := b.Get(branchID)
 
 		if mySeq.IsForkDetected() {
 			// mySeq observes the maximum already
@@ -70,23 +70,23 @@ func (self *HighestBeforeSeq) CollectFrom(_other HighestBeforeI, num consensus.V
 		}
 		if hisSeq.IsForkDetected() {
 			// set fork detected
-			self.SetForkDetected(branchID)
+			b.SetForkDetected(branchID)
 		} else {
 			if mySeq.Seq == 0 || mySeq.MinSeq > hisSeq.MinSeq {
 				// take hisSeq.MinSeq
 				mySeq.MinSeq = hisSeq.MinSeq
-				self.Set(branchID, mySeq)
+				b.Set(branchID, mySeq)
 			}
 			if mySeq.Seq < hisSeq.Seq {
 				// take hisSeq.Seq
 				mySeq.Seq = hisSeq.Seq
-				self.Set(branchID, mySeq)
+				b.Set(branchID, mySeq)
 			}
 		}
 	}
 }
 
-func (self *HighestBeforeSeq) GatherFrom(to consensus.ValidatorIndex, _other HighestBeforeI, from []consensus.ValidatorIndex) {
+func (b *HighestBeforeSeq) GatherFrom(to consensus.ValidatorIndex, _other HighestBeforeI, from []consensus.ValidatorIndex) {
 	other := _other.(*HighestBeforeSeq)
 	// read all branches to find highest event
 	highestBranchSeq := BranchSeq{}
@@ -100,5 +100,5 @@ func (self *HighestBeforeSeq) GatherFrom(to consensus.ValidatorIndex, _other Hig
 			highestBranchSeq = branch
 		}
 	}
-	self.Set(to, highestBranchSeq)
+	b.Set(to, highestBranchSeq)
 }

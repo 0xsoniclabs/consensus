@@ -11,7 +11,7 @@
 package consensustest
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"

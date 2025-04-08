@@ -11,9 +11,11 @@
 package consensustest
 
 import (
+	randRead "crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/utils/byteutils"
@@ -57,7 +59,7 @@ func ForEachRandFork(
 ) {
 	if r == nil {
 		// fixed seed
-		r = rand.New(rand.NewSource(0)) // nolint:gosec
+		r = NewIntSeededRandGenerator(0)
 	}
 	// init results
 	nodeCount := len(nodes)
@@ -93,10 +95,10 @@ func ForEachRandFork(
 			forksAlready, isCheater := cheaters[creator]
 			forkPossible := len(ee) > 1
 			forkLimitOk := forksAlready < forksCount
-			forkFlipped := r.Intn(eventCount) <= forksCount || i < (nodeCount-1)*eventCount
+			forkFlipped := r.IntN(eventCount) <= forksCount || i < (nodeCount-1)*eventCount
 			if isCheater && forkPossible && forkLimitOk && forkFlipped {
-				parent = ee[r.Intn(len(ee)-1)]
-				if r.Intn(len(ee)) == 0 {
+				parent = ee[r.IntN(len(ee)-1)]
+				if r.IntN(len(ee)) == 0 {
 					parent = nil
 				}
 				cheaters[creator]++
@@ -202,7 +204,7 @@ func FakeEpoch() consensus.Epoch {
 
 // FakeEventHash generates random fake event hash with the same epoch for testing purpose.
 func FakeEventHash() (h consensus.EventHash) {
-	_, err := rand.Read(h[:]) // nolint:gosec
+	_, err := randRead.Read(h[:])
 	if err != nil {
 		panic(err)
 	}
@@ -220,18 +222,24 @@ func FakeEventHashes(n int) consensus.EventHashes {
 }
 
 // FakeHash generates random fake hash for testing purpose.
-func FakeHash(seed ...int64) (h common.Hash) {
-	randRead := rand.Read
+// If seed is provided it is to be used as a source, otherwise, Read with default Source is used.
+func FakeHash(seed ...int64) common.Hash {
+	randReadFn := randRead.Read
 
 	if len(seed) > 0 {
-		src := rand.NewSource(seed[0])
-		rnd := rand.New(src) // nolint:gosec
-		randRead = rnd.Read
+		var seedArray [32]byte
+		binary.LittleEndian.PutUint64(seedArray[:], uint64(seed[0]))
+		rndNew := rand.NewChaCha8(seedArray)
+		randReadFn = rndNew.Read
 	}
-
-	_, err := randRead(h[:])
+	h := common.Hash{}
+	_, err := randReadFn(h[:])
 	if err != nil {
 		panic(err)
 	}
-	return
+	return h
+}
+
+func NewIntSeededRandGenerator(seed uint64) *rand.Rand {
+	return rand.New(rand.NewPCG(seed, 0))
 }
