@@ -8,25 +8,19 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package multidb
+package consensustest
 
-import "github.com/0xsoniclabs/consensus/kvdb"
+import (
+	"github.com/0xsoniclabs/consensus/consensus"
+)
 
-type closableTable struct {
-	kvdb.Store
-	underlying kvdb.Store
-	noDrop     bool
+type TestEvent struct {
+	consensus.MutableBaseEvent
+	Name string
 }
 
-// Close leaves underlying database.
-func (s *closableTable) Close() error {
-	return s.underlying.Close()
-}
-
-// Drop whole database.
-func (s *closableTable) Drop() {
-	if s.noDrop {
-		return
-	}
-	s.underlying.Drop()
+func (e *TestEvent) AddParent(id consensus.EventHash) {
+	parents := e.Parents()
+	parents.Add(id)
+	e.SetParents(parents)
 }

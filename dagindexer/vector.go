@@ -59,7 +59,7 @@ type (
 )
 
 // NewHighestBefore creates new HighestBefore vector.
-func NewHighestBefore(size idx.Validator) *HighestBefore {
+func NewHighestBefore(size consensus.ValidatorIndex) *HighestBefore {
 	vSeq := make(HighestBeforeSeq, size*8)
 	vTime := make(HighestBeforeTime, size*8)
 	return &HighestBefore{

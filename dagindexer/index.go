@@ -13,7 +13,9 @@ package dagindexer
 import (
 	"errors"
 	"fmt"
+	"github.com/0xsoniclabs/cacheutils/wlru"
 	"github.com/0xsoniclabs/consensus/vecflushable"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/0xsoniclabs/cacheutils/cachescale"
 	"github.com/0xsoniclabs/cacheutils/simplewlru"
@@ -141,7 +143,7 @@ func (vi *Index) DropNotFlushed() {
 }
 
 // Reset resets buffers.
-func (vi *Index) Reset(validators *consensus.Validators, db kvdb.Store, getEvent func(consensus.Event) dag.Event) {
+func (vi *Index) Reset(validators *consensus.Validators, db kvdb.Store, getEvent func(consensus.EventHash) consensus.Event) {
 	// This check serves to alleviate the current imperfection of the system:
 	// On one hand, it is sometimes required that a non-flushable kvdb.Store is
 	// passed so that Index can wrap it using its own config for parameters.

@@ -11,15 +11,12 @@
 package consensusengine
 
 import (
-	"fmt"
 	"github.com/0xsoniclabs/consensus/dagindexer"
 	"math/rand"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
-	"github.com/0xsoniclabs/consensus/vecengine"
-
 	"github.com/0xsoniclabs/consensus/utils/adapters"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )

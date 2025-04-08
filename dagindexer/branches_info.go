@@ -54,7 +54,7 @@ func newInitialBranchesInfo(validators *consensus.Validators) *BranchesInfo {
 }
 
 func (vi *Index) AtLeastOneFork() bool {
-	return consensus.Validator(len(vi.branchesInfo.BranchIDCreatorIdxs)) > vi.validators.Len()
+	return consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDCreatorIdxs)) > vi.validators.Len()
 }
 
 func (vi *Index) BranchesInfo() *BranchesInfo {
