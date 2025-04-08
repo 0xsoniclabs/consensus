@@ -14,6 +14,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/0xsoniclabs/consensus/consensus"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -34,16 +35,13 @@ func BenchmarkElectionSonicNetwork(b *testing.B) {
 }
 
 func testRegressionData(t *testing.T, dbPath string) {
-	conn, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Close()
+	conn, epochMin, epochMax := prepareConnection(t, dbPath)
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 
-	epochMin, epochMax, err := GetEpochRange(conn)
-	if err != nil {
-		t.Fatal(err)
-	}
 	for epoch := epochMin; epoch <= epochMax; epoch++ {
 		if err := CheckEpochAgainstDB(conn, epoch); err != nil {
 			t.Fatal(err)
@@ -52,19 +50,14 @@ func testRegressionData(t *testing.T, dbPath string) {
 }
 
 func benchmarkElection(b *testing.B, dbPath string) {
-	conn, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer conn.Close()
-
-	epochMin, epochMax, err := GetEpochRange(conn)
-	if err != nil {
-		b.Fatal(err)
-	}
+	conn, epochMin, epochMax := prepareConnection(b, dbPath)
+	defer func() {
+		if err := conn.Close(); err != nil {
+			b.Error(err)
+		}
+	}()
 
 	b.ResetTimer()
-
 	for range b.N {
 		for epoch := epochMin; epoch <= epochMax; epoch++ {
 			b.StopTimer()
@@ -79,4 +72,17 @@ func benchmarkElection(b *testing.B, dbPath string) {
 			}
 		}
 	}
+}
+
+func prepareConnection(b testing.TB, dbPath string) (*sql.DB, consensus.Epoch, consensus.Epoch) {
+	conn, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	epochMin, epochMax, err := GetEpochRange(conn)
+	if err != nil {
+		b.Fatal(err)
+	}
+	return conn, epochMin, epochMax
 }

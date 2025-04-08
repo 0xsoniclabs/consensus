@@ -13,6 +13,7 @@ package consensusengine
 import (
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -43,7 +44,9 @@ func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *consens
 	}
 
 	testLachesis, _, eventStore, _ := NewCoreLachesis(validators, weights)
-	testLachesis.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()})
+	if err := testLachesis.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()}); err != nil {
+		return nil, nil, nil, nil, err
+	}
 
 	eventsOrdered, eventMap, err := getEvents(conn, epoch)
 	if err != nil {
@@ -104,7 +107,7 @@ func GetEpochRange(conn *sql.DB) (consensus.Epoch, consensus.Epoch, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	defer rows.Close()
+	defer closeRowsAndCombineErrors(&err, rows)
 
 	var epochMin, epochMax consensus.Epoch
 	if !rows.Next() {
@@ -163,7 +166,7 @@ func getValidator(conn *sql.DB, epoch consensus.Epoch) ([]consensus.ValidatorID,
 	if err != nil {
 		return nil, nil, err
 	}
-	defer rows.Close()
+	defer closeRowsAndCombineErrors(&err, rows)
 
 	validators := make([]consensus.ValidatorID, 0)
 	weights := make([]consensus.Weight, 0)
@@ -192,7 +195,7 @@ func getEvents(conn *sql.DB, epoch consensus.Epoch) ([]*dbEvent, map[consensus.E
 	if err != nil {
 		return nil, nil, err
 	}
-	defer rows.Close()
+	defer closeRowsAndCombineErrors(&err, rows)
 
 	eventMap := make(map[consensus.EventHash]*dbEvent)
 	eventsOrdered := make([]*dbEvent, 0)
@@ -234,7 +237,7 @@ func appointParents(conn *sql.DB, eventMap map[consensus.EventHash]*dbEvent, epo
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer closeRowsAndCombineErrors(&err, rows)
 
 	for rows.Next() {
 		var eventHashStr string
@@ -288,7 +291,7 @@ func getAtropoi(conn *sql.DB, epoch consensus.Epoch) ([]consensus.EventHash, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer closeRowsAndCombineErrors(&err, rows)
 
 	atropoi := make([]consensus.EventHash, 0)
 	for rows.Next() {
@@ -314,4 +317,10 @@ func decodeHashStr(hashStr string) (consensus.EventHash, error) {
 		return consensus.EventHash{}, err
 	}
 	return consensus.EventHash(hashSlice), nil
+}
+
+func closeRowsAndCombineErrors(errPtr *error, rows *sql.Rows) {
+	if err := rows.Close(); err != nil {
+		*errPtr = errors.Join(*errPtr, err)
+	}
 }
