@@ -3,29 +3,26 @@ package dagindexer
 import (
 	"testing"
 
-	"github.com/0xsoniclabs/consensus/inter/idx"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/pos"
+	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
 
 func TestMedianTimeOnIndex(t *testing.T) {
-	nodes := tdag.GenNodes(5)
-	weights := []pos.Weight{5, 4, 3, 2, 1}
-	validators := pos.ArrayToValidators(nodes, weights)
+	nodes := consensustest.GenNodes(5)
+	weights := []consensus.Weight{5, 4, 3, 2, 1}
+	validators := consensus.ArrayToValidators(nodes, weights)
 
 	vi := NewIndex(func(err error) { panic(err) }, LiteConfig())
 	vi.Reset(validators, memorydb.New(), nil)
 
 	assertar := assert.New(t)
 	{ // seq=0
-		e := hash.ZeroEvent
+		e := consensus.ZeroEventHash
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
 
 		before.VSeq.Set(0, BranchSeq{Seq: 0})
 		before.VTime.Set(0, 100)
@@ -47,9 +44,9 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	}
 
 	{ // fork seen = true
-		e := hash.ZeroEvent
+		e := consensus.ZeroEventHash
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
 
 		before.SetForkDetected(0)
 		before.VTime.Set(0, 100)
@@ -71,9 +68,9 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	}
 
 	{ // normal
-		e := hash.ZeroEvent
+		e := consensus.ZeroEventHash
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(idx.Validator(validators.Len()))
+		before := NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
 
 		before.VSeq.Set(0, BranchSeq{Seq: 1})
 		before.VTime.Set(0, 11)
@@ -120,7 +117,7 @@ func TestMedianTimeOnDAG(t *testing.T) {
  ╠════════════╫═══════════ nodeC002
 `
 
-	weights := []pos.Weight{3, 4, 2, 1}
+	weights := []consensus.Weight{3, 4, 2, 1}
 	genesisTime := Timestamp(1)
 	creationTimes := map[string]Timestamp{
 		"nodeA001": Timestamp(111),
@@ -151,20 +148,20 @@ func TestMedianTimeOnDAG(t *testing.T) {
 	})
 }
 
-func testMedianTime(t *testing.T, dagAscii string, weights []pos.Weight, creationTimes map[string]Timestamp, medianTimes map[string]Timestamp, genesis Timestamp) {
+func testMedianTime(t *testing.T, dagAscii string, weights []consensus.Weight, creationTimes map[string]Timestamp, medianTimes map[string]Timestamp, genesis Timestamp) {
 	assertar := assert.New(t)
 
-	var ordered dag.Events
-	nodes, _, named := tdag.ASCIIschemeForEach(dagAscii, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	var ordered consensus.Events
+	nodes, _, named := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
 			ordered = append(ordered, &eventWithCreationTime{e, creationTimes[name]})
 		},
 	})
 
-	validators := pos.ArrayToValidators(nodes, weights)
+	validators := consensus.ArrayToValidators(nodes, weights)
 
-	events := make(map[hash.Event]dag.Event)
-	getEvent := func(id hash.Event) dag.Event {
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
 		return events[id]
 	}
 

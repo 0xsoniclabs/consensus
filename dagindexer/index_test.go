@@ -12,6 +12,8 @@ package dagindexer
 
 import (
 	"fmt"
+	"github.com/0xsoniclabs/kvdb/memorydb"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -22,15 +24,6 @@ import (
 	"github.com/0xsoniclabs/kvdb/flushable"
 	"github.com/0xsoniclabs/kvdb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-
-	"github.com/0xsoniclabs/consensus/hash"
-	"github.com/0xsoniclabs/consensus/inter/dag"
-	"github.com/0xsoniclabs/consensus/inter/dag/tdag"
-	"github.com/0xsoniclabs/consensus/inter/pos"
-	"github.com/0xsoniclabs/consensus/kvdb"
-	"github.com/0xsoniclabs/consensus/kvdb/flushable"
-	"github.com/0xsoniclabs/consensus/kvdb/leveldb"
-	"github.com/0xsoniclabs/consensus/kvdb/memorydb"
 )
 
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {
@@ -140,7 +133,7 @@ a2.1 ──╣      ║      ║      ║
 )
 
 type eventWithCreationTime struct {
-	dag.Event
+	consensus.Event
 	creationTime Timestamp
 }
 
@@ -150,19 +143,19 @@ func (e *eventWithCreationTime) CreationTime() Timestamp {
 
 func BenchmarkIndex_Add(b *testing.B) {
 	b.StopTimer()
-	ordered := make(dag.Events, 0)
-	nodes, _, _ := tdag.ASCIIschemeForEach(testASCIIScheme, tdag.ForEachEvent{
-		Process: func(e dag.Event, name string) {
+	ordered := make(consensus.Events, 0)
+	nodes, _, _ := consensustest.ASCIIschemeForEach(testASCIIScheme, consensustest.ForEachEvent{
+		Process: func(e consensustest.TestEvent, name string) {
 			ordered = append(ordered, e)
 		},
 	})
-	validatorsBuilder := pos.NewBuilder()
+	validatorsBuilder := consensus.NewBuilder()
 	for _, peer := range nodes {
 		validatorsBuilder.Set(peer, 1)
 	}
 	validators := validatorsBuilder.Build()
-	events := make(map[hash.Event]dag.Event)
-	getEvent := func(id hash.Event) dag.Event {
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
 		return events[id]
 	}
 	for _, e := range ordered {

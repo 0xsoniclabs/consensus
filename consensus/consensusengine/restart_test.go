@@ -12,14 +12,13 @@ package consensusengine
 
 import (
 	"errors"
-	"github.com/0xsoniclabs/consensus/dagindexer"
 	"math"
 	"testing"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
-	"github.com/0xsoniclabs/consensus/vecengine"
+	"github.com/0xsoniclabs/consensus/dagindexer"
 
 	"github.com/stretchr/testify/assert"
 

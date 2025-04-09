@@ -42,7 +42,7 @@ type DagIndexer interface {
 	Flush()
 	DropNotFlushed()
 
-	Reset(validators *consensus.Validators, db kvdb.FlushableKVStore, getEvent func(consensus.EventHash) consensus.Event)
+	Reset(validators *consensus.Validators, db kvdb.Store, getEvent func(consensus.EventHash) consensus.Event)
 }
 
 // NewIndexedLachesis creates IndexedLachesis instance.
