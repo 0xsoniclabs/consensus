@@ -22,7 +22,7 @@ func TestStore_StatePersisting(t *testing.T) {
 
 func TestStore_FrameRootPersisting(t *testing.T) {
 	store := NewMemStore()
-	roots := populateWithRoots(store)
+	roots := populateWithRoots(store, t)
 	retrievalOrder := make([]int, len(roots))
 	for i := range len(roots) {
 		retrievalOrder[i] = i
@@ -45,8 +45,11 @@ func TestStore_FrameRootPersisting(t *testing.T) {
 func TestStore_Close(t *testing.T) {
 	store := NewMemStore()
 	populateWithEpochStates(store)
-	populateWithRoots(store)
-	store.Close()
+	populateWithRoots(store, t)
+	err := store.Close()
+	if err != nil {
+		t.Fatalf("store.Close() failed: %v", err)
+	}
 	if store.table.EpochState != nil {
 		t.Fatalf("expected EpochState table to be nil")
 	}
@@ -58,8 +61,11 @@ func TestStore_Close(t *testing.T) {
 	}
 }
 
-func populateWithRoots(store *Store) [][]*consensustest.TestEvent {
-	store.OpenEpochDB(1)
+func populateWithRoots(store *Store, t *testing.T) [][]*consensustest.TestEvent {
+	err := store.OpenEpochDB(1)
+	if err != nil {
+		t.Fatalf("store.OpenEpochDB(1) failed: %v", err)
+	}
 	roots := make([][]*consensustest.TestEvent, 100)
 	for frame := range consensus.Frame(100) {
 		roots[frame] = make([]*consensustest.TestEvent, 100)

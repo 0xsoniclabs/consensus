@@ -189,7 +189,10 @@ func TestSizeBenchmark(t *testing.T) {
 						if err != nil {
 							t.Error(err)
 						}
-						vecflushable.Flush()
+						err = vecflushable.Flush()
+						if err != nil {
+							t.Error(err)
+						}
 					},
 					numItems,
 				)
@@ -212,7 +215,10 @@ func BenchmarkPutAndFlush(b *testing.B) {
 		if err != nil {
 			b.Error(err)
 		}
-		vecflushable.Flush()
+		err = vecflushable.Flush()
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }
 
