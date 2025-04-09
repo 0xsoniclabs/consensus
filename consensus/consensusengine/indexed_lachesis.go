@@ -11,7 +11,6 @@
 package consensusengine
 
 import (
-	"github.com/0xsoniclabs/kvdb/flushable"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -97,7 +96,7 @@ func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error
 			if base.EpochDBLoaded != nil {
 				base.EpochDBLoaded(epoch)
 			}
-			p.DagIndexer.Reset(p.store.GetValidators(), flushable.Wrap(p.store.EpochTable.VectorIndex), p.Input.GetEvent)
+			p.DagIndexer.Reset(p.store.GetValidators(), p.store.EpochTable.VectorIndex, p.Input.GetEvent)
 		},
 	}
 	return p.Lachesis.BootstrapWithOrderer(callback, ordererCallbacks)

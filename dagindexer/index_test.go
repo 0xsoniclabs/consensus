@@ -145,7 +145,7 @@ func BenchmarkIndex_Add(b *testing.B) {
 	b.StopTimer()
 	ordered := make(consensus.Events, 0)
 	nodes, _, _ := consensustest.ASCIIschemeForEach(testASCIIScheme, consensustest.ForEachEvent{
-		Process: func(e consensustest.TestEvent, name string) {
+		Process: func(e consensus.Event, name string) {
 			ordered = append(ordered, e)
 		},
 	})
