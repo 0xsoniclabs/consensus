@@ -13,7 +13,6 @@ package dagindexer
 import (
 	"fmt"
 	"github.com/0xsoniclabs/kvdb/memorydb"
-	"io/ioutil"
 	"os"
 	"testing"
 

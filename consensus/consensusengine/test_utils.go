@@ -12,7 +12,6 @@ package consensusengine
 
 import (
 	"github.com/0xsoniclabs/consensus/dagindexer"
-	"math/rand"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
