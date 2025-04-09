@@ -65,7 +65,7 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 
 	input := consensustest.NewTestEventSource()
 
-	config := LiteConfig()
+	config := DefaultConfig()
 	crit := func(err error) {
 		panic(err)
 	}

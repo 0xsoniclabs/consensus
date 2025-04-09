@@ -59,7 +59,7 @@ func run(ctx *cli.Context) error {
 	}
 	defer func() {
 		if closeErr := conn.Close(); closeErr != nil {
-			fmt.Fprintf(os.Stderr, "Error closing database connection: %v\n", closeErr)
+			fmt.Fprintf(os.Stderr, "error closing database connection: %v\n", closeErr)
 		}
 	}()
 	if err := conn.Ping(); err != nil {

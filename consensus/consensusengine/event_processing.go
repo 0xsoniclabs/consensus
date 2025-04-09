@@ -58,22 +58,6 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 	return err
 }
 
-// Process event that's been built locally
-func (p *Orderer) ProcessLocalEvent(e consensus.Event) (err error) {
-	selfParentFrame := p.getSelfParentFrame(e)
-	if selfParentFrame == e.Frame() {
-		return nil
-	}
-	// It's a root
-	p.store.AddRoot(e)
-	if err := p.handleElection(e); err != nil {
-		// election doesn't fail under normal circumstances
-		// storage is in an inconsistent state
-		p.crit(err)
-	}
-	return err
-}
-
 // checkAndSaveEvent checks consensus-related fields: Frame, IsRoot
 func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) {
 	// check frame & isRoot

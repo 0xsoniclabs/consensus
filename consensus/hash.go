@@ -12,9 +12,9 @@ package consensus
 
 import (
 	"fmt"
+	"log"
 	"math/big"
 	"reflect"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -45,10 +45,6 @@ func BytesToHash(b []byte) Hash {
 	return h
 }
 
-// BigToHash sets byte representation of b to hash.
-// If b is larger than len(h), b will be cropped from the left.
-func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
-
 // HexToHash sets byte representation of s to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func HexToHash(s string) Hash { return BytesToHash(hexutil.MustDecode(s)) }
@@ -74,6 +70,15 @@ func (h Hash) String() string {
 	return h.Hex()
 }
 
+// Format implements fmt.Formatter, forcing the byte slice to be formatted as is,
+// without going through the stringer interface used for logging.
+func (h Hash) Format(s fmt.State, c rune) {
+	_, err := fmt.Fprintf(s, "%"+string(c), h[:])
+	if err != nil {
+		log.Printf("error formatting Hash: %v", err)
+	}
+}
+
 // UnmarshalText parses a hash in hex syntax.
 func (h *Hash) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("Hash", input, h[:])
@@ -97,104 +102,4 @@ func (h *Hash) SetBytes(b []byte) {
 	}
 
 	copy(h[HashLength-len(b):], b)
-}
-
-/*
- * HashesSet methods:
- */
-
-// NewHashesSet makes hash index.
-func NewHashesSet(h ...Hash) HashesSet {
-	hh := HashesSet{}
-	hh.Add(h...)
-	return hh
-}
-
-// Copy copies hashes to a new structure.
-func (hh HashesSet) Copy() HashesSet {
-	ee := make(HashesSet, len(hh))
-	for k, v := range hh {
-		ee[k] = v
-	}
-
-	return ee
-}
-
-// String returns human readable string representation.
-func (hh HashesSet) String() string {
-	ss := make([]string, 0, len(hh))
-	for h := range hh {
-		ss = append(ss, h.String())
-	}
-	return "[" + strings.Join(ss, ", ") + "]"
-}
-
-// Slice returns whole index as slice.
-func (hh HashesSet) Slice() Hashes {
-	arr := make(Hashes, len(hh))
-	i := 0
-	for h := range hh {
-		arr[i] = h
-		i++
-	}
-	return arr
-}
-
-// Add appends hash to the index.
-func (hh HashesSet) Add(hash ...Hash) {
-	for _, h := range hash {
-		hh[h] = struct{}{}
-	}
-}
-
-// Erase erase hash from the index.
-func (hh HashesSet) Erase(hash ...Hash) {
-	for _, h := range hash {
-		delete(hh, h)
-	}
-}
-
-// Contains returns true if hash is in.
-func (hh HashesSet) Contains(hash Hash) bool {
-	_, ok := hh[hash]
-	return ok
-}
-
-/*
- * Hashes methods:
- */
-
-// NewHashes makes hash slice.
-func NewHashes(h ...Hash) Hashes {
-	hh := Hashes{}
-	hh.Add(h...)
-	return hh
-}
-
-// Copy copies hashes to a new structure.
-func (hh Hashes) Copy() Hashes {
-	return append(Hashes(nil), hh...)
-}
-
-// String returns human readable string representation.
-func (hh Hashes) String() string {
-	ss := make([]string, 0, len(hh))
-	for _, h := range hh {
-		ss = append(ss, h.String())
-	}
-	return "[" + strings.Join(ss, ", ") + "]"
-}
-
-// Set returns whole index as a HashesSet.
-func (hh Hashes) Set() HashesSet {
-	set := make(HashesSet, len(hh))
-	for _, h := range hh {
-		set[h] = struct{}{}
-	}
-	return set
-}
-
-// Add appends hash to the slice.
-func (hh *Hashes) Add(hash ...Hash) {
-	*hh = append(*hh, hash...)
 }

@@ -45,7 +45,7 @@ func TestGenesis_Fail(t *testing.T) {
 	validatorBuilder.Set(1, 10)
 	err := store.table.LastDecidedState.Put([]byte(dsKey), []byte{})
 	if err != nil {
-		t.Fatalf("Failed to set up prerequisite state (Put LastDecidedState): %v", err)
+		t.Fatalf("failed to set up prerequisite state (Put LastDecidedState): %v", err)
 	}
 	if err := store.ApplyGenesis(&Genesis{Epoch: 1, Validators: validatorBuilder.Build()}); err == nil {
 		t.Fatal("error expected but not received")

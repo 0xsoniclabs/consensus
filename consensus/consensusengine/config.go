@@ -21,10 +21,3 @@ func DefaultConfig() Config {
 		SuppressFramePanic: false,
 	}
 }
-
-// LiteConfig is for tests or inmemory.
-func LiteConfig() Config {
-	return Config{
-		SuppressFramePanic: false,
-	}
-}

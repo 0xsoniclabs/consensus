@@ -121,13 +121,6 @@ func (h *EventHash) IsZero() bool {
  * EventsSet methods:
  */
 
-// NewEventsSet makes event hash index.
-func NewEventsSet(h ...EventHash) EventHashSet {
-	hh := EventHashSet{}
-	hh.Add(h...)
-	return hh
-}
-
 // Copy copies events to a new structure.
 func (hh EventHashSet) Copy() EventHashSet {
 	ee := make(EventHashSet, len(hh))
@@ -181,14 +174,6 @@ func (hh EventHashSet) Contains(hash EventHash) bool {
 /*
  * Events methods:
  */
-
-// NewEvents makes event hash slice.
-func NewEvents(h ...EventHash) EventHashes {
-	hh := EventHashes{}
-	hh.Add(h...)
-	return hh
-}
-
 // Copy copies events to a new structure.
 func (hh EventHashes) Copy() EventHashes {
 	return append(EventHashes(nil), hh...)

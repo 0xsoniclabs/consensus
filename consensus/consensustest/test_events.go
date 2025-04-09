@@ -11,22 +11,11 @@
 package consensustest
 
 import (
-	"strings"
-
 	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 // TestEvents is a ordered slice of events.
 type TestEvents []*TestEvent
-
-// String returns human readable representation.
-func (ee TestEvents) String() string {
-	ss := make([]string, len(ee))
-	for i := 0; i < len(ee); i++ {
-		ss[i] = ee[i].String()
-	}
-	return strings.Join(ss, " ")
-}
 
 // ByParents returns events topologically ordered by parent dependency.
 // Used only for tests.

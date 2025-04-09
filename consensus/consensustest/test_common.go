@@ -116,9 +116,7 @@ func ForEachRandFork(
 				if ee := events[nodes[other]]; len(ee) > 0 {
 					parent := ee[len(ee)-1]
 					e.AddParent(parent.ID())
-					if e.Lamport() <= parent.Lamport() {
-						e.SetLamport(parent.Lamport() + 1)
-					}
+					e.SetLamport(consensus.MaxLamport(e.Lamport(), parent.Lamport()+1))
 				}
 			}
 		}
@@ -210,15 +208,6 @@ func FakeEventHash() (h consensus.EventHash) {
 	}
 	copy(h[0:4], byteutils.Uint32ToBigEndian(uint32(FakeEpoch())))
 	return
-}
-
-// FakeEventHashes generates random hashes of fake event with the same epoch for testing purpose.
-func FakeEventHashes(n int) consensus.EventHashes {
-	res := consensus.EventHashes{}
-	for i := 0; i < n; i++ {
-		res.Add(FakeEventHash())
-	}
-	return res
 }
 
 // FakeHash generates random fake hash for testing purpose.

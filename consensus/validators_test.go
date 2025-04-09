@@ -204,3 +204,31 @@ func TestValidators_Big(t *testing.T) {
 	assert.Equal(t, Weight(0x9c37f), v.Get(4999))
 	assert.Equal(t, Weight(0x9c3ff), v.Get(5000))
 }
+
+func TestArrayToValidators(t *testing.T) {
+	ids := []ValidatorID{1, 2, 3, 4, 5}
+	weights := []Weight{10, 20, 30, 40, 50}
+	v := ArrayToValidators(ids, weights)
+	assert.Equal(t, ValidatorIndex(5), v.Len())
+	assert.Equal(t, Weight(150), v.TotalWeight())
+	for i, id := range ids {
+		assert.Equal(t, weights[i], v.Get(id))
+	}
+
+	v = ArrayToValidators([]ValidatorID{}, []Weight{})
+	assert.Equal(t, ValidatorIndex(0), v.Len())
+	assert.Equal(t, Weight(0), v.TotalWeight())
+
+	v = ArrayToValidators([]ValidatorID{42}, []Weight{100})
+	assert.Equal(t, ValidatorIndex(1), v.Len())
+	assert.Equal(t, Weight(100), v.TotalWeight())
+	assert.Equal(t, Weight(100), v.Get(42))
+
+	ids = []ValidatorID{5, 3, 1, 4, 2}
+	weights = []Weight{5, 3, 1, 4, 2}
+	v = ArrayToValidators(ids, weights)
+	expectedSortedIDs := []ValidatorID{5, 4, 3, 2, 1}
+	assert.Equal(t, expectedSortedIDs, v.SortedIDs())
+	expectedSortedWeights := []Weight{5, 4, 3, 2, 1}
+	assert.Equal(t, expectedSortedWeights, v.SortedWeights())
+}

@@ -177,7 +177,6 @@ func TestVecflushableUpdateValue(t *testing.T) {
 }
 
 func TestSizeBenchmark(t *testing.T) {
-	return // remove to benchmark
 	for _, numItems := range []int{10, 100, 1000, 10000, 100000, 1000000, 10000000} {
 		t.Run(strconv.Itoa(numItems), func(t *testing.T) {
 			res := testing.Benchmark(func(b *testing.B) {
