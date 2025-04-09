@@ -99,15 +99,10 @@ func (p *Orderer) handleElection(root consensus.Event) error {
 			if layer == 0 {
 				bunch = p.election.getFrameRoots(frame)
 			} else {
-				bunch0 := p.election.GetBunch(frame, layer-1)
-				bunch = make([]consensusstore.RootDescriptor, 0)
-				for _, b := range bunch0 {
-					validatorID := p.Input.GetEvent(b).Creator()
-					bunch = append(bunch, consensusstore.RootDescriptor{ValidatorID: validatorID, RootHash: b})
-				}
+				bunch = p.election.GetBunch(frame, layer-1)
 			}
 			if p.forklessCausedByQuorumCustom(root, bunch) {
-				newDecisions, _ := p.election.Vote(frame, layer, root.Creator(), root.ID(), bunch)
+				newDecisions, _ := p.election.Vote(frame, layer, root.Creator(), root.ID())
 				atroposDecisions = append(atroposDecisions, newDecisions...)
 				break
 			}

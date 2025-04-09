@@ -26,7 +26,7 @@ type electionB struct {
 	getFrameRoots  GetFrameRootsFn
 
 	// To:Frame -> From:Layer -> From:EventHash -> int32[len(validators)]
-	voteB map[consensus.Frame][]map[consensus.EventHash][]int32
+	voteB map[consensus.Frame][]map[consensus.ValidatorID]map[consensus.EventHash][]int32
 	// Frame x ValidatorIndex -> EventHash
 	evidence       map[consensus.Frame][]consensus.EventHash
 	vote           map[consensus.Frame][]map[consensus.EventHash]*rootVoteContext
@@ -56,7 +56,7 @@ func (el *electionB) ResetEpoch(frameToDeliver consensus.Frame, validators *cons
 	el.atroposDeliveryBuffer = NewAtroposHeap()
 	el.frameToDeliver = frameToDeliver
 	el.validators = validators
-	el.voteB = make(map[consensus.Frame][]map[consensus.EventHash][]int32)
+	el.voteB = make(map[consensus.Frame][]map[consensus.ValidatorID]map[consensus.EventHash][]int32)
 	el.evidence = make(map[consensus.Frame][]consensus.EventHash)
 	el.validatorCount = consensus.Frame(validators.Len())
 	el.validatorIDMap = validators.Idxs()
@@ -74,14 +74,16 @@ func (el *electionB) RegisterRoot(frame consensus.Frame, validatorID consensus.V
 
 	//------------------------------------------------
 	if _, ok := el.voteB[frame]; !ok {
-		el.voteB[frame] = make([]map[consensus.EventHash][]int32, 0)
+		el.voteB[frame] = make([]map[consensus.ValidatorID]map[consensus.EventHash][]int32, 0)
 	}
 }
 
-func (el *electionB) GetBunch(frame consensus.Frame, layer consensus.Layer) []consensus.EventHash {
-	bunch := make([]consensus.EventHash, 0)
-	for eventHash := range el.voteB[frame][layer] {
-		bunch = append(bunch, eventHash)
+func (el *electionB) GetBunch(frame consensus.Frame, layer consensus.Layer) []consensusstore.RootDescriptor {
+	bunch := make([]consensusstore.RootDescriptor, 0)
+	for vID, maps := range el.voteB[frame][layer] {
+		for v := range maps {
+			bunch = append(bunch, consensusstore.RootDescriptor{RootHash: v, ValidatorID: vID})
+		}
 	}
 	return bunch
 }
@@ -91,16 +93,34 @@ func (el *electionB) Vote(
 	layer consensus.Layer,
 	validatorID consensus.ValidatorID,
 	voterHash consensus.EventHash,
-	bunch []consensusstore.RootDescriptor,
 ) ([]*atroposDecision, error) {
+	for l := consensus.Layer(0); l < layer; l++ {
+		if len(el.voteB[frame]) <= int(l) {
+			el.Vote(frame, l, validatorID, voterHash)
+			continue
+		}
+		if _, ok := el.voteB[frame][l][validatorID]; !ok {
+			el.Vote(frame, l, validatorID, voterHash)
+		}
+	}
+
 	if el.frameToDeliver > frame {
 		return []*atroposDecision{}, nil
 	}
 	if len(el.voteB[frame]) <= int(layer) {
-		el.voteB[frame] = append(el.voteB[frame], make(map[consensus.EventHash][]int32))
+		el.voteB[frame] = append(el.voteB[frame], make(map[consensus.ValidatorID]map[consensus.EventHash][]int32))
 	}
-	el.voteB[frame][layer][voterHash] = initInt32WithConst(-1, int(el.validatorCount))
-	voteVec := el.voteB[frame][layer][voterHash]
+
+	if _, ok := el.voteB[frame][layer][validatorID]; ok {
+		// Someone already voted by this validator for this layer so stop.
+		// return []*atroposDecision{}, nil
+	} else {
+		// Otherwise prepare to vote
+		el.voteB[frame][layer][validatorID] = make(map[consensus.EventHash][]int32)
+	}
+
+	el.voteB[frame][layer][validatorID][voterHash] = initInt32WithConst(-1, int(el.validatorCount))
+	voteVec := el.voteB[frame][layer][validatorID][voterHash]
 	validatorIdx := el.validatorIDMap[validatorID]
 	//------------------------------------------------
 
@@ -118,13 +138,13 @@ func (el *electionB) Vote(
 	// layer is not 0
 	// get these from layer-1
 	observedVotersWeight := int32(0)
-	for _, observedVoter := range bunch {
+	for _, observedVoter := range el.GetBunch(frame, layer-1) {
 		if !el.forklessCauses(voterHash, observedVoter.RootHash) {
 			continue
 		}
 		observedVoterValidatorIdx := el.validatorIDMap[observedVoter.ValidatorID]
 		observedVotersWeight += int32(el.validators.GetWeightByIdx(observedVoterValidatorIdx))
-		addInt32Vecs(voteVec, voteVec, el.voteB[frame][layer-1][observedVoter.RootHash])
+		addInt32Vecs(voteVec, voteVec, el.voteB[frame][layer-1][observedVoter.ValidatorID][observedVoter.RootHash])
 	}
 	if el.decideB(frame, voteVec, observedVotersWeight) {
 		atropoi := el.atroposDeliveryBuffer.getDeliveryReadyAtropoi(el.frameToDeliver)
