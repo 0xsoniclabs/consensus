@@ -21,8 +21,8 @@ type (
 
 	// WeightCounter counts weights.
 	WeightCounter struct {
-		validators Validators
-		already    []bool // ValidatorIdx -> bool
+		validators   Validators
+		alreadyVoted []bool // ValidatorIdx -> bool
 
 		quorum Weight
 		sum    Weight
@@ -36,25 +36,25 @@ func (vv Validators) NewCounter() *WeightCounter {
 
 func newWeightCounter(vv Validators) *WeightCounter {
 	return &WeightCounter{
-		validators: vv,
-		quorum:     vv.Quorum(),
-		already:    make([]bool, vv.Len()),
-		sum:        0,
+		validators:   vv,
+		quorum:       vv.Quorum(),
+		alreadyVoted: make([]bool, vv.Len()),
+		sum:          0,
 	}
 }
 
-// Count validator and return true if it hadn't counted before.
-func (s *WeightCounter) Count(v ValidatorID) bool {
+// CountVoteByID validator and return true if it hadn't counted before.
+func (s *WeightCounter) CountVoteByID(v ValidatorID) bool {
 	validatorIdx := s.validators.GetIdx(v)
-	return s.CountByIdx(validatorIdx)
+	return s.CountVoteByIndex(validatorIdx)
 }
 
-// CountByIdx validator and return true if it hadn't counted before.
-func (s *WeightCounter) CountByIdx(validatorIdx ValidatorIndex) bool {
-	if s.already[validatorIdx] {
+// CountVoteByIndex validator and return true if it hadn't counted before.
+func (s *WeightCounter) CountVoteByIndex(validatorIdx ValidatorIndex) bool {
+	if s.alreadyVoted[validatorIdx] {
 		return false
 	}
-	s.already[validatorIdx] = true
+	s.alreadyVoted[validatorIdx] = true
 
 	s.sum += s.validators.GetWeightByIdx(validatorIdx)
 	return true
@@ -73,7 +73,7 @@ func (s *WeightCounter) Sum() Weight {
 // NumCounted of validators
 func (s *WeightCounter) NumCounted() int {
 	num := 0
-	for _, counted := range s.already {
+	for _, counted := range s.alreadyVoted {
 		if counted {
 			num++
 		}

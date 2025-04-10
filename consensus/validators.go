@@ -45,8 +45,8 @@ type (
 	validatorList []validatorEntry
 )
 
-// NewBuilder creates new mutable ValidatorsBuilder
-func NewBuilder() ValidatorsBuilder {
+// NewValidatorsBuilder creates new mutable ValidatorsBuilder
+func NewValidatorsBuilder() ValidatorsBuilder {
 	return ValidatorsBuilder{}
 }
 
@@ -66,7 +66,7 @@ func (vv ValidatorsBuilder) Build() *Validators {
 
 // EqualWeightValidators builds new read-only Validators object with equal weights (for tests)
 func EqualWeightValidators(ids []ValidatorID, weight Weight) *Validators {
-	builder := NewBuilder()
+	builder := NewValidatorsBuilder()
 	for _, id := range ids {
 		builder.Set(id, weight)
 	}
@@ -75,7 +75,7 @@ func EqualWeightValidators(ids []ValidatorID, weight Weight) *Validators {
 
 // ArrayToValidators builds new read-only Validators object from array
 func ArrayToValidators(ids []ValidatorID, weights []Weight) *Validators {
-	builder := NewBuilder()
+	builder := NewValidatorsBuilder()
 	for i, id := range ids {
 		builder.Set(id, weights[i])
 	}
@@ -220,7 +220,7 @@ func (vv *Validators) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 
-	builder := NewBuilder()
+	builder := NewValidatorsBuilder()
 	for _, w := range arr {
 		builder.Set(w.ID, w.Weight)
 	}

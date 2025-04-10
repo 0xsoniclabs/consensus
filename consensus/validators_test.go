@@ -21,7 +21,7 @@ import (
 )
 
 func TestNewValidators(t *testing.T) {
-	b := NewBuilder()
+	b := NewValidatorsBuilder()
 
 	assert.NotNil(t, b)
 	assert.NotNil(t, b.Build())
@@ -30,7 +30,7 @@ func TestNewValidators(t *testing.T) {
 }
 
 func TestValidators_Set(t *testing.T) {
-	b := NewBuilder()
+	b := NewValidatorsBuilder()
 
 	b.Set(1, 1)
 	b.Set(2, 2)
@@ -70,7 +70,7 @@ func TestValidators_Set(t *testing.T) {
 }
 
 func TestValidators_Get(t *testing.T) {
-	b := NewBuilder()
+	b := NewValidatorsBuilder()
 
 	b.Set(0, 1)
 	b.Set(2, 2)
@@ -91,7 +91,7 @@ func TestValidators_Get(t *testing.T) {
 }
 
 func TestValidators_Iterate(t *testing.T) {
-	b := NewBuilder()
+	b := NewValidatorsBuilder()
 
 	b.Set(1, 1)
 	b.Set(2, 2)
@@ -114,7 +114,7 @@ func TestValidators_Iterate(t *testing.T) {
 }
 
 func TestValidators_Copy(t *testing.T) {
-	b := NewBuilder()
+	b := NewValidatorsBuilder()
 
 	b.Set(1, 1)
 	b.Set(2, 2)

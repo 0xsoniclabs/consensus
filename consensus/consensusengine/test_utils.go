@@ -115,7 +115,7 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 
 func mutateValidators(validators *consensus.Validators) *consensus.Validators {
 	r := consensustest.NewIntSeededRandGenerator(uint64(validators.TotalWeight()))
-	builder := consensus.NewBuilder()
+	builder := consensus.NewValidatorsBuilder()
 	for _, vid := range validators.IDs() {
 		stake := uint64(validators.Get(vid))*uint64(500+r.IntN(500))/1000 + 1
 		builder.Set(vid, consensus.Weight(stake))

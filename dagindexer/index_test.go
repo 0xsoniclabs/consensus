@@ -65,7 +65,7 @@ func benchmark_Index_Add(b *testing.B, dbProducer func() kvdb.FlushableKVStore) 
 		},
 	})
 
-	validatorsBuilder := consensus.NewBuilder()
+	validatorsBuilder := consensus.NewValidatorsBuilder()
 	for _, peer := range nodes {
 		validatorsBuilder.Set(peer, 1)
 	}

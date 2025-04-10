@@ -80,7 +80,7 @@ func populateWithRoots(store *Store, t *testing.T) [][]*consensustest.TestEvent 
 }
 
 func populateWithEpochStates(store *Store) (*EpochState, *LastDecidedState) {
-	validatorBuilder := consensus.NewBuilder()
+	validatorBuilder := consensus.NewValidatorsBuilder()
 	validatorBuilder.Set(1, 10)
 	epochState := &EpochState{Epoch: 3, Validators: validatorBuilder.Build()}
 	lastDecidedState := &LastDecidedState{LastDecidedFrame: 5}

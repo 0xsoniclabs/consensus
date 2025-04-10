@@ -84,7 +84,7 @@ func (vi *Index) forklessCause(aID, bID consensus.EventHash) bool {
 		if bLowestAfter <= aHighestBefore.Seq && bLowestAfter != 0 && !aHighestBefore.IsForkDetected() {
 			// we may count the same creator multiple times (on different branches)!
 			// so not every call increases the counter
-			yes.CountByIdx(creatorIdx)
+			yes.CountVoteByIndex(creatorIdx)
 		}
 	}
 	return yes.HasQuorum()
@@ -189,7 +189,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 		if bLowestAfter <= HighestBefore.Seq && bLowestAfter != 0 && !IsForkDetected {
 			// we may count the same creator multiple times (on different branches)!
 			// so not every call increases the counter
-			chosenParentsFCProgress.CountByIdx(creatorIdx)
+			chosenParentsFCProgress.CountVoteByIndex(creatorIdx)
 		}
 		// now do forkless cause for a + chosenParents + each candidate parent
 		for i := range candidateParents {
@@ -200,7 +200,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 			if bLowestAfter <= candidateParentHighestBefore.Seq && bLowestAfter != 0 && !candidateParentIsForkDetected {
 				// we may count the same creator multiple times (on different branches)!
 				// so not every call increases the counter
-				candidateParentsFCProgress[i].CountByIdx(creatorIdx)
+				candidateParentsFCProgress[i].CountVoteByIndex(creatorIdx)
 			}
 		}
 	}
@@ -211,7 +211,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 	aCreatorID := vi.getEvent(aID).Creator()
 	for _, FC := range candidateParentsFCProgress {
 		if FC.Sum() > 0 { // if anything in candidate event's subgraph observes bID, then the candidate must too
-			FC.Count(aCreatorID)
+			FC.CountVoteByID(aCreatorID)
 		}
 	}
 	return chosenParentsFCProgress, candidateParentsFCProgress

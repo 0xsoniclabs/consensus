@@ -248,7 +248,7 @@ func testVoteAndAggregate(
 		},
 	})
 
-	validatorsBuilder := consensus.NewBuilder()
+	validatorsBuilder := consensus.NewValidatorsBuilder()
 	for _, node := range nodes {
 		nodeName := consensus.GetNodeName(node)
 		if len(nodeName) == 0 {

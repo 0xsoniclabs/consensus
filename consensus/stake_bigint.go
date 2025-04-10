@@ -49,7 +49,7 @@ func (vv ValidatorsBigBuilder) Build() *Validators {
 		shift = uint(totalBits - 31)
 	}
 
-	builder := NewBuilder()
+	builder := NewValidatorsBuilder()
 	for v, w := range vv {
 		weight := new(big.Int).Rsh(w, shift)
 		builder.Set(v, Weight(weight.Uint64()))

@@ -574,7 +574,7 @@ func TestRandomForksSanity(t *testing.T) {
 	nodes := consensustest.GenNodes(8)
 	cheaters := []consensus.ValidatorID{nodes[0], nodes[1], nodes[2]}
 
-	validatorsBuilder := consensus.NewBuilder()
+	validatorsBuilder := consensus.NewValidatorsBuilder()
 	for _, peer := range nodes {
 		validatorsBuilder.Set(peer, consensus.Weight(1))
 	}

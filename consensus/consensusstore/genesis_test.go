@@ -8,7 +8,7 @@ import (
 
 func TestGenesis_Sucess(t *testing.T) {
 	store := NewMemStore()
-	validatorBuilder := consensus.NewBuilder()
+	validatorBuilder := consensus.NewValidatorsBuilder()
 	validatorBuilder.Set(1, 10)
 	validators := validatorBuilder.Build()
 	epoch := consensus.Epoch(3)
@@ -41,7 +41,7 @@ func TestGenesis_Fail(t *testing.T) {
 	if err := store.ApplyGenesis(&Genesis{Epoch: 1, Validators: &consensus.Validators{}}); err == nil {
 		t.Fatal("error expected but not received")
 	}
-	validatorBuilder := consensus.NewBuilder()
+	validatorBuilder := consensus.NewValidatorsBuilder()
 	validatorBuilder.Set(1, 10)
 	err := store.table.LastDecidedState.Put([]byte(dsKey), []byte{})
 	if err != nil {
