@@ -117,7 +117,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 		if !assertar.NoError(err) {
 			break
 		}
-		if !assertar.LessOrEqual(gotBlock.Cheaters.Len(), cheatersCount) {
+		if !assertar.LessOrEqual(len(gotBlock.Cheaters), cheatersCount) {
 			break
 		}
 		if !assertar.Equal(block.Cheaters, gotBlock.Cheaters) {
