@@ -40,12 +40,6 @@ func NewLowestAfterSeq(size consensus.ValidatorIndex) *LowestAfterSeq {
 	return &b
 }
 
-// NewHighestBeforeSeq creates new HighestBeforeSeq vector.
-func NewHighestBeforeSeq(size consensus.ValidatorIndex) *HighestBeforeSeq {
-	b := make(HighestBeforeSeq, size*8)
-	return &b
-}
-
 type (
 	// HighestBeforeTime is a vector of highest events (their CreationTime) which are observed by source event
 	HighestBeforeTime []byte
