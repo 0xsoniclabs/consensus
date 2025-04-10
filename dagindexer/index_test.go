@@ -12,9 +12,10 @@ package dagindexer
 
 import (
 	"fmt"
-	"github.com/0xsoniclabs/kvdb/memorydb"
 	"os"
 	"testing"
+
+	"github.com/0xsoniclabs/kvdb/memorydb"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
@@ -148,7 +149,7 @@ func BenchmarkIndex_Add(b *testing.B) {
 			ordered = append(ordered, e)
 		},
 	})
-	validatorsBuilder := consensus.NewBuilder()
+	validatorsBuilder := consensus.NewValidatorsBuilder()
 	for _, peer := range nodes {
 		validatorsBuilder.Set(peer, 1)
 	}
