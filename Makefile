@@ -83,3 +83,15 @@ deadcode:
 
 .PHONY: lint
 lint: vet staticcheck errorcheck deadcode
+
+# Git Hooks
+
+.PHONY: install-hooks
+install-hooks:
+	@echo "Installing Git hooks..."
+	@mkdir -p .git/hooks
+	@echo '#!/bin/sh\necho "Running pre-commit lint..."\nexec make lint' > .git/hooks/pre-commit
+	@echo '#!/bin/sh\necho "Running pre-push lint..."\nexec make lint' > .git/hooks/pre-push
+	@chmod +x .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-push
+	@echo "Git hooks installed successfully!"
