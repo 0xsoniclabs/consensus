@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/0xsoniclabs/consensus/utils/adapters"
 	"github.com/0xsoniclabs/kvdb"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
@@ -191,7 +190,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 				return memorydb.New()
 			}
 
-			restored := NewIndexedLachesis(store, prev.Input, &adapters.VectorToDagIndexer{Index: dagindexer.NewIndex(prev.crit, dagindexer.LiteConfig())}, prev.crit, prev.config)
+			restored := NewIndexedLachesis(store, prev.Input, dagindexer.NewIndex(prev.crit, dagindexer.LiteConfig()), prev.crit, prev.config)
 			assertar.NoError(restored.Bootstrap(prev.callback))
 
 			lchs[RESTORED].IndexedLachesis = restored

@@ -13,17 +13,13 @@ package consensusengine
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
-	"github.com/0xsoniclabs/consensus/dagidx"
+	"github.com/0xsoniclabs/consensus/dagindexer"
 )
 
 type OrdererCallbacks struct {
 	ApplyAtropos func(decidedFrame consensus.Frame, atropos consensus.EventHash) (sealEpoch *consensus.Validators)
 
 	EpochDBLoaded func(consensus.Epoch)
-}
-
-type OrdererDagIndex interface {
-	dagidx.ForklessCause
 }
 
 // Orderer processes events to reach finality on their order.
@@ -35,7 +31,7 @@ type Orderer struct {
 	Input  EventSource
 
 	election *election
-	dagIndex OrdererDagIndex
+	dagIndex *dagindexer.Index
 
 	callback OrdererCallbacks
 }
@@ -43,7 +39,7 @@ type Orderer struct {
 // NewOrderer creates Orderer instance.
 // Unlike Lachesis, Orderer doesn't updates DAG indexes for events, and doesn't detect cheaters
 // It has only one purpose - reaching consensus on events order.
-func NewOrderer(store *consensusstore.Store, input EventSource, dagIndex OrdererDagIndex, crit func(error), config Config) *Orderer {
+func NewOrderer(store *consensusstore.Store, input EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Orderer {
 	p := &Orderer{
 		config:   config,
 		store:    store,

@@ -13,15 +13,10 @@ package consensusengine
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
-	"github.com/0xsoniclabs/consensus/dagidx"
+	"github.com/0xsoniclabs/consensus/dagindexer"
 )
 
 var _ consensus.Consensus = (*Lachesis)(nil)
-
-type DagIndex interface {
-	dagidx.VectorClock
-	dagidx.ForklessCause
-}
 
 // Lachesis performs events ordering and detects cheaters
 // It's a wrapper around Orderer, which adds features which might potentially be application-specific:
@@ -29,12 +24,12 @@ type DagIndex interface {
 // Use this structure if need a general-purpose consensus. Instead, use lower-level abft.Orderer.
 type Lachesis struct {
 	*Orderer
-	dagIndex DagIndex
+	dagIndex *dagindexer.Index
 	callback consensus.ConsensusCallbacks
 }
 
 // NewLachesis creates Lachesis instance.
-func NewLachesis(store *consensusstore.Store, input EventSource, dagIndex DagIndex, crit func(error), config Config) *Lachesis {
+func NewLachesis(store *consensusstore.Store, input EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Lachesis {
 	p := &Lachesis{
 		Orderer:  NewOrderer(store, input, dagIndex, crit, config),
 		dagIndex: dagIndex,
@@ -60,7 +55,7 @@ func (p *Lachesis) confirmEvents(frame consensus.Frame, atropos consensus.EventH
 }
 
 func (p *Lachesis) applyAtropos(decidedFrame consensus.Frame, atropos consensus.EventHash) *consensus.Validators {
-	atroposVecClock := p.dagIndex.GetMergedHighestBefore(atropos)
+	atroposVecClock := p.dagIndex.GetMergedHighestBefore(atropos).VSeq
 
 	validators := p.store.GetValidators()
 	// cheaters are ordered deterministically

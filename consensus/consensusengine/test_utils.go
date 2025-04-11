@@ -16,7 +16,6 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
-	"github.com/0xsoniclabs/consensus/utils/adapters"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
 
@@ -44,7 +43,7 @@ type CoreLachesis struct {
 }
 
 // NewCoreLachesis creates empty abft consensus with mem store and optional node weights w.o. some callbacks usually instantiated by Client
-func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *consensusstore.Store, *consensustest.TestEventSource, *adapters.VectorToDagIndexer) {
+func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *consensusstore.Store, *consensustest.TestEventSource, *dagindexer.Index) {
 	validators := make(consensus.ValidatorsBuilder, len(nodes))
 	for i, v := range nodes {
 		if weights == nil {
@@ -69,7 +68,7 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 	crit := func(err error) {
 		panic(err)
 	}
-	dagIndexer := &adapters.VectorToDagIndexer{Index: dagindexer.NewIndex(crit, dagindexer.LiteConfig())}
+	dagIndexer := dagindexer.NewIndex(crit, dagindexer.LiteConfig())
 	lch := NewIndexedLachesis(store, input, dagIndexer, crit, config)
 
 	extended := &CoreLachesis{
