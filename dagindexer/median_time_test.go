@@ -16,7 +16,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	validators := consensus.ArrayToValidators(nodes, weights)
 
 	vi := NewIndex(func(err error) { panic(err) }, LiteConfig())
-	vi.Reset(validators, memorydb.New(), nil)
+	vi.Reset(validators, vi.WrapWithFlushable(memorydb.New()), nil)
 
 	assertar := assert.New(t)
 	{ // seq=0
@@ -166,7 +166,7 @@ func testMedianTime(t *testing.T, dagAscii string, weights []consensus.Weight, c
 	}
 
 	vi := NewIndex(func(err error) { panic(err) }, LiteConfig())
-	vi.Reset(validators, memorydb.New(), getEvent)
+	vi.Reset(validators, vi.WrapWithFlushable(memorydb.New()), getEvent)
 
 	// push
 	for _, e := range ordered {

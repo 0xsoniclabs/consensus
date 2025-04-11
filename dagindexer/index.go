@@ -13,6 +13,7 @@ package dagindexer
 import (
 	"errors"
 	"fmt"
+
 	"github.com/0xsoniclabs/cacheutils/wlru"
 	"github.com/0xsoniclabs/consensus/vecflushable"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -52,7 +53,7 @@ type Index struct {
 
 	getEvent func(consensus.EventHash) consensus.Event
 
-	vecDb *vecflushable.VecFlushable
+	vecDb kvdb.FlushableKVStore
 	table struct {
 		HighestBeforeTime kvdb.Store `table:"T"`
 		EventBranch       kvdb.Store `table:"b"`
@@ -142,19 +143,13 @@ func (vi *Index) DropNotFlushed() {
 	}
 }
 
+func (vi *Index) WrapWithFlushable(db kvdb.Store) kvdb.FlushableKVStore {
+	return vecflushable.Wrap(db, vi.cfg.Caches.DBCache)
+}
+
 // Reset resets buffers.
-func (vi *Index) Reset(validators *consensus.Validators, db kvdb.Store, getEvent func(consensus.EventHash) consensus.Event) {
-	// This check serves to alleviate the current imperfection of the system:
-	// On one hand, it is sometimes required that a non-flushable kvdb.Store is
-	// passed so that Index can wrap it using its own config for parameters.
-	// On the other hand, for the purposes of testing, we may want to override
-	// the sizeLimit parameter, and we pass a flushable. We want to avoid double
-	// wrapping as it shadows said parameter, and is unintuitive.
-	if fdb, ok := db.(*vecflushable.VecFlushable); ok {
-		vi.vecDb = fdb
-	} else {
-		vi.vecDb = vecflushable.Wrap(db, vi.cfg.Caches.DBCache)
-	}
+func (vi *Index) Reset(validators *consensus.Validators, db kvdb.FlushableKVStore, getEvent func(consensus.EventHash) consensus.Event) {
+	vi.vecDb = db
 	vi.getEvent = getEvent
 	vi.validators = validators
 	vi.validatorIdxs = validators.Idxs()

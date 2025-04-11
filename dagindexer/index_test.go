@@ -170,11 +170,11 @@ func BenchmarkIndex_Add(b *testing.B) {
 	}
 
 	vecClock := NewIndex(func(err error) { panic(err) }, LiteConfig())
-	vecClock.Reset(validators, memorydb.New(), getEvent)
+	vecClock.Reset(validators, vecClock.WrapWithFlushable(memorydb.New()), getEvent)
 
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		vecClock.Reset(validators, memorydb.New(), getEvent)
+		vecClock.Reset(validators, vecClock.WrapWithFlushable(memorydb.New()), getEvent)
 		b.StartTimer()
 		for _, e := range ordered {
 			err := vecClock.Add(&eventWithCreationTime{e, Timestamp(e.Seq())})
