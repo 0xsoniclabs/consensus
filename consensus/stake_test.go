@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestStake_StakeCounting(t *testing.T) {
+func TestStakeCounting_ConsistentSumAndQuorumReached(t *testing.T) {
 	validators, weightCounter := validatorsAndCounterSample(100)
 	sumWeight := Weight(0)
 	quorumWeight := validators.Quorum()
@@ -30,7 +30,7 @@ func TestStake_StakeCounting(t *testing.T) {
 	}
 }
 
-func TestStake_NotCountedStatus(t *testing.T) {
+func TestStakeCounting_VotesAlreadyCounted(t *testing.T) {
 	validators, weightCounter := validatorsAndCounterSample(100)
 
 	for _, validatorID := range validators.IDs() {
@@ -60,7 +60,7 @@ func TestStake_NotCountedStatus(t *testing.T) {
 	}
 }
 
-func TestStake_NumCounted(t *testing.T) {
+func TestStake_NumCountedConsistent(t *testing.T) {
 	validators, weightCounter := validatorsAndCounterSample(100)
 	pickedValidators := validators.IDs()
 	rand.Shuffle(len(pickedValidators), func(i, j int) { pickedValidators[i], pickedValidators[j] = pickedValidators[j], pickedValidators[i] })

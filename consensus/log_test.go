@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestSetEventName(t *testing.T) {
+func TestLog_SetEventName(t *testing.T) {
 	eventHash, eventName := EventHash{0}, "event_0"
 	SetEventName(eventHash, eventName)
 	if got := GetEventName(eventHash); eventName != got {
@@ -15,7 +15,7 @@ func TestSetEventName(t *testing.T) {
 	}
 }
 
-func TestSetNodeName(t *testing.T) {
+func TestLog_SetNodeName(t *testing.T) {
 	nodeID, nodeName := ValidatorID(0), "node_0"
 	SetNodeName(nodeID, nodeName)
 	if got := GetNodeName(nodeID); nodeName != got {
