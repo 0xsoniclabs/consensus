@@ -210,6 +210,15 @@ func FakeEventHash() (h consensus.EventHash) {
 	return
 }
 
+// FakeEventHashes generates random hashes of fake event with the same epoch for testing purpose.
+func FakeEventHashes(n int) consensus.EventHashes {
+	res := consensus.EventHashes{}
+	for i := 0; i < n; i++ {
+		res.Add(FakeEventHash())
+	}
+	return res
+}
+
 // FakeHash generates random fake hash for testing purpose.
 // If seed is provided it is to be used as a source, otherwise, Read with default Source is used.
 func FakeHash(seed ...int64) common.Hash {
