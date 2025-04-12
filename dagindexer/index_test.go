@@ -15,6 +15,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/0xsoniclabs/cacheutils/cachescale"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -25,6 +26,12 @@ import (
 	"github.com/0xsoniclabs/kvdb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
+
+func TestDefaultConfigDummy(t *testing.T) {
+	// DefaultConfig() is not used in this repo, but in order to not have it marked
+	// as unused, we define a dummy function here.
+	_ = DefaultConfig(cachescale.Ratio{Base: 100, Target: 1})
+}
 
 func BenchmarkIndex_Add_MemoryDB(b *testing.B) {
 	dbProducer := func() kvdb.FlushableKVStore {
