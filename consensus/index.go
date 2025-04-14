@@ -54,6 +54,11 @@ func (e Seq) Bytes() []byte {
 }
 
 // Bytes gets the byte representation of the index.
+func (b BlockID) Bytes() []byte {
+	return byteutils.Uint64ToBigEndian(uint64(b))
+}
+
+// Bytes gets the byte representation of the index.
 func (l Lamport) Bytes() []byte {
 	return byteutils.Uint32ToBigEndian(uint32(l))
 }
