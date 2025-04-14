@@ -144,7 +144,7 @@ type eventWithCreationTime struct {
 	creationTime Timestamp
 }
 
-func (e *eventWithCreationTime) CreationTime() Timestamp {
+func (e *eventWithCreationTime) CreationTimePortable() Timestamp {
 	return e.creationTime
 }
 
