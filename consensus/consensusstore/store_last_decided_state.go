@@ -14,6 +14,12 @@ import "github.com/0xsoniclabs/consensus/consensus"
 
 const dsKey = "d"
 
+// LastDecidedState is for persistent storing.
+type LastDecidedState struct {
+	// fields can change only after a frame is decided
+	LastDecidedFrame consensus.Frame
+}
+
 // SetLastDecidedState save LastDecidedState.
 // LastDecidedState is seldom read; so no cache.
 func (s *Store) SetLastDecidedState(v *LastDecidedState) {

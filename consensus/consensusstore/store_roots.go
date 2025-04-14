@@ -44,19 +44,19 @@ func (s *Store) AddRoot(root consensus.Event) {
 }
 
 func (s *Store) addRoot(root consensus.Event, frame consensus.Frame) {
-	r := RootDescriptor{
+	rootDescriptor := RootDescriptor{
 		ValidatorID: root.Creator(),
 		RootHash:    root.ID(),
 	}
 
-	if err := s.EpochTable.Roots.Put(rootRecordKey(frame, &r), []byte{}); err != nil {
+	if err := s.EpochTable.Roots.Put(rootRecordKey(frame, &rootDescriptor), []byte{}); err != nil {
 		s.crit(err)
 	}
 
 	// Add to cache.
 	if c, ok := s.cache.FrameRoots.Get(frame); ok {
 		rr := c.([]RootDescriptor)
-		rr = append(rr, r)
+		rr = append(rr, rootDescriptor)
 		s.cache.FrameRoots.Add(frame, rr, uint(len(rr)))
 	}
 }

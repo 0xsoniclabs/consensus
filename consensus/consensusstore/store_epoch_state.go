@@ -11,10 +11,23 @@
 package consensusstore
 
 import (
+	"fmt"
+
 	"github.com/0xsoniclabs/consensus/consensus"
 )
 
 const esKey = "e"
+
+type EpochState struct {
+	// stored values
+	// these values change only after a change of epoch
+	Epoch      consensus.Epoch
+	Validators *consensus.Validators
+}
+
+func (es EpochState) String() string {
+	return fmt.Sprintf("%d/%s", es.Epoch, es.Validators.String())
+}
 
 // SetEpochState stores epoch.
 func (s *Store) SetEpochState(e *EpochState) {
