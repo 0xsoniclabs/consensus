@@ -55,9 +55,9 @@ func (s *Store) addRoot(root consensus.Event, frame consensus.Frame) {
 
 	// Add to cache.
 	if c, ok := s.cache.FrameRoots.Get(frame); ok {
-		rr := c.([]RootDescriptor)
-		rr = append(rr, rootDescriptor)
-		s.cache.FrameRoots.Add(frame, rr, uint(len(rr)))
+		rootDescriptors := c.([]RootDescriptor)
+		rootDescriptors = append(rootDescriptors, rootDescriptor)
+		s.cache.FrameRoots.Add(frame, rootDescriptors, uint(len(rootDescriptors)))
 	}
 }
 
