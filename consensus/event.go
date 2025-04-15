@@ -64,19 +64,6 @@ type BaseEvent struct {
 	id EventHash
 }
 
-type MutableBaseEvent struct {
-	BaseEvent
-}
-
-// Build build immutable event
-func (me *MutableBaseEvent) Build(rID [24]byte) *BaseEvent {
-	e := me.BaseEvent
-	copy(e.id[0:4], e.epoch.Bytes())
-	copy(e.id[4:8], e.lamport.Bytes())
-	copy(e.id[8:], rID[:])
-	return &e
-}
-
 // String returns string representation.
 func (e *BaseEvent) String() string {
 	return fmt.Sprintf("{id=%s, p=%s, by=%d, frame=%d}", e.id.ShortID(3), e.parents.String(), e.creator, e.frame)
@@ -114,6 +101,10 @@ func (e *BaseEvent) ID() EventHash { return e.id }
 
 func (e *BaseEvent) Size() int { return 4 + 4 + 4 + 4 + len(e.parents)*32 + 4 + 32 }
 
+type MutableBaseEvent struct {
+	BaseEvent
+}
+
 func (e *MutableBaseEvent) SetEpoch(v Epoch) { e.epoch = v }
 
 func (e *MutableBaseEvent) SetSeq(v Seq) { e.seq = v }
@@ -130,4 +121,13 @@ func (e *MutableBaseEvent) SetID(rID [24]byte) {
 	copy(e.id[0:4], e.epoch.Bytes())
 	copy(e.id[4:8], e.lamport.Bytes())
 	copy(e.id[8:], rID[:])
+}
+
+// Build build immutable event
+func (me *MutableBaseEvent) Build(rID [24]byte) *BaseEvent {
+	e := me.BaseEvent
+	copy(e.id[0:4], e.epoch.Bytes())
+	copy(e.id[4:8], e.lamport.Bytes())
+	copy(e.id[8:], rID[:])
+	return &e
 }
