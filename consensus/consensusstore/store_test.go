@@ -8,7 +8,7 @@ func TestStore_Close(t *testing.T) {
 	store := NewMemStore()
 	populateWithEpochState(store)
 	populateWithLastDecidedState(store)
-	populateWithRoots(t, store, 10)
+	populateWithRoots(t, store, 10, 10)
 	err := store.Close()
 	if err != nil {
 		t.Fatalf("store.Close() failed: %v", err)
@@ -26,7 +26,7 @@ func TestStore_Close(t *testing.T) {
 
 func TestStore_Drop(t *testing.T) {
 	store := NewMemStore()
-	rootsExpected := populateWithRoots(t, store, 10)
+	rootsExpected := populateWithRoots(t, store, 10, 10)
 	// silence the panic
 	store.crit = func(err error) {}
 	if err := store.DropEpochDB(); err != nil {

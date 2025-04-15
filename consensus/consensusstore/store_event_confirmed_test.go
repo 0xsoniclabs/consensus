@@ -22,8 +22,8 @@ func TestEventConfirmedOn_ConsistentPersistingAndRetrieval(t *testing.T) {
 	store.OpenEpochDB(1)
 
 	expectedFrames := make(map[consensus.EventHash]consensus.Frame)
-	numFrames := 100
-	for i := range 100 * numFrames {
+	numFrames, meanEventPerFrame := 100, 1000
+	for i := range meanEventPerFrame * numFrames {
 		frame := consensus.Frame(rand.Intn(numFrames))
 		eventHash := consensus.EventHash{}
 		binary.LittleEndian.PutUint16(eventHash[:16], uint16(frame))
