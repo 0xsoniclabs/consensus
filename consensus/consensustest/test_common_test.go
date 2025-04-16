@@ -159,6 +159,35 @@ func TestForEachRandFork_BuildCallbackError(t *testing.T) {
 	assert.Less(t, totalEvents, len(nodes)*eventCount, "Total events should be less than expected due to skipped events")
 }
 
+func TestForEachRandFork_CheaterCreatesNilParentFork(t *testing.T) {
+	nodes := GenNodes(3)
+	cheaters := []consensus.ValidatorID{nodes[0]} // First node is the cheater
+	eventCount := 5                               // Need enough events for forkPossible (len(ee) > 1)
+	parentCount := 2
+	forksCount := 3   // Allow multiple forks
+	seed := uint64(5) // Deterministic seed triggers the r.IntN(len(ee)) == 0 case under these conditions
+	r := NewIntSeededRandGenerator(seed)
+
+	events := ForEachRandFork(nodes, cheaters, eventCount, parentCount, forksCount, r, ForEachEvent{})
+
+	cheaterEvents := events[cheaters[0]]
+	assert.Len(t, cheaterEvents, eventCount, "Cheater should have the expected number of events")
+
+	foundNilParentFork := false
+	for i, ev := range cheaterEvents {
+		// The very first event naturally has no parents and Seq 1.
+		// We are looking for a subsequent event that resets Seq to 1,
+		// indicating its parent was set to nil during fork creation.
+		if i > 0 && ev.Seq() == 1 && len(ev.Parents()) == 0 {
+			fmt.Printf("Found nil-parent fork event: %s (Index %d)\n", consensus.GetEventName(ev.ID()), i)
+			foundNilParentFork = true
+			break
+		}
+	}
+
+	assert.True(t, foundNilParentFork, "Expected to find an event created via nil-parent fork by the cheater")
+}
+
 func TestForEachRandEvent_DelegateToForEachRandFork(t *testing.T) {
 	nodes := GenNodes(2)
 	eventCount := 2
@@ -290,6 +319,21 @@ func TestFakeEventHash_GenerateHashWithEpoch(t *testing.T) {
 	assert.NotEqual(t, hash, hash2, "Generated fake event hashes should be different")
 }
 
+func TestFakeHash_GenerateRandomHash(t *testing.T) {
+	hash1 := FakeHash()
+	hash2 := FakeHash()
+
+	assert.NotEqual(t, hash1, hash2, "Generated hashes should be different")
+
+	hashWithSeed1 := FakeHash(42)
+	hashWithSeed2 := FakeHash(42)
+
+	assert.Equal(t, hashWithSeed1, hashWithSeed2, "Hashes generated with the same seed should be equal")
+
+	hashWithDiffSeed := FakeHash(43)
+	assert.NotEqual(t, hashWithSeed1, hashWithDiffSeed, "Hashes generated with different seeds should be different")
+}
+
 func TestFakeEventHashes_GenerateMultipleHashes(t *testing.T) {
 	counts := []int{0, 1, 5, 10}
 
@@ -308,21 +352,6 @@ func TestFakeEventHashes_GenerateMultipleHashes(t *testing.T) {
 			assert.Equal(t, FakeEpoch(), epoch, "Each hash should encode the fake epoch in the first 4 bytes")
 		}
 	}
-}
-
-func TestFakeHash_GenerateRandomHash(t *testing.T) {
-	hash1 := FakeHash()
-	hash2 := FakeHash()
-
-	assert.NotEqual(t, hash1, hash2, "Generated hashes should be different")
-
-	hashWithSeed1 := FakeHash(42)
-	hashWithSeed2 := FakeHash(42)
-
-	assert.Equal(t, hashWithSeed1, hashWithSeed2, "Hashes generated with the same seed should be equal")
-
-	hashWithDiffSeed := FakeHash(43)
-	assert.NotEqual(t, hashWithSeed1, hashWithDiffSeed, "Hashes generated with different seeds should be different")
 }
 
 func TestNewIntSeededRandGenerator_CreateDeterministicGenerator(t *testing.T) {
