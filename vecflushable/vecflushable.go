@@ -129,6 +129,8 @@ func (w *VecFlushable) Close() error {
 	return w.underlying.close()
 }
 
+/* Some methods are not implemented and panic when called */
+
 func (w *VecFlushable) Drop() {
 	panic(errNotImplemented)
 }
@@ -136,8 +138,6 @@ func (w *VecFlushable) Drop() {
 func (w *VecFlushable) AncientDatadir() (string, error) {
 	panic(errNotImplemented)
 }
-
-/* Some methods are not implemented and panic when called */
 
 func (w *VecFlushable) Delete(key []byte) error {
 	panic(errNotImplemented)
