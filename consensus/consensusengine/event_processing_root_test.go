@@ -277,7 +277,7 @@ func testSpecialNamedRoots(t *testing.T, scheme string) {
 	// get nodes only
 	nodes, _, _ := consensustest.ASCIIschemeToDAG(scheme)
 	// init abft
-	lch, _, input, _ := NewCoreLachesis(nodes, nil)
+	lch, _, input, _ := NewBootstrappedCoreConesensus(nodes, nil)
 
 	// process events
 	_, _, names := consensustest.ASCIIschemeForEach(scheme, consensustest.ForEachEvent{

@@ -50,7 +50,7 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 	if selfParentFrame == e.Frame() {
 		return nil
 	}
-	if err := p.handleElection(e); err != nil {
+	if _, err := p.runElectionOnRoot(e.Frame(), e.Creator(), e.ID()); err != nil {
 		// election doesn't fail under normal circumstances
 		// storage is in an inconsistent state
 		p.crit(err)
@@ -72,22 +72,22 @@ func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) 
 	return selfParentFrame, nil
 }
 
-// calculates Atropos election for the root, calls p.onFrameDecided if election was decided
-func (p *Orderer) handleElection(root consensus.Event) error {
-	decisions, err := p.election.VoteAndAggregate(root.Frame(), root.Creator(), root.ID())
+// runElectionOnRoot runs Atropos election for the root and triggers block closure callbacks if election was decided
+func (p *Orderer) runElectionOnRoot(frame consensus.Frame, validatorID consensus.ValidatorID, rootHash consensus.EventHash) (bool, error) {
+	decisions, err := p.election.VoteAndAggregate(frame, validatorID, rootHash)
 	if err != nil {
-		return err
+		return false, err
 	}
 	for _, atroposDecision := range decisions {
 		sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if sealed {
-			return nil
+			return true, nil
 		}
 	}
-	return nil
+	return false, nil
 }
 
 func (p *Orderer) bootstrapElection() error {
@@ -97,18 +97,12 @@ func (p *Orderer) bootstrapElection() error {
 			break
 		}
 		for _, root := range frameRoots {
-			decisions, err := p.election.VoteAndAggregate(frame, root.ValidatorID, root.RootHash)
+			sealed, err := p.runElectionOnRoot(frame, root.ValidatorID, root.RootHash)
 			if err != nil {
 				return err
 			}
-			for _, atroposDecision := range decisions {
-				sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
-				if err != nil {
-					return err
-				}
-				if sealed {
-					return nil
-				}
+			if sealed {
+				return nil
 			}
 		}
 	}

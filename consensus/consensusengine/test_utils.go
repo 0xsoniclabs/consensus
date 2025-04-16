@@ -42,42 +42,21 @@ type CoreLachesis struct {
 	applyBlock  applyBlockFn
 }
 
-// NewCoreLachesis creates empty abft consensus with mem store and optional node weights w.o. some callbacks usually instantiated by Client
-func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, mods ...memorydb.Mod) (*CoreLachesis, *consensusstore.Store, *consensustest.TestEventSource, *dagindexer.Index) {
-	validators := make(consensus.ValidatorsBuilder, len(nodes))
-	for i, v := range nodes {
-		if weights == nil {
-			validators[v] = 1
-		} else {
-			validators[v] = weights[i]
-		}
-	}
-	store := consensusstore.NewMemStore()
-
-	err := store.ApplyGenesis(&consensusstore.Genesis{
-		Validators: validators.Build(),
-		Epoch:      consensus.FirstEpoch,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	input := consensustest.NewTestEventSource()
-
-	config := DefaultConfig()
-	crit := func(err error) {
-		panic(err)
-	}
-	dagIndexer := dagindexer.NewIndex(crit, dagindexer.LiteConfig())
-	lch := NewIndexedLachesis(store, input, dagIndexer, crit, config)
+// NewBootstrappedCoreConesensus creates a simple bootstrapped consensus engine with mem store and optional node weights w.o. some callbacks usually instantiated by the Client
+func NewBootstrappedCoreConesensus(
+	nodes []consensus.ValidatorID,
+	weights []consensus.Weight,
+	mods ...memorydb.Mod,
+) (*CoreLachesis, *consensusstore.Store, *consensustest.TestEventSource, *dagindexer.Index) {
+	engine, store, eventSource, dagIndexer := NewCoreConsensus(nodes, weights)
 
 	extended := &CoreLachesis{
-		IndexedLachesis: lch,
+		IndexedLachesis: engine,
 		blocks:          map[BlockKey]*BlockResult{},
 		epochBlocks:     map[consensus.Epoch]consensus.Frame{},
 	}
 
-	err = extended.Bootstrap(consensus.ConsensusCallbacks{
+	if err := extended.Bootstrap(consensus.ConsensusCallbacks{
 		BeginBlock: func(block *consensus.Block) consensus.BlockCallbacks {
 			return consensus.BlockCallbacks{
 				EndBlock: func() (sealEpoch *consensus.Validators) {
@@ -104,12 +83,44 @@ func NewCoreLachesis(nodes []consensus.ValidatorID, weights []consensus.Weight, 
 				},
 			}
 		},
+	}); err != nil {
+		panic(err)
+	}
+
+	return extended, store, eventSource, dagIndexer
+}
+
+// NewCoreConsensus creates a simple consensus engine with mem store and optional node weights
+func NewCoreConsensus(
+	nodes []consensus.ValidatorID,
+	weights []consensus.Weight,
+) (*IndexedLachesis, *consensusstore.Store, *consensustest.TestEventSource, *dagindexer.Index) {
+	validators := make(consensus.ValidatorsBuilder, len(nodes))
+	for i, v := range nodes {
+		if weights == nil {
+			validators[v] = 1
+		} else {
+			validators[v] = weights[i]
+		}
+	}
+	store := consensusstore.NewMemStore()
+
+	err := store.ApplyGenesis(&consensusstore.Genesis{
+		Validators: validators.Build(),
+		Epoch:      consensus.FirstEpoch,
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	return extended, store, input, dagIndexer
+	input := consensustest.NewTestEventSource()
+
+	config := DefaultConfig()
+	crit := func(err error) {
+		panic(err)
+	}
+	dagIndexer := dagindexer.NewIndex(crit, dagindexer.LiteConfig())
+	return NewIndexedLachesis(store, input, dagIndexer, crit, config), store, input, dagIndexer
 }
 
 func mutateValidators(validators *consensus.Validators) *consensus.Validators {

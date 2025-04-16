@@ -17,10 +17,12 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
+var ErrAlreadyBootstrapped = errors.New("already bootstrapped")
+
 // Bootstrap restores abft's state from store.
 func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 	if p.election != nil {
-		return errors.New("already bootstrapped")
+		return ErrAlreadyBootstrapped
 	}
 	// block handler must be set before p.handleElection
 	p.callback = callback

@@ -25,7 +25,7 @@ func TestCalFrameIdx_10000(t *testing.T) {
 func testCalcFrameIdx(t *testing.T, gap int) {
 	nodes := consensustest.GenNodes(2)
 	// Give one validator quorum power to advance the frames on it's own
-	lch, _, store, _ := NewCoreLachesis(nodes, []consensus.Weight{1, 3})
+	lch, _, store, _ := NewBootstrappedCoreConesensus(nodes, []consensus.Weight{1, 3})
 
 	laggyGenesis := processTestEvent(t, lch, store, nodes[0], 1, consensus.EventHashes{})
 	parentEvent := processTestEvent(t, lch, store, nodes[1], 1, consensus.EventHashes{})

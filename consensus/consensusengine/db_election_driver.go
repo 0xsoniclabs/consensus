@@ -43,7 +43,7 @@ func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *consens
 		return nil, nil, nil, nil, nil
 	}
 
-	testLachesis, _, eventStore, _ := NewCoreLachesis(validators, weights)
+	testLachesis, _, eventStore, _ := NewBootstrappedCoreConesensus(validators, weights)
 	if err := testLachesis.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()}); err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -149,7 +149,7 @@ func processLocalEvent(testLachesis *CoreLachesis, event *consensustest.TestEven
 	selfParentFrame := testLachesis.getSelfParentFrame(event)
 	if selfParentFrame != event.Frame() {
 		testLachesis.store.AddRoot(event)
-		if err := testLachesis.handleElection(event); err != nil {
+		if _, err := testLachesis.runElectionOnRoot(event.Frame(), event.Creator(), event.ID()); err != nil {
 			return fmt.Errorf("error wihile processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 		}
 	}

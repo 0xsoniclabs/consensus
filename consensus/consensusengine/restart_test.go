@@ -89,7 +89,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 	lchs := make([]*CoreLachesis, 0, COUNT)
 	inputs := make([]*consensustest.TestEventSource, 0, COUNT)
 	for i := 0; i < COUNT; i++ {
-		lch, _, input, _ := NewCoreLachesis(nodes, weights)
+		lch, _, input, _ := NewBootstrappedCoreConesensus(nodes, weights)
 		lchs = append(lchs, lch)
 		inputs = append(inputs, input)
 	}
