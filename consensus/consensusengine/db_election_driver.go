@@ -43,7 +43,7 @@ func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *consens
 		return nil, nil, nil, nil, nil
 	}
 
-	testLachesis, _, eventStore, _ := NewBootstrappedCoreConesensus(validators, weights)
+	testLachesis, _, eventStore, _ := NewBootstrappedCoreConsensus(validators, weights)
 	if err := testLachesis.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()}); err != nil {
 		return nil, nil, nil, nil, err
 	}

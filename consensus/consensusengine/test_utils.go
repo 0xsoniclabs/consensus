@@ -42,8 +42,8 @@ type CoreLachesis struct {
 	applyBlock  applyBlockFn
 }
 
-// NewBootstrappedCoreConesensus creates a simple bootstrapped consensus engine with mem store and optional node weights w.o. some callbacks usually instantiated by the Client
-func NewBootstrappedCoreConesensus(
+// NewBootstrappedCoreConsensus creates a simple bootstrapped consensus engine with mem store and optional node weights w.o. some callbacks usually instantiated by the Client
+func NewBootstrappedCoreConsensus(
 	nodes []consensus.ValidatorID,
 	weights []consensus.Weight,
 	mods ...memorydb.Mod,
