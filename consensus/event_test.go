@@ -107,7 +107,7 @@ func TestBaseEvent_SelfParentWithValidParentReturnsParent(t *testing.T) {
 
 	selfParent := event.SelfParent() // return &e.parents[0]
 	if selfParent == nil {
-		t.Error("Expected self-parent to not be nil")
+		t.Fatal("Expected self-parent to not be nil")
 	}
 	if *selfParent != parentHash {
 		t.Errorf("Expected self-parent %v, got %v", parentHash, *selfParent)
