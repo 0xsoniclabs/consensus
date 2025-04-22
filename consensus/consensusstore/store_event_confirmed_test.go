@@ -10,7 +10,9 @@ import (
 
 func TestEventConfirmedOn_NonExistingEvent(t *testing.T) {
 	store := NewMemStore()
-	store.OpenEpochDB(1)
+	if err := store.OpenEpochDB(1); err != nil {
+		t.Fatal(err)
+	}
 
 	if want, got := consensus.Frame(0), store.GetEventConfirmedOn(consensus.EventHash{}); want != got {
 		t.Fatalf("unexpected frame retrieved for non-existing event hash, expected: %d, got: %d", want, got)
@@ -19,7 +21,9 @@ func TestEventConfirmedOn_NonExistingEvent(t *testing.T) {
 
 func TestEventConfirmedOn_ConsistentPersistingAndRetrieval(t *testing.T) {
 	store := NewMemStore()
-	store.OpenEpochDB(1)
+	if err := store.OpenEpochDB(1); err != nil {
+		t.Fatal(err)
+	}
 
 	expectedFrames := make(map[consensus.EventHash]consensus.Frame)
 	numFrames, meanEventPerFrame := 100, 1000

@@ -45,7 +45,7 @@ func testBootstrap_ReprocessRoots(t *testing.T, lastDecidedFrame, sealingFrame, 
 	engine, _, eventSource, _ := NewCoreConsensus(nodes, []consensus.Weight{1})
 	engine.store.SetLastDecidedState(&consensusstore.LastDecidedState{LastDecidedFrame: lastDecidedFrame})
 	numAtropoiDelivered := consensus.Frame(0)
-	engine.Bootstrap(consensus.ConsensusCallbacks{
+	if err := engine.Bootstrap(consensus.ConsensusCallbacks{
 		BeginBlock: func(block *consensus.Block) consensus.BlockCallbacks {
 			return consensus.BlockCallbacks{
 				EndBlock: func() (sealEpoch *consensus.Validators) {
@@ -57,7 +57,9 @@ func testBootstrap_ReprocessRoots(t *testing.T, lastDecidedFrame, sealingFrame, 
 				},
 			}
 		},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	roots := make([]*consensustest.TestEvent, numFrames)
 	roots[0] = prepareTestRoot(t, engine, eventSource, 0, nodes[0], consensus.EventHashes{})
 	for i := 1; i < len(roots); i++ {

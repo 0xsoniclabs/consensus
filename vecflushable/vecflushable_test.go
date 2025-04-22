@@ -302,7 +302,9 @@ func TestHasInBacked(t *testing.T) {
 		t.Error(err)
 	}
 	// Force contents to underlying
-	vecflushable.Flush()
+	if err := vecflushable.Flush(); err != nil {
+		t.Fatal(err)
+	}
 
 	has, err := vecflushable.Has(key)
 	if err != nil {
@@ -328,7 +330,9 @@ func TestHasClosed(t *testing.T) {
 		t.Error(err)
 	}
 
-	vecflushable.Close()
+	if err := vecflushable.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	has, err := vecflushable.Has(key)
 	if err == nil {
@@ -348,7 +352,9 @@ func TestGetClosed(t *testing.T) {
 		t.Error(err)
 	}
 
-	vecflushable.Close()
+	if err := vecflushable.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	v, err := vecflushable.Get(key)
 	if err == nil {
@@ -368,7 +374,9 @@ func TestFlushClosed(t *testing.T) {
 		t.Error(err)
 	}
 
-	vecflushable.Close()
+	if err := vecflushable.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	err := vecflushable.Flush()
 	if err == nil {
@@ -380,7 +388,9 @@ func TestCloseClosed(t *testing.T) {
 	backupDB, _ := tempLevelDB()
 	vecflushable := Wrap(backupDB, 1000)
 
-	vecflushable.Close()
+	if err := vecflushable.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	err := vecflushable.Close()
 	if err == nil {
@@ -403,7 +413,10 @@ func TestUnimplementedDrop(t *testing.T) {
 }
 
 func TestUnimplementedAncientDatadir(t *testing.T) {
-	backupDB, _ := tempLevelDB()
+	backupDB, err := tempLevelDB()
+	if err != nil {
+		t.Fatal(err)
+	}
 	vecflushable := Wrap(backupDB, 1000)
 
 	defer func() {
@@ -412,8 +425,9 @@ func TestUnimplementedAncientDatadir(t *testing.T) {
 		}
 	}()
 
-	vecflushable.AncientDatadir()
-
+	if _, err := vecflushable.AncientDatadir(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestUnimplementedDelete(t *testing.T) {
@@ -426,7 +440,9 @@ func TestUnimplementedDelete(t *testing.T) {
 		}
 	}()
 
-	vecflushable.Delete([]byte("a"))
+	if err := vecflushable.Delete([]byte("a")); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestUnimplementedGetSnapshot(t *testing.T) {
@@ -439,7 +455,9 @@ func TestUnimplementedGetSnapshot(t *testing.T) {
 		}
 	}()
 
-	vecflushable.GetSnapshot()
+	if _, err := vecflushable.GetSnapshot(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestUnimplementedNewIterator(t *testing.T) {
@@ -465,7 +483,9 @@ func TestUnimplementedStat(t *testing.T) {
 		}
 	}()
 
-	vecflushable.Stat()
+	if _, err := vecflushable.Stat(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestUnimplementedCompact(t *testing.T) {
@@ -478,7 +498,9 @@ func TestUnimplementedCompact(t *testing.T) {
 		}
 	}()
 
-	vecflushable.Compact([]byte("a"), []byte("b"))
+	if err := vecflushable.Compact([]byte("a"), []byte("b")); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestUnimplementedNewBatch(t *testing.T) {
