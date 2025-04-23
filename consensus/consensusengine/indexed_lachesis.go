@@ -17,7 +17,7 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
-	"github.com/0xsoniclabs/consensus/dagindexer"
+	"github.com/0xsoniclabs/consensus/consensus/dagindexer"
 )
 
 var _ consensus.Consensus = (*IndexedLachesis)(nil)

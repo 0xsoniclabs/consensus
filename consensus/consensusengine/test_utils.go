@@ -11,7 +11,7 @@
 package consensusengine
 
 import (
-	"github.com/0xsoniclabs/consensus/dagindexer"
+	"github.com/0xsoniclabs/consensus/consensus/dagindexer"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
