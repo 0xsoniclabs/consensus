@@ -15,7 +15,7 @@ import (
 	"fmt"
 
 	"github.com/0xsoniclabs/cacheutils/wlru"
-	"github.com/0xsoniclabs/consensus/vecflushable"
+	"github.com/0xsoniclabs/consensus/consensus/vecflushable"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/0xsoniclabs/cacheutils/cachescale"

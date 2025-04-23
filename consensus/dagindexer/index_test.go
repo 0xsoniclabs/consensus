@@ -20,7 +20,7 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
-	"github.com/0xsoniclabs/consensus/vecflushable"
+	"github.com/0xsoniclabs/consensus/consensus/vecflushable"
 	"github.com/0xsoniclabs/kvdb"
 	"github.com/0xsoniclabs/kvdb/flushable"
 	"github.com/0xsoniclabs/kvdb/leveldb"
