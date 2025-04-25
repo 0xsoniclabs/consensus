@@ -799,6 +799,58 @@ func TestRandomForks(t *testing.T) {
 	}
 }
 
+func TestForklessCauseProgress(t *testing.T) {
+	dagAscii := `
+		b00
+		║       ║
+		║       c00
+		║       ║
+		b01═════╣
+		║       ║
+		╠══════ c02
+		║       ║
+		b02═════╣
+		║       ║
+		╠══════ c04
+		║       ║       ║
+		║       ║       a00
+		║3      ║       ║
+		║╚═════─╫─═════ a01
+		║      3║       ║
+		║      ╚ c01════╣ // fork
+		║║      ║       ║
+		║╚══════╬══════ a02
+		║      3║       ║
+		║      ╚ c03════╣ // fork
+		║       ║       ║
+		╠═══════╬══════ a03
+	`
+	t.Helper()
+	assertar := assert.New(t)
+
+	nodes, _, _ := consensustest.ASCIIschemeToDAG(dagAscii)
+	validators := consensus.EqualWeightValidators(nodes, 1)
+
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
+		return events[id]
+	}
+
+	vi := NewIndex(tCrit, LiteConfig())
+	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
+
+	_, _, named := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
+			events[e.ID()] = e
+			err := vi.Add(e)
+			if err != nil {
+				panic(err)
+			}
+			vi.Flush()
+		},
+	})
+}
+
 /*
 // codegen4ForklessCausedStability is for test data generation.
 func codegen4ForklessCausedStability() {
