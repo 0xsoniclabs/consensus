@@ -20,7 +20,10 @@ jobs:
           go-version: "1.24"
 
       - name: Test
-        run: go test -coverprofile=coverage.txt ./...
+        run: |
+          go get -u github.com/dave/courtney 
+          go install github.com/dave/courtney 
+          courtney -o coverage.txt
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
