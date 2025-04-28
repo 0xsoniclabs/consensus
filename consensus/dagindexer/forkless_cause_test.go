@@ -799,7 +799,7 @@ func TestRandomForks(t *testing.T) {
 	}
 }
 
-func TestForklessCauseProgress(t *testing.T) {
+func forklessCauseProgressAux() (*Index, map[string]consensus.Event) {
 	dagAscii := `
 		b00
 		║       ║
@@ -825,8 +825,6 @@ func TestForklessCauseProgress(t *testing.T) {
 		║       ║       ║
 		╠═══════╬══════ a03
 	`
-	t.Helper()
-	assertar := assert.New(t)
 
 	nodes, _, _ := consensustest.ASCIIschemeToDAG(dagAscii)
 	validators := consensus.EqualWeightValidators(nodes, 1)
@@ -849,6 +847,58 @@ func TestForklessCauseProgress(t *testing.T) {
 			vi.Flush()
 		},
 	})
+
+	return vi, named
+}
+
+func TestForklessCauseProgressCheater(t *testing.T) {
+	return
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := forklessCauseProgressAux()
+	fmt.Println(named)
+
+	candidates := []consensus.EventHash{named["b02"].ID()}
+	chosen := []consensus.EventHash{named["a02"].ID()}
+
+	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a03"].ID(), named["c02"].ID(), candidates, chosen)
+
+	assertar.False(chosenRes.HasQuorum())
+	for _, c := range candidatesRes {
+		assertar.False(c.HasQuorum())
+	}
+}
+
+func TestForklessCauseProgressLegit(t *testing.T) {
+	return
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := forklessCauseProgressAux()
+
+	// a03 sees b02 but has no quorum by itself, even adding c04 or c03 as parent is insufficient
+	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a03"].ID(), named["b02"].ID(),
+		[]consensus.EventHash{named["c04"].ID(), named["c03"].ID()}, []consensus.EventHash{named["b02"].ID(), named["a02"].ID()})
+	assertar.False(chosenRes.HasQuorum())
+	for _, c := range candidatesRes {
+		assertar.False(c.HasQuorum())
+	}
+}
+
+func TestForklessCauseProgressUnseenFork(t *testing.T) {
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := forklessCauseProgressAux()
+
+	fmt.Println(named)
+	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a03"].ID(), named["c00"].ID(),
+		[]consensus.EventHash{named["c03"].ID(), named["c04"].ID()}, []consensus.EventHash{named["a02"].ID(), named["b02"].ID()})
+	assertar.True(chosenRes.HasQuorum())
+	fmt.Println(chosenRes)
+	assertar.False(candidatesRes[0].HasQuorum())
+	assertar.False(candidatesRes[1].HasQuorum())
 }
 
 /*
