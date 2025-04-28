@@ -110,28 +110,31 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 	chosenParentsFCProgress := vi.validators.NewCounter() // initialise the counter for chosen parents only
 
 	// Get events by hash
-	aHB := vi.GetHighestBefore(aID).VSeq
-	if aHB == nil {
+	aHBFull := vi.GetHighestBefore(aID)
+	if aHBFull == nil {
 		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
 		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
+	aHB := aHBFull.VSeq
 
 	candidateParentsHB := make([]*HighestBeforeSeq, len(candidateParents))
 	for i := range candidateParents {
-		candidateParentsHB[i] = vi.GetHighestBefore(candidateParents[i]).VSeq
-		if candidateParentsHB[i] == nil {
+		hbFull := vi.GetHighestBefore(candidateParents[i])
+		if hbFull == nil {
 			vi.crit(fmt.Errorf("candidate parent=%s not found", candidateParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
+		candidateParentsHB[i] = hbFull.VSeq
 	}
 
 	chosenParentsHB := make([]*HighestBeforeSeq, len(chosenParents))
 	for i := range chosenParents {
-		chosenParentsHB[i] = vi.GetHighestBefore(chosenParents[i]).VSeq
-		if chosenParentsHB[i] == nil {
+		hbFull := vi.GetHighestBefore(chosenParents[i])
+		if hbFull == nil {
 			vi.crit(fmt.Errorf("chosen parent=%s not found", chosenParents[i].String()))
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
+		chosenParentsHB[i] = hbFull.VSeq
 	}
 
 	// check A doesn't observe any forks from B
