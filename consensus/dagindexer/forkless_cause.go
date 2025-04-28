@@ -48,11 +48,12 @@ func (vi *Index) ForklessCause(aID, bID consensus.EventHash) bool {
 
 func (vi *Index) forklessCause(aID, bID consensus.EventHash) bool {
 	// Get events by hash
-	a := vi.GetHighestBefore(aID).VSeq
-	if a == nil {
+	aFull := vi.GetHighestBefore(aID)
+	if aFull == nil {
 		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
 		return false
 	}
+	a := aFull.VSeq
 
 	// check A doesn't observe any forks from B
 	if vi.AtLeastOneFork() {
