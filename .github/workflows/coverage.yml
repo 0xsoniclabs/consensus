@@ -21,8 +21,8 @@ jobs:
 
       - name: Test
         run: |
-          go get -u github.com/dave/courtney 
-          go install github.com/dave/courtney 
+          go install github.com/dave/courtney@latest 
+          go mod download 
           courtney -o coverage.txt
 
       - name: Upload coverage reports to Codecov
