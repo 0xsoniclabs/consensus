@@ -857,7 +857,6 @@ func TestForklessCauseProgressCheater(t *testing.T) {
 	assertar := assert.New(t)
 
 	vi, named := forklessCauseProgressAux(dagAscii)
-	fmt.Println(named)
 
 	candidates := []consensus.EventHash{named["b02"].ID()}
 	chosen := []consensus.EventHash{named["a02"].ID()}
@@ -906,13 +905,66 @@ func TestForklessCauseProgressOnlyGloballySeenFork(t *testing.T) {
 
 	vi, named := forklessCauseProgressAux(dagAscii)
 
-	fmt.Println(named)
 	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a01"].ID(), named["c00"].ID(),
 		[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
 	assertar.True(chosenRes.HasQuorum())
 	// NOTE!!! if the logic supported fork seen only globally, this would be false!
 	// This is not a concern at the moment, since it does not impede the method's use case.
 	assertar.True(candidatesRes[0].HasQuorum())
+}
+
+// Checks panic on missing events.
+func TestForklessCauseProgressEventMissing(t *testing.T) {
+	dagAscii := `
+		a00           b00            c00
+		║             ║              ║
+		║             ║              ║
+		║             ╠              c11
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ╠              ║
+		║             ║              ║
+		║             ║              c12
+		║             ║             3║
+		║             ╠             ╚ c01
+		║             ║              ║
+		╠             b01            ╣
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		a01           ╣              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║ 
+		║             ║              ║
+	`
+
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := forklessCauseProgressAux(dagAscii)
+
+	missing := consensus.EventHash([]byte("missingmissingmissingmissingmiss"))
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(missing, named["c00"].ID(),
+			[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
+	})
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(named["a01"].ID(), missing,
+			[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
+	})
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(named["a01"].ID(), named["c00"].ID(),
+			[]consensus.EventHash{missing}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
+	})
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(named["a01"].ID(), named["c00"].ID(),
+			[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), missing})
+	})
 }
 
 /*

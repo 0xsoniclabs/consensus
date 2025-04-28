@@ -117,6 +117,12 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 	}
 	aHB := aHBFull.VSeq
 
+	bLA := vi.GetLowestAfter(bID)
+	if bLA == nil {
+		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
+		return chosenParentsFCProgress, candidateParentsFCProgress
+	}
+
 	candidateParentsHB := make([]*HighestBeforeSeq, len(candidateParents))
 	for i := range candidateParents {
 		hbFull := vi.GetHighestBefore(candidateParents[i])
@@ -163,12 +169,6 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 				return chosenParentsFCProgress, candidateParentsFCProgress
 			}
 		}
-	}
-
-	bLA := vi.GetLowestAfter(bID)
-	if bLA == nil {
-		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
-		return chosenParentsFCProgress, candidateParentsFCProgress
 	}
 
 	// calculate forkless causing using the indexes
