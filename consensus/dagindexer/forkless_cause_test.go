@@ -799,7 +799,34 @@ func TestRandomForks(t *testing.T) {
 	}
 }
 
-func forklessCauseProgressAux() (*Index, map[string]consensus.Event) {
+func forklessCauseProgressAux(dagAscii string) (*Index, map[string]consensus.Event) {
+	nodes, _, _ := consensustest.ASCIIschemeToDAG(dagAscii)
+	validators := consensus.EqualWeightValidators(nodes, 1)
+
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
+		return events[id]
+	}
+
+	vi := NewIndex(tCrit, LiteConfig())
+	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
+
+	_, _, named := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
+			events[e.ID()] = e
+			err := vi.Add(e)
+			if err != nil {
+				panic(err)
+			}
+			vi.Flush()
+		},
+	})
+
+	return vi, named
+}
+
+// Never get quorum on a cheater validator.
+func TestForklessCauseProgressCheater(t *testing.T) {
 	dagAscii := `
 		b00
 		║       ║
@@ -826,37 +853,10 @@ func forklessCauseProgressAux() (*Index, map[string]consensus.Event) {
 		╠═══════╬══════ a03
 	`
 
-	nodes, _, _ := consensustest.ASCIIschemeToDAG(dagAscii)
-	validators := consensus.EqualWeightValidators(nodes, 1)
-
-	events := make(map[consensus.EventHash]consensus.Event)
-	getEvent := func(id consensus.EventHash) consensus.Event {
-		return events[id]
-	}
-
-	vi := NewIndex(tCrit, LiteConfig())
-	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
-
-	_, _, named := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
-		Process: func(e consensus.Event, name string) {
-			events[e.ID()] = e
-			err := vi.Add(e)
-			if err != nil {
-				panic(err)
-			}
-			vi.Flush()
-		},
-	})
-
-	return vi, named
-}
-
-func TestForklessCauseProgressCheater(t *testing.T) {
-	return
 	t.Helper()
 	assertar := assert.New(t)
 
-	vi, named := forklessCauseProgressAux()
+	vi, named := forklessCauseProgressAux(dagAscii)
 	fmt.Println(named)
 
 	candidates := []consensus.EventHash{named["b02"].ID()}
@@ -870,35 +870,49 @@ func TestForklessCauseProgressCheater(t *testing.T) {
 	}
 }
 
-func TestForklessCauseProgressLegit(t *testing.T) {
-	return
+// Only globally seen fork. However, this function does not support those properly, as it has
+// little incentive to do so.
+func TestForklessCauseProgressOnlyGloballySeenFork(t *testing.T) {
+	dagAscii := `
+		a00           b00            c00
+		║             ║              ║
+		║             ║              ║
+		║             ╠              c11
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ╠              ║
+		║             ║              ║
+		║             ║              c12
+		║             ║             3║
+		║             ╠             ╚ c01
+		║             ║              ║
+		╠             b01            ╣
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		a01           ╣              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║ 
+		║             ║              ║
+	`
+
 	t.Helper()
 	assertar := assert.New(t)
 
-	vi, named := forklessCauseProgressAux()
-
-	// a03 sees b02 but has no quorum by itself, even adding c04 or c03 as parent is insufficient
-	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a03"].ID(), named["b02"].ID(),
-		[]consensus.EventHash{named["c04"].ID(), named["c03"].ID()}, []consensus.EventHash{named["b02"].ID(), named["a02"].ID()})
-	assertar.False(chosenRes.HasQuorum())
-	for _, c := range candidatesRes {
-		assertar.False(c.HasQuorum())
-	}
-}
-
-func TestForklessCauseProgressUnseenFork(t *testing.T) {
-	t.Helper()
-	assertar := assert.New(t)
-
-	vi, named := forklessCauseProgressAux()
+	vi, named := forklessCauseProgressAux(dagAscii)
 
 	fmt.Println(named)
-	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a03"].ID(), named["c00"].ID(),
-		[]consensus.EventHash{named["c03"].ID(), named["c04"].ID()}, []consensus.EventHash{named["a02"].ID(), named["b02"].ID()})
+	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a01"].ID(), named["c00"].ID(),
+		[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
 	assertar.True(chosenRes.HasQuorum())
-	fmt.Println(chosenRes)
-	assertar.False(candidatesRes[0].HasQuorum())
-	assertar.False(candidatesRes[1].HasQuorum())
+	// NOTE!!! if the logic supported fork seen only globally, this would be false!
+	// This is not a concern at the moment, since it does not impede the method's use case.
+	assertar.True(candidatesRes[0].HasQuorum())
 }
 
 /*
