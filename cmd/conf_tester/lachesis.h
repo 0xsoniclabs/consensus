@@ -91,8 +91,8 @@ private:
   // processor.
   vector<map<t_event, t_frame>> frame_idx;
 
-  // Frame roots of a frame indexed by processor and frame number
-  vector<vector<t_eventset>> frame_roots;
+  // Frame bases of a frame indexed by processor and frame number
+  vector<vector<t_eventset>> frame_bases;
 
   // First atropos event for the whole network
   // NB: The first processor finding the first atropos will set the first
@@ -105,14 +105,14 @@ private:
   // Most recent atropos event of a processor as a function t_proc -> t_event
   map<t_proc, t_event> head_atropos;
 
-  // Root decision of a processor that is a function t_proc -> t_frame -> t_proc
-  // -> bool deciding whether a root node is either an atropos candidate or not.
-  // If a root node is not in the map, it is still undecided.
-  vector<map<t_frame, map<t_proc, bool>>> root_decision;
+  // Base decision of a processor that is a function t_proc -> t_frame -> t_proc
+  // -> bool deciding whether a base node is either an atropos candidate or not.
+  // If a base node is not in the map, it is still undecided.
+  vector<map<t_frame, map<t_proc, bool>>> base_decision;
 
   // Votes is a function t_proc -> t_frame -> t_event -> t_proc -> bool that
   // collects votes of a processor for a given frame. A vote is associated with
-  // a root node. A vote is a boolean vector assigining each processor either a
+  // a base node. A vote is a boolean vector assigining each processor either a
   // yes or a no vote.
   vector<map<t_frame, map<t_event, map<t_proc, bool>>>> votes;
 
@@ -158,7 +158,7 @@ private:
   // is consistent and update head atropos.
   void check_atropos(t_proc pid, t_event atropos);
 
-  // check whether the proposed root event is consistent among all processors,
+  // check whether the proposed base event is consistent among all processors,
   // there must not exist a different event of the same processors in another
   // local view for the same frame.
   void check_frame(t_frame frame, t_event new_event);
@@ -191,29 +191,29 @@ private:
   void choose_atropos(t_proc pid);
 
   // Perform voting
-  void perform_voting(t_proc pid, t_event new_root);
+  void perform_voting(t_proc pid, t_event new_base);
 
   // Perform aggregation
-  void perform_aggregation(t_proc pid, t_event new_root);
+  void perform_aggregation(t_proc pid, t_event new_base);
 
   // Obtain the maximum frame index of all parents
   t_frame get_max_parent_frame(t_proc pid, t_event new_event);
 
-  // Determine if a quorum of roots in a frame can be forkless cause by new
+  // Determine if a quorum of bases in a frame can be forkless cause by new
   // event
   bool forkless_cause_on_quorum(t_proc pid, t_frame frame, t_event new_event);
 
-  // Insert root into the frame_roots data structure and increases size if
+  // Insert base into the frame_bases data structure and increases size if
   // needed
-  void insert_frame_root(t_proc pid, t_frame frame, t_event new_event);
+  void insert_frame_base(t_proc pid, t_frame frame, t_event new_event);
 
-  // Update atropos event if the new root event is an atropos event
-  void update_atropos(t_proc pid, t_event new_root);
+  // Update atropos event if the new base event is an atropos event
+  void update_atropos(t_proc pid, t_event new_base);
 
   // Assign a frame index to a new event. If the new event becomes
-  // a new frame root, the function returns true; otherwise false.
-  // In case the new event is a frame root, we update the frame-
-  // root data-structure.
+  // a new frame base, the function returns true; otherwise false.
+  // In case the new event is a frame base, we update the frame-
+  // base data-structure.
   bool update_frame(t_proc pid, t_event new_event);
 
   bool update_frame_legacy(t_proc pid, t_event new_event);
@@ -221,7 +221,7 @@ private:
   // Update frames and atropos for a newly created/received event
   void update_frame_atropos(t_proc pid, t_event new_event);
 
-  // Check if a root event is an atropos event
+  // Check if a base event is an atropos event
   bool is_atropos(t_proc pid, t_event event);
 
 public:
@@ -243,8 +243,8 @@ public:
   // until sequence number is reached
   void receive_event(t_proc receiver, t_proc sender, t_seq seqnum);
 
-  // Check if a root event is a frame root in a processor
-  bool is_frame_root(t_proc pid, t_event event);
+  // Check if a base event is a frame base in a processor
+  bool is_frame_base(t_proc pid, t_event event);
 
   // Check new atropos event for correctness
   bool check_subsequent_atropos(t_event prev_atropos, t_event current_atropos);

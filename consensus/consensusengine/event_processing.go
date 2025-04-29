@@ -20,7 +20,7 @@ var (
 	ErrWrongFrame = errors.New("claimed frame mismatched with calculated")
 )
 
-// Build fills consensus-related fields: Frame, IsRoot
+// Build fills consensus-related fields: Frame, IsBase
 // returns error if event should be dropped
 func (p *Orderer) Build(e consensus.MutableEvent) error {
 	// sanity check
@@ -50,7 +50,7 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 	if selfParentFrame == e.Frame() {
 		return nil
 	}
-	if _, err := p.runElectionOnRoot(e.Frame(), e.Creator(), e.ID()); err != nil {
+	if _, err := p.runElectionOnBase(e.Frame(), e.Creator(), e.ID()); err != nil {
 		// election doesn't fail under normal circumstances
 		// storage is in an inconsistent state
 		p.crit(err)
@@ -58,23 +58,23 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 	return err
 }
 
-// checkAndSaveEvent checks consensus-related fields: Frame, IsRoot
+// checkAndSaveEvent checks consensus-related fields: Frame, IsBase
 func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) {
-	// check frame & isRoot
+	// check frame & isBase
 	selfParentFrame, frameIdx := p.calcFrameIdx(e)
 	if !p.config.SuppressFramePanic && e.Frame() != frameIdx {
 		return 0, ErrWrongFrame
 	}
 
 	if selfParentFrame != frameIdx {
-		p.store.AddRoot(e)
+		p.store.AddBase(e)
 	}
 	return selfParentFrame, nil
 }
 
-// runElectionOnRoot runs Atropos election for the root and triggers block closure callbacks if election was decided
-func (p *Orderer) runElectionOnRoot(frame consensus.Frame, validatorID consensus.ValidatorID, rootHash consensus.EventHash) (bool, error) {
-	decisions, err := p.election.VoteAndAggregate(frame, validatorID, rootHash)
+// runElectionOnBase runs Atropos election for the base and triggers block closure callbacks if election was decided
+func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
+	decisions, err := p.election.VoteAndAggregate(frame, validatorID, baseHash)
 	if err != nil {
 		return false, err
 	}
@@ -92,12 +92,12 @@ func (p *Orderer) runElectionOnRoot(frame consensus.Frame, validatorID consensus
 
 func (p *Orderer) bootstrapElection() error {
 	for frame := p.store.GetLastDecidedFrame() + 1; ; frame++ {
-		frameRoots := p.store.GetFrameRoots(frame)
-		if len(frameRoots) == 0 {
+		frameBases := p.store.GetFrameBases(frame)
+		if len(frameBases) == 0 {
 			break
 		}
-		for _, root := range frameRoots {
-			sealed, err := p.runElectionOnRoot(frame, root.ValidatorID, root.RootHash)
+		for _, base := range frameBases {
+			sealed, err := p.runElectionOnBase(frame, base.ValidatorID, base.BaseHash)
 			if err != nil {
 				return err
 			}
@@ -109,12 +109,12 @@ func (p *Orderer) bootstrapElection() error {
 	return nil
 }
 
-// forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W roots on specified frame
+// forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W bases on specified frame
 func (p *Orderer) forklessCausedByQuorumOn(e consensus.Event, f consensus.Frame) bool {
 	observedCounter := p.store.GetValidators().NewCounter()
-	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
-	for _, it := range p.store.GetFrameRoots(f) {
-		if p.dagIndex.ForklessCause(e.ID(), it.RootHash) {
+	// check "observing" prev bases only if called by creator, or if creator has marked that event as base
+	for _, it := range p.store.GetFrameBases(f) {
+		if p.dagIndex.ForklessCause(e.ID(), it.BaseHash) {
 			observedCounter.CountVoteByID(it.ValidatorID)
 		}
 		if observedCounter.HasQuorum() {

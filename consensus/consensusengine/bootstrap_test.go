@@ -20,27 +20,27 @@ func TestBootstrap_AlreadyBootstrapped(t *testing.T) {
 	}
 }
 
-func TestBootstrap_NoNewRoots(t *testing.T) {
-	testBootstrap_ReprocessRoots(t, 10, 0, 10)
+func TestBootstrap_NoNewBases(t *testing.T) {
+	testBootstrap_ReprocessBases(t, 10, 0, 10)
 }
 func TestBootstrap_NoDecidedFramesNoSealing(t *testing.T) {
-	testBootstrap_ReprocessRoots(t, 0, 0, 10)
+	testBootstrap_ReprocessBases(t, 0, 0, 10)
 }
 func TestBootstrap_NoDecidedFramesSealing(t *testing.T) {
-	testBootstrap_ReprocessRoots(t, 0, 4, 10)
+	testBootstrap_ReprocessBases(t, 0, 4, 10)
 }
 func TestBootstrap_DecidedFramesNoSealing(t *testing.T) {
-	testBootstrap_ReprocessRoots(t, 3, 0, 10)
+	testBootstrap_ReprocessBases(t, 3, 0, 10)
 }
 func TestBootstrap_DecidedFramesSealing(t *testing.T) {
-	testBootstrap_ReprocessRoots(t, 2, 6, 10)
+	testBootstrap_ReprocessBases(t, 2, 6, 10)
 }
 
 // bootstrapping can be triggered on a mid-epoch DB checkpoint (due to a crash for example)
-// testBootstrap_ReprocessRoots tests for a correct starting and ending point of the election bootstrap process
-// by varying last checkpoint's last decided Frame, future sealing Frame and number of frame roots
+// testBootstrap_ReprocessBases tests for a correct starting and ending point of the election bootstrap process
+// by varying last checkpoint's last decided Frame, future sealing Frame and number of frame bases
 // available to be run through the election
-func testBootstrap_ReprocessRoots(t *testing.T, lastDecidedFrame, sealingFrame, numFrames consensus.Frame) {
+func testBootstrap_ReprocessBases(t *testing.T, lastDecidedFrame, sealingFrame, numFrames consensus.Frame) {
 	nodes := consensustest.GenNodes(1)
 	engine, _, eventSource, _ := NewCoreConsensus(nodes, []consensus.Weight{1})
 	engine.store.SetLastDecidedState(&consensusstore.LastDecidedState{LastDecidedFrame: lastDecidedFrame})
@@ -60,10 +60,10 @@ func testBootstrap_ReprocessRoots(t *testing.T, lastDecidedFrame, sealingFrame, 
 	}); err != nil {
 		t.Fatal(err)
 	}
-	roots := make([]*consensustest.TestEvent, numFrames)
-	roots[0] = prepareTestRoot(t, engine, eventSource, 0, nodes[0], consensus.EventHashes{})
-	for i := 1; i < len(roots); i++ {
-		roots[i] = prepareTestRoot(t, engine, eventSource, i, nodes[0], consensus.EventHashes{roots[i-1].ID()})
+	bases := make([]*consensustest.TestEvent, numFrames)
+	bases[0] = prepareTestBase(t, engine, eventSource, 0, nodes[0], consensus.EventHashes{})
+	for i := 1; i < len(bases); i++ {
+		bases[i] = prepareTestBase(t, engine, eventSource, i, nodes[0], consensus.EventHashes{bases[i-1].ID()})
 	}
 	if err := engine.bootstrapElection(); err != nil {
 		t.Fatal(err)
@@ -87,9 +87,9 @@ func testBootstrap_ReprocessRoots(t *testing.T, lastDecidedFrame, sealingFrame, 
 	}
 }
 
-// prepareTestRoot creates, indexes and persists frame roots
-// we omit root elections to simulate a mid-epoch bootstrap scenario
-func prepareTestRoot(
+// prepareTestBase creates, indexes and persists frame bases
+// we omit base elections to simulate a mid-epoch bootstrap scenario
+func prepareTestBase(
 	t *testing.T,
 	lachesis *IndexedLachesis,
 	eventSource *consensustest.TestEventSource,
@@ -97,16 +97,16 @@ func prepareTestRoot(
 	validatorID consensus.ValidatorID,
 	parents consensus.EventHashes,
 ) *consensustest.TestEvent {
-	root := &consensustest.TestEvent{}
-	root.SetCreator(validatorID)
-	root.SetID([24]byte{byte(enumeration)})
-	root.SetFrame(consensus.Frame(enumeration + 1))
-	root.SetSeq(consensus.Seq(enumeration + 1))
-	root.SetParents(parents)
-	eventSource.SetEvent(root)
-	if err := lachesis.DagIndexer.Add(root); err != nil {
+	base := &consensustest.TestEvent{}
+	base.SetCreator(validatorID)
+	base.SetID([24]byte{byte(enumeration)})
+	base.SetFrame(consensus.Frame(enumeration + 1))
+	base.SetSeq(consensus.Seq(enumeration + 1))
+	base.SetParents(parents)
+	eventSource.SetEvent(base)
+	if err := lachesis.DagIndexer.Add(base); err != nil {
 		t.Fatal(err)
 	}
-	lachesis.store.AddRoot(root)
-	return root
+	lachesis.store.AddBase(base)
+	return base
 }

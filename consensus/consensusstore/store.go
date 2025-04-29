@@ -37,12 +37,12 @@ type Store struct {
 	cache struct {
 		LastDecidedState *LastDecidedState
 		EpochState       *EpochState
-		FrameRoots       *simplewlru.Cache `cache:"-"` // store by pointer
+		FrameBases       *simplewlru.Cache `cache:"-"` // store by pointer
 	}
 
 	EpochDB    kvdb.Store
 	EpochTable struct {
-		Roots          kvdb.Store `table:"r"`
+		Bases          kvdb.Store `table:"r"`
 		VectorIndex    kvdb.Store `table:"v"`
 		ConfirmedEvent kvdb.Store `table:"C"`
 	}
@@ -71,7 +71,7 @@ func NewStore(mainDB kvdb.Store, getDB EpochDBProducer, crit func(error), cfg St
 }
 
 func (s *Store) initCache() {
-	s.cache.FrameRoots = s.makeCache(s.cfg.Cache.RootsNum, s.cfg.Cache.RootsFrames)
+	s.cache.FrameBases = s.makeCache(s.cfg.Cache.BasesNum, s.cfg.Cache.BasesFrames)
 }
 
 // NewMemStore creates store over memory map.
@@ -126,7 +126,7 @@ func (s *Store) DropEpochDB() error {
 // OpenEpochDB makes new epoch DB
 func (s *Store) OpenEpochDB(n consensus.Epoch) error {
 	// Clear full LRU cache.
-	s.cache.FrameRoots.Purge()
+	s.cache.FrameBases.Purge()
 
 	s.EpochDB = s.GetEpochDB(n)
 	table.MigrateTables(&s.EpochTable, s.EpochDB)

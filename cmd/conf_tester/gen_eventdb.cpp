@@ -319,25 +319,25 @@ int EventDbGenerator::process(int argc, char *argv[]) {
         cout << "Frame number of event (" << producer << "," << seq_num << ")"
              << " is " << fnum << " in algorithm." << endl;
         cout << "Event file expects frame number " << frame_id << endl;
-        l.dump(producer, "root_failure");
+        l.dump(producer, "base_failure");
         throw std::exception();
       }
 
       // update frame vector and print when new frame appears
       if (frame_vector[producer] != frame_id) {
         frame_vector[producer] = frame_id;
-        if (!l.is_frame_root(producer, make_pair(producer, seq_num))) {
-          cout << "; Event file classifies event as a frame root in frame "
+        if (!l.is_frame_base(producer, make_pair(producer, seq_num))) {
+          cout << "; Event file classifies event as a frame base in frame "
                << frame_id;
-          cout << " (is not a frame root in the algorithm!)" << endl;
-          l.dump(producer, "root_failure");
+          cout << " (is not a frame base in the algorithm!)" << endl;
+          l.dump(producer, "base_failure");
           throw std::exception();
         }
       } else {
-        if (l.is_frame_root(producer, make_pair(producer, seq_num))) {
-          cout << "; Algorithm classifies event as a frame root" << frame_id;
-          cout << " (is not a frame root in the event file!)" << endl;
-          l.dump(producer, "root_failure");
+        if (l.is_frame_base(producer, make_pair(producer, seq_num))) {
+          cout << "; Algorithm classifies event as a frame base" << frame_id;
+          cout << " (is not a frame base in the event file!)" << endl;
+          l.dump(producer, "base_failure");
           throw std::exception();
         }
       }
