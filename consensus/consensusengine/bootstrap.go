@@ -35,7 +35,7 @@ func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 	if p.callback.EpochDBLoaded != nil {
 		p.callback.EpochDBLoaded(p.store.GetEpoch())
 	}
-	p.election = NewElection(p.store.GetLastDecidedFrame()+1, p.store.GetValidators(), p.dagIndex.ForklessCause, p.store.GetFrameRoots)
+	p.election = NewElection(p.store.GetLastDecidedFrame()+1, p.store.GetValidators(), p.dagIndex.ForklessCause, p.store.GetFrameBases)
 
 	// events reprocessing
 	err = p.bootstrapElection()

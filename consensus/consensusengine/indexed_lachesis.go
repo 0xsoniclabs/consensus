@@ -43,7 +43,7 @@ func NewIndexedLachesis(store *consensusstore.Store, input EventSource, dagIndex
 	return p
 }
 
-// Build fills consensus-related fields: Frame, IsRoot
+// Build fills consensus-related fields: Frame, IsBase
 // returns error if event should be dropped
 func (p *IndexedLachesis) Build(e consensus.MutableEvent) error {
 	e.SetID(p.uniqueDirtyID.sample())

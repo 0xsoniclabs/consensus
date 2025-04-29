@@ -5032,7 +5032,7 @@ namespace Catch {
 } // namespace Catch
 
 ///////////////////////////////////////////////////////////////////////////////
-#define OC_MAKE_UNIQUE_NAME( root, uniqueSuffix ) root##uniqueSuffix
+#define OC_MAKE_UNIQUE_NAME( base, uniqueSuffix ) base##uniqueSuffix
 #define OC_TEST_CASE2( name, desc, uniqueSuffix ) \
 +(NSString*) OC_MAKE_UNIQUE_NAME( Catch_Name_test_, uniqueSuffix ) \
 { \
@@ -5879,9 +5879,9 @@ namespace Catch {
             SectionStats incompleteStats( sectionInfo, Counts(), 0, false );
             std::shared_ptr<SectionNode> node;
             if( m_sectionStack.empty() ) {
-                if( !m_rootSection )
-                    m_rootSection = std::make_shared<SectionNode>( incompleteStats );
-                node = m_rootSection;
+                if( !m_baseSection )
+                    m_baseSection = std::make_shared<SectionNode>( incompleteStats );
+                node = m_baseSection;
             }
             else {
                 SectionNode& parentNode = *m_sectionStack.back();
@@ -5923,9 +5923,9 @@ namespace Catch {
         void testCaseEnded(TestCaseStats const& testCaseStats) override {
             auto node = std::make_shared<TestCaseNode>(testCaseStats);
             assert(m_sectionStack.size() == 0);
-            node->children.push_back(m_rootSection);
+            node->children.push_back(m_baseSection);
             m_testCases.push_back(node);
-            m_rootSection.reset();
+            m_baseSection.reset();
 
             assert(m_deepestSection);
             m_deepestSection->stdOut = testCaseStats.stdOut;
@@ -5955,7 +5955,7 @@ namespace Catch {
 
         std::vector<std::shared_ptr<TestRunNode>> m_testRuns;
 
-        std::shared_ptr<SectionNode> m_rootSection;
+        std::shared_ptr<SectionNode> m_baseSection;
         std::shared_ptr<SectionNode> m_deepestSection;
         std::vector<std::shared_ptr<SectionNode>> m_sectionStack;
         ReporterPreferences m_reporterPrefs;
@@ -6352,7 +6352,7 @@ namespace Catch {
         void writeTestCase(TestCaseNode const& testCaseNode);
 
         void writeSection( std::string const& className,
-                           std::string const& rootName,
+                           std::string const& baseName,
                            SectionNode const& sectionNode,
                            bool testOkToFail );
 
@@ -7534,7 +7534,7 @@ namespace TestCaseTracking {
             CompletedCycle
         };
 
-        ITrackerPtr m_rootTracker;
+        ITrackerPtr m_baseTracker;
         ITracker* m_currentTracker = nullptr;
         RunState m_runState = NotStarted;
 
@@ -12666,7 +12666,7 @@ namespace Catch {
                         parent = &( parent->parent() );
                     }
                     assert( parent &&
-                            "Missing root (test case) level section" );
+                            "Missing base (test case) level section" );
 
                     auto const& parentSection =
                         static_cast<SectionTracker&>( *parent );
@@ -12750,9 +12750,9 @@ namespace Catch {
 
         m_activeTestCase = &testCase;
 
-        ITracker& rootTracker = m_trackerContext.startRun();
-        assert(rootTracker.isSectionTracker());
-        static_cast<SectionTracker&>(rootTracker).addInitialFilters(m_config->getSectionsToRun());
+        ITracker& baseTracker = m_trackerContext.startRun();
+        assert(baseTracker.isSectionTracker());
+        static_cast<SectionTracker&>(baseTracker).addInitialFilters(m_config->getSectionsToRun());
         do {
             m_trackerContext.startCycle();
             m_testCaseTracker = &SectionTracker::acquire(m_trackerContext, TestCaseTracking::NameAndLocation(testInfo.name, testInfo.lineInfo));
@@ -14369,20 +14369,20 @@ namespace TestCaseTracking {
     ITracker::~ITracker() = default;
 
     ITracker& TrackerContext::startRun() {
-        m_rootTracker = std::make_shared<SectionTracker>( NameAndLocation( "{root}", CATCH_INTERNAL_LINEINFO ), *this, nullptr );
+        m_baseTracker = std::make_shared<SectionTracker>( NameAndLocation( "{base}", CATCH_INTERNAL_LINEINFO ), *this, nullptr );
         m_currentTracker = nullptr;
         m_runState = Executing;
-        return *m_rootTracker;
+        return *m_baseTracker;
     }
 
     void TrackerContext::endRun() {
-        m_rootTracker.reset();
+        m_baseTracker.reset();
         m_currentTracker = nullptr;
         m_runState = NotStarted;
     }
 
     void TrackerContext::startCycle() {
-        m_currentTracker = m_rootTracker.get();
+        m_currentTracker = m_baseTracker.get();
         m_runState = Executing;
     }
     void TrackerContext::completeCycle() {
@@ -14434,7 +14434,7 @@ namespace TestCaseTracking {
             : nullptr;
     }
     ITracker& TrackerBase::parent() {
-        assert( m_parent ); // Should always be non-null except for root
+        assert( m_parent ); // Should always be non-null except for base
         return *m_parent;
     }
 
@@ -14556,7 +14556,7 @@ namespace TestCaseTracking {
     void SectionTracker::addInitialFilters( std::vector<std::string> const& filters ) {
         if( !filters.empty() ) {
             m_filters.reserve( m_filters.size() + filters.size() + 2 );
-            m_filters.emplace_back(""); // Root - should never be consulted
+            m_filters.emplace_back(""); // Base - should never be consulted
             m_filters.emplace_back(""); // Test Case - not a section filter
             m_filters.insert( m_filters.end(), filters.begin(), filters.end() );
         }
@@ -16953,7 +16953,7 @@ namespace Catch {
         // All test cases have exactly one section - which represents the
         // test case itself. That section may have 0-n nested sections
         assert( testCaseNode.children.size() == 1 );
-        SectionNode const& rootSection = *testCaseNode.children.front();
+        SectionNode const& baseSection = *testCaseNode.children.front();
 
         std::string className = stats.testInfo.className;
 
@@ -16966,16 +16966,16 @@ namespace Catch {
         if ( !m_config->name().empty() )
             className = m_config->name() + "." + className;
 
-        writeSection( className, "", rootSection, stats.testInfo.okToFail() );
+        writeSection( className, "", baseSection, stats.testInfo.okToFail() );
     }
 
     void JunitReporter::writeSection( std::string const& className,
-                                      std::string const& rootName,
+                                      std::string const& baseName,
                                       SectionNode const& sectionNode,
                                       bool testOkToFail) {
         std::string name = trim( sectionNode.stats.sectionInfo.name );
-        if( !rootName.empty() )
-            name = rootName + '/' + name;
+        if( !baseName.empty() )
+            name = baseName + '/' + name;
 
         if( !sectionNode.assertions.empty() ||
             !sectionNode.stdOut.empty() ||
@@ -16983,7 +16983,7 @@ namespace Catch {
             XmlWriter::ScopedElement e = xml.scopedElement( "testcase" );
             if( className.empty() ) {
                 xml.writeAttribute( "classname", name );
-                xml.writeAttribute( "name", "root" );
+                xml.writeAttribute( "name", "base" );
             }
             else {
                 xml.writeAttribute( "classname", className );

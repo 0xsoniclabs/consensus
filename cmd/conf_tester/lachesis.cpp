@@ -35,9 +35,9 @@ string Lachesis::event_to_string(t_event e) {
   return stream.str();
 }
 
-bool Lachesis::is_frame_root(t_proc pid, t_event event) {
-  for (t_frame frame = 0; frame < (t_frame)frame_roots[pid].size(); frame++) {
-    for (const auto &e : frame_roots[pid][frame]) {
+bool Lachesis::is_frame_base(t_proc pid, t_event event) {
+  for (t_frame frame = 0; frame < (t_frame)frame_bases[pid].size(); frame++) {
+    for (const auto &e : frame_bases[pid][frame]) {
       if (e == event) {
         return true;
       }
@@ -72,7 +72,7 @@ void Lachesis::dump(t_proc pid, string filename) {
       if (frame_idx[pid][t_event(i, j)] >= 4) {
         os << "node_" << i << "_" << j << " [pos=\"" << i << "," << j
            << "\", label=\"" << i << "," << j << "\"";
-        if (is_frame_root(pid, t_event(i, j))) {
+        if (is_frame_base(pid, t_event(i, j))) {
           if (is_atropos(pid, t_event(i, j))) {
             os << ", color=green";
           } else {
@@ -207,17 +207,17 @@ void Lachesis::check_atropos(t_proc pid, t_event atropos) {
 }
 
 void Lachesis::check_frame(t_frame frame, t_event new_event) {
-  // check that roots are consistent among processors
+  // check that bases are consistent among processors
   for (t_proc i = 0; i < num_processors; i++) {
-    if (frame < (t_frame)frame_roots[i].size()) {
-      for (t_event root : frame_roots[i][frame]) {
-        if (new_event.first == root.first && new_event.second != root.second) {
-          cout << "; New root selection "
+    if (frame < (t_frame)frame_bases[i].size()) {
+      for (t_event base : frame_bases[i][frame]) {
+        if (new_event.first == base.first && new_event.second != base.second) {
+          cout << "; New base selection "
                << "(" << new_event.first << "," << new_event.second << ")";
           cout << " of frame " << frame << " diverges from processor " << i
                << " (and may others)."
-               << " They have already selected root (" << root.first << ","
-               << root.second << ")" << endl;
+               << " They have already selected base (" << base.first << ","
+               << base.second << ")" << endl;
           dump(new_event.first, "failure.dot");
           exit(1);
         }
@@ -288,7 +288,7 @@ bool Lachesis::forkless_cause(t_event a, t_event b) {
 /////////////////////////////////////////////////////////////////////////////
 
 void Lachesis::update_frame_atropos(t_proc pid, t_event new_event) {
-  // update frame state and check whether new event is a root event. Select legacy calculation if reuqired
+  // update frame state and check whether new event is a base event. Select legacy calculation if reuqired
   bool is_frame_updated = is_legacy_frame_calc ? update_frame_legacy(pid, new_event) : update_frame(pid, new_event);
 
   if (is_frame_updated) {
@@ -302,14 +302,14 @@ void Lachesis::choose_atropos(t_proc pid) {
   for (int i = 0; i < num_processors; i++) {
     t_proc j = sorted_pid[i];
     // check if processor has been decided
-    if (root_decision[pid][frame].count(j) > 0) {
+    if (base_decision[pid][frame].count(j) > 0) {
       // is it a elgible candidate
-      if (root_decision[pid][frame][j]) {
+      if (base_decision[pid][frame][j]) {
         // select atropos
         const auto &it = find_if(
-            frame_roots[pid][frame].begin(), frame_roots[pid][frame].end(),
+            frame_bases[pid][frame].begin(), frame_bases[pid][frame].end(),
             [&](t_event atropos) { return (atropos.first == j); });
-        assert(it != frame_roots[pid][frame].end() &&
+        assert(it != frame_bases[pid][frame].end() &&
                "Atropos decided but not found in frame");
 
         t_event atropos = *it;
@@ -320,9 +320,9 @@ void Lachesis::choose_atropos(t_proc pid) {
         cout << ";Setting atropos " << event_to_string(atropos)
              << " in processor " << pid << endl;
 
-        // clear root_decision and voting data structure of the frame
+        // clear base_decision and voting data structure of the frame
         // since it is no longer needed.
-        root_decision[pid].erase(frame);
+        base_decision[pid].erase(frame);
         votes[pid][frame].clear();
 
         // advance decided frame view of a processor and exit
@@ -337,65 +337,65 @@ void Lachesis::choose_atropos(t_proc pid) {
   }
 }
 
-void Lachesis::perform_aggregation(t_proc pid, t_event new_root) {
+void Lachesis::perform_aggregation(t_proc pid, t_event new_base) {
   for (t_frame frame = last_decided_frame[pid] + 1;
-       frame < frame_idx[pid][new_root] - 1; frame++) {
-    t_frame new_root_frame = frame_idx[pid][new_root];
-    assert(new_root_frame > frame && "frame overlap error");
-    assert(new_root_frame - frame > 1);
+       frame < frame_idx[pid][new_base] - 1; frame++) {
+    t_frame new_base_frame = frame_idx[pid][new_base];
+    assert(new_base_frame > frame && "frame overlap error");
+    assert(new_base_frame - frame > 1);
     for (t_proc i = 0; i < num_processors; i++) {
-      if (root_decision[pid][frame].count(i) == 0) {
+      if (base_decision[pid][frame].count(i) == 0) {
         uint64_t num_yes = 0;
         uint64_t num_no = 0;
 
-        for (const auto &root : frame_roots[pid][new_root_frame - 1]) {
-          if (forkless_cause(new_root, root)) { // Problem
-            t_proc root_proc = root.first;
-            if (votes[pid][frame][root][i]) {
-              num_yes += stake[root_proc];
+        for (const auto &base : frame_bases[pid][new_base_frame - 1]) {
+          if (forkless_cause(new_base, base)) { // Problem
+            t_proc base_proc = base.first;
+            if (votes[pid][frame][base][i]) {
+              num_yes += stake[base_proc];
             } else {
-              num_no += stake[root_proc];
+              num_no += stake[base_proc];
             }
           }
         }
-        votes[pid][frame][new_root][i] = num_yes >= num_no;
+        votes[pid][frame][new_base][i] = num_yes >= num_no;
         if (num_yes >= quorum || num_no >= quorum) {
-          root_decision[pid][frame][i] = num_yes >= num_no;
+          base_decision[pid][frame][i] = num_yes >= num_no;
         }
       }
     }
   }
 }
 
-void Lachesis::perform_voting(t_proc pid, t_event new_root) {
-  assert(last_decided_frame[pid] < frame_idx[pid][new_root] &&
+void Lachesis::perform_voting(t_proc pid, t_event new_base) {
+  assert(last_decided_frame[pid] < frame_idx[pid][new_base] &&
          "Cannot vote on a decided frame");
-  // vote on previous frame of new root event
+  // vote on previous frame of new base event
   check_procid(pid);
 
   // check validity of previous frame
-  t_frame frame = frame_idx[pid][new_root] - 1;
-  if (frame >= (t_frame)frame_roots[pid].size() || frame < 0) {
+  t_frame frame = frame_idx[pid][new_base] - 1;
+  if (frame >= (t_frame)frame_bases[pid].size() || frame < 0) {
     return;
   }
 
-  // on every root in previous we cast a vote with a true/false outcome
-  // depending whether the root can be strongly seen by the new found root.
-  for (const auto &root : frame_roots[pid][frame]) {
-    t_proc root_proc = root.first;
-    if (forkless_cause(new_root, root)) {
-      votes[pid][frame][new_root][root_proc] = true;
+  // on every base in previous we cast a vote with a true/false outcome
+  // depending whether the base can be strongly seen by the new found base.
+  for (const auto &base : frame_bases[pid][frame]) {
+    t_proc base_proc = base.first;
+    if (forkless_cause(new_base, base)) {
+      votes[pid][frame][new_base][base_proc] = true;
     } else {
-      votes[pid][frame][new_root][root_proc] = false;
+      votes[pid][frame][new_base][base_proc] = false;
     }
   }
 }
 
-void Lachesis::update_atropos(t_proc pid, t_event new_root) {
-  int round = frame_idx[pid][new_root] - last_decided_frame[pid];
+void Lachesis::update_atropos(t_proc pid, t_event new_base) {
+  int round = frame_idx[pid][new_base] - last_decided_frame[pid];
   if (round > 0) {
-    perform_voting(pid, new_root);
-    perform_aggregation(pid, new_root);
+    perform_voting(pid, new_base);
+    perform_aggregation(pid, new_base);
     choose_atropos(pid);
   }
 }
@@ -406,7 +406,7 @@ bool Lachesis::update_frame_legacy(t_proc pid, t_event new_event) {
 
   if (new_event.second <= 0) {
     frame_idx[pid][new_event] = 0;
-    insert_frame_root(pid, 0, new_event);
+    insert_frame_base(pid, 0, new_event);
     return true;
   }
 
@@ -424,7 +424,7 @@ bool Lachesis::update_frame_legacy(t_proc pid, t_event new_event) {
   frame_idx[pid][new_event] = frame;
 
   if (frame > selfparent_frame) {
-    insert_frame_root(pid, frame, new_event);
+    insert_frame_base(pid, frame, new_event);
     return true;
   } else {
     assert(frame == selfparent_frame &&
@@ -441,7 +441,7 @@ bool Lachesis::update_frame(t_proc pid, t_event new_event) {
   // If it is a genesis event, assign it frame 0.
   if (new_event.second <= 0) {
     frame_idx[pid][new_event] = 0;
-    insert_frame_root(pid, 0, new_event);
+    insert_frame_base(pid, 0, new_event);
     return true;
   }
 
@@ -459,7 +459,7 @@ bool Lachesis::update_frame(t_proc pid, t_event new_event) {
   t_frame selfparent_frame = frame_idx[pid][selfparent_event];
 
   if (result_frame != selfparent_frame) {
-    insert_frame_root(pid, result_frame, new_event);
+    insert_frame_base(pid, result_frame, new_event);
     return true;
   } else {
     assert(max_frame == result_frame &&
@@ -470,12 +470,12 @@ bool Lachesis::update_frame(t_proc pid, t_event new_event) {
 
 bool Lachesis::forkless_cause_on_quorum(t_proc pid, t_frame frame,
                                         t_event new_event) {
-  // accumulate stake of roots that forklessly cause the new event
+  // accumulate stake of bases that forklessly cause the new event
   uint64_t event_stake = 0;
-  if (frame < (t_frame)frame_roots[pid].size()) {
-    for (t_event root : frame_roots[pid][frame]) {
-      if (forkless_cause(new_event, root)) {
-        event_stake += stake[root.first];
+  if (frame < (t_frame)frame_bases[pid].size()) {
+    for (t_event base : frame_bases[pid][frame]) {
+      if (forkless_cause(new_event, base)) {
+        event_stake += stake[base.first];
       }
     }
     return event_stake >= quorum;
@@ -493,15 +493,15 @@ t_frame Lachesis::get_max_parent_frame(t_proc pid, t_event new_event) {
   return frame;
 }
 
-void Lachesis::insert_frame_root(t_proc pid, t_frame frame, t_event new_event) {
-  if (frame >= (t_frame)frame_roots[pid].size()) {
-    assert(frame == (t_frame)frame_roots[pid].size() && "Frame index calculation failed");
-    frame_roots[pid].resize(frame + 1);
+void Lachesis::insert_frame_base(t_proc pid, t_frame frame, t_event new_event) {
+  if (frame >= (t_frame)frame_bases[pid].size()) {
+    assert(frame == (t_frame)frame_bases[pid].size() && "Frame index calculation failed");
+    frame_bases[pid].resize(frame + 1);
   }
   cout << ";FR " << pid << " " << frame << " " << new_event.first << " "
        << new_event.second << endl;
-  frame_roots[pid][frame].insert(new_event);
-  // check root consistency
+  frame_bases[pid][frame].insert(new_event);
+  // check base consistency
   check_frame(frame, new_event);
 }
 
@@ -556,7 +556,7 @@ void Lachesis::create_event(t_proc producer,
   // check newly created event
   check_event(new_event);
 
-  // update roots of producer
+  // update bases of producer
   update_frame_atropos(producer, new_event);
 
   // dump state transition
@@ -625,7 +625,7 @@ void Lachesis::receive_event(t_proc receiver, t_proc sender) {
     // output new received event
     cout << "R " << receiver << " " << sender << endl;
 
-    // update roots of receiver
+    // update bases of receiver
     update_frame_atropos(receiver, new_event);
 
     // dump state transition
@@ -661,8 +661,8 @@ Lachesis::Lachesis(int n, vector<uint64_t> s, bool legacy)
   head_seqnum.resize(num_processors);
   frame_idx.resize(num_processors);
   votes.resize(num_processors);
-  frame_roots.resize(num_processors);
-  root_decision.resize(num_processors);
+  frame_bases.resize(num_processors);
+  base_decision.resize(num_processors);
   votes.resize(num_processors);
   sorted_pid.resize(num_processors);
 
@@ -677,7 +677,7 @@ Lachesis::Lachesis(int n, vector<uint64_t> s, bool legacy)
          return (stake[a] > stake[b] || (stake[a] == stake[b] && a < b));
        });
 
-  // initialise head_seqnum, frame_idx, roots, parents, and descendants state
+  // initialise head_seqnum, frame_idx, bases, parents, and descendants state
   for (t_proc i = 0; i < num_processors; i++) {
     // setting the sequence numbers of the most recent event
     // for all processors to the sequence number of the genesis

@@ -4,9 +4,9 @@ import "github.com/0xsoniclabs/cacheutils/cachescale"
 
 // StoreCacheConfig is a cache config for store db.
 type StoreCacheConfig struct {
-	// Cache size for Roots.
-	RootsNum    uint
-	RootsFrames int
+	// Cache size for Bases.
+	BasesNum    uint
+	BasesFrames int
 }
 
 // StoreConfig is a config for store db.
@@ -18,8 +18,8 @@ type StoreConfig struct {
 func DefaultStoreConfig(scale cachescale.Func) StoreConfig {
 	return StoreConfig{
 		StoreCacheConfig{
-			RootsNum:    scale.U(1000),
-			RootsFrames: scale.I(100),
+			BasesNum:    scale.U(1000),
+			BasesFrames: scale.I(100),
 		},
 	}
 }

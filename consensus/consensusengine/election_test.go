@@ -37,10 +37,10 @@ type (
 type testExpected struct {
 	DecidedFrame   consensus.Frame
 	DecidedAtropos string
-	DecisiveRoots  map[string]bool
+	DecisiveBases  map[string]bool
 }
 
-func TestProcessRoot(t *testing.T) {
+func TestProcessBase(t *testing.T) {
 	t.Run("4 equalWeights notDecided", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			nil,
@@ -70,7 +70,7 @@ func TestProcessRoot(t *testing.T) {
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "c1_1",
-				DecisiveRoots:  map[string]bool{"a3_3": true},
+				DecisiveBases:  map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -93,12 +93,12 @@ func TestProcessRoot(t *testing.T) {
 			`, map[string]string{"c1_1": "c1_1_fork"})
 	})
 
-	t.Run("4 equalWeights missingRoot", func(t *testing.T) {
+	t.Run("4 equalWeights missingBase", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "c1_1",
-				DecisiveRoots:  map[string]bool{"a3_3": true},
+				DecisiveBases:  map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -124,7 +124,7 @@ func TestProcessRoot(t *testing.T) {
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "a1_1",
-				DecisiveRoots:  map[string]bool{"b3_3": true},
+				DecisiveBases:  map[string]bool{"b3_3": true},
 			},
 			weights{
 				"nodeA": math.MaxUint32/2 - 3,
@@ -152,7 +152,7 @@ func TestProcessRoot(t *testing.T) {
 			&testExpected{
 				DecidedFrame:   1,
 				DecidedAtropos: "a1_1",
-				DecisiveRoots:  map[string]bool{"c3_3": true, "b3_3": true},
+				DecisiveBases:  map[string]bool{"c3_3": true, "b3_3": true},
 			},
 			weights{
 				"nodeA": 4,
@@ -213,7 +213,7 @@ type slot struct {
 
 type testState struct {
 	ordered    consensustest.TestEvents
-	frameRoots map[consensus.Frame][]consensusstore.RootDescriptor
+	frameBases map[consensus.Frame][]consensusstore.BaseDescriptor
 	vertices   map[consensus.EventHash]slot
 	edges      map[fakeEdge]bool
 }
@@ -230,20 +230,20 @@ func testVoteAndAggregate(
 
 	state := testState{
 		ordered:    make(consensustest.TestEvents, 0),
-		frameRoots: make(map[consensus.Frame][]consensusstore.RootDescriptor),
+		frameBases: make(map[consensus.Frame][]consensusstore.BaseDescriptor),
 		vertices:   make(map[consensus.EventHash]slot),
 		edges:      make(map[fakeEdge]bool),
 	}
 
 	nodes, _, _ := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
-		Process: func(_root consensus.Event, name string) {
-			root := _root.(*consensustest.TestEvent)
-			indexTestEvent(&state, root, false)
-			if forkedRootName, ok := forks[name]; ok {
-				forkedRoot := *root
-				forkedRoot.Name = forkedRootName
-				forkedRoot.SetID(consensustest.CalcHashForTestEvent(&forkedRoot))
-				indexTestEvent(&state, &forkedRoot, true)
+		Process: func(_base consensus.Event, name string) {
+			base := _base.(*consensustest.TestEvent)
+			indexTestEvent(&state, base, false)
+			if forkedBaseName, ok := forks[name]; ok {
+				forkedBase := *base
+				forkedBase.Name = forkedBaseName
+				forkedBase.SetID(consensustest.CalcHashForTestEvent(&forkedBase))
+				indexTestEvent(&state, &forkedBase, true)
 			}
 		},
 	})
@@ -265,8 +265,8 @@ func testVoteAndAggregate(
 		}
 		return state.edges[edge]
 	}
-	getFrameRootsFn := func(f consensus.Frame) []consensusstore.RootDescriptor {
-		return state.frameRoots[f]
+	getFrameBasesFn := func(f consensus.Frame) []consensusstore.BaseDescriptor {
+		return state.frameBases[f]
 	}
 
 	// re-order events randomly, preserving parents order
@@ -276,22 +276,22 @@ func testVoteAndAggregate(
 	}
 	state.ordered = unordered.ByParents()
 
-	election := NewElection(consensus.FirstFrame, validators, forklessCauseFn, getFrameRootsFn)
+	election := NewElection(consensus.FirstFrame, validators, forklessCauseFn, getFrameBasesFn)
 
 	// processing:
-	for _, root := range state.ordered {
-		rootHash := root.ID()
-		rootSlot, ok := state.vertices[rootHash]
+	for _, base := range state.ordered {
+		baseHash := base.ID()
+		baseSlot, ok := state.vertices[baseHash]
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		atropoi, err := election.VoteAndAggregate(rootSlot.frame, rootSlot.validatorID, rootHash)
+		atropoi, err := election.VoteAndAggregate(baseSlot.frame, baseSlot.validatorID, baseHash)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// checking:
-		decisive := expected != nil && expected.DecisiveRoots[root.ID().String()]
+		decisive := expected != nil && expected.DecisiveBases[base.ID().String()]
 		if decisive {
 			assertar.NotNil(atropoi)
 			assertar.NotEmpty(atropoi)
@@ -313,29 +313,29 @@ func frameOf(dsc string) consensus.Frame {
 	return consensus.Frame(h)
 }
 
-func indexTestEvent(state *testState, root *consensustest.TestEvent, isFork bool) {
-	state.ordered = append(state.ordered, root)
+func indexTestEvent(state *testState, base *consensustest.TestEvent, isFork bool) {
+	state.ordered = append(state.ordered, base)
 	slt := slot{
-		frame:       frameOf(root.Name),
-		validatorID: root.Creator(),
+		frame:       frameOf(base.Name),
+		validatorID: base.Creator(),
 	}
-	state.vertices[root.ID()] = slt
-	hsh := root.ID()
-	state.frameRoots[frameOf(root.Name)] = append(
-		state.frameRoots[frameOf(root.Name)],
-		consensusstore.RootDescriptor{
-			RootHash:    hsh,
+	state.vertices[base.ID()] = slt
+	hsh := base.ID()
+	state.frameBases[frameOf(base.Name)] = append(
+		state.frameBases[frameOf(base.Name)],
+		consensusstore.BaseDescriptor{
+			BaseHash:    hsh,
 			ValidatorID: slt.validatorID,
 		},
 	)
 	if !isFork {
 		noPrev := false
-		if strings.HasPrefix(root.Name, "+") {
+		if strings.HasPrefix(base.Name, "+") {
 			noPrev = true
 		}
-		from := root.ID()
-		for _, observed := range root.Parents() {
-			if root.IsSelfParent(observed) && noPrev {
+		from := base.ID()
+		for _, observed := range base.Parents() {
+			if base.IsSelfParent(observed) && noPrev {
 				continue
 			}
 			to := observed
@@ -346,11 +346,11 @@ func indexTestEvent(state *testState, root *consensustest.TestEvent, isFork bool
 			state.edges[edge] = true
 		}
 	} else {
-		selfParent := root.SelfParent()
+		selfParent := base.SelfParent()
 		if selfParent != nil {
-			root.SetParents(consensus.EventHashes{*selfParent})
+			base.SetParents(consensus.EventHashes{*selfParent})
 		} else {
-			root.SetParents(consensus.EventHashes{})
+			base.SetParents(consensus.EventHashes{})
 		}
 	}
 }
