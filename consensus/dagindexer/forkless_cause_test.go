@@ -799,6 +799,174 @@ func TestRandomForks(t *testing.T) {
 	}
 }
 
+func forklessCauseProgressAux(dagAscii string) (*Index, map[string]consensus.Event) {
+	nodes, _, _ := consensustest.ASCIIschemeToDAG(dagAscii)
+	validators := consensus.EqualWeightValidators(nodes, 1)
+
+	events := make(map[consensus.EventHash]consensus.Event)
+	getEvent := func(id consensus.EventHash) consensus.Event {
+		return events[id]
+	}
+
+	vi := NewIndex(tCrit, LiteConfig())
+	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
+
+	_, _, named := consensustest.ASCIIschemeForEach(dagAscii, consensustest.ForEachEvent{
+		Process: func(e consensus.Event, name string) {
+			events[e.ID()] = e
+			err := vi.Add(e)
+			if err != nil {
+				panic(err)
+			}
+			vi.Flush()
+		},
+	})
+
+	return vi, named
+}
+
+// Never get quorum on a cheater validator.
+func TestForklessCauseProgressCheater(t *testing.T) {
+	dagAscii := `
+		b00
+		║       ║
+		║       c00
+		║       ║
+		b01═════╣
+		║       ║
+		╠══════ c02
+		║       ║
+		b02═════╣
+		║       ║
+		╠══════ c04
+		║       ║       ║
+		║       ║       a00
+		║3      ║       ║
+		║╚═════─╫─═════ a01
+		║      3║       ║
+		║      ╚ c01════╣ // fork
+		║║      ║       ║
+		║╚══════╬══════ a02
+		║      3║       ║
+		║      ╚ c03════╣ // fork
+		║       ║       ║
+		╠═══════╬══════ a03
+	`
+
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := forklessCauseProgressAux(dagAscii)
+
+	candidates := []consensus.EventHash{named["b02"].ID()}
+	chosen := []consensus.EventHash{named["a02"].ID()}
+
+	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a03"].ID(), named["c02"].ID(), candidates, chosen)
+
+	assertar.False(chosenRes.HasQuorum())
+	for _, c := range candidatesRes {
+		assertar.False(c.HasQuorum())
+	}
+}
+
+// Only globally seen fork. However, this function does not support those properly, as it has
+// little incentive to do so.
+func TestForklessCauseProgressOnlyGloballySeenFork(t *testing.T) {
+	dagAscii := `
+		a00           b00            c00
+		║             ║              ║
+		║             ║              ║
+		║             ╠              c11
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ╠              ║
+		║             ║              ║
+		║             ║              c12
+		║             ║             3║
+		║             ╠             ╚ c01
+		║             ║              ║
+		╠             b01            ╣
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		a01           ╣              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║ 
+		║             ║              ║
+	`
+
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := forklessCauseProgressAux(dagAscii)
+
+	chosenRes, candidatesRes := vi.ForklessCauseProgress(named["a01"].ID(), named["c00"].ID(),
+		[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
+	assertar.True(chosenRes.HasQuorum())
+	// NOTE!!! if the logic supported fork seen only globally, this would be false!
+	// This is not a concern at the moment, since it does not impede the method's use case.
+	assertar.True(candidatesRes[0].HasQuorum())
+}
+
+// Checks panic on missing events.
+func TestForklessCauseProgressEventMissing(t *testing.T) {
+	dagAscii := `
+		a00           b00            c00
+		║             ║              ║
+		║             ║              ║
+		║             ╠              c11
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ╠              ║
+		║             ║              ║
+		║             ║              c12
+		║             ║             3║
+		║             ╠             ╚ c01
+		║             ║              ║
+		╠             b01            ╣
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		a01           ╣              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║
+		║             ║              ║ 
+		║             ║              ║
+	`
+
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := forklessCauseProgressAux(dagAscii)
+
+	missing := consensus.EventHash([]byte("missingmissingmissingmissingmiss"))
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(missing, named["c00"].ID(),
+			[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
+	})
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(named["a01"].ID(), missing,
+			[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
+	})
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(named["a01"].ID(), named["c00"].ID(),
+			[]consensus.EventHash{missing}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
+	})
+	assertar.Panics(func() {
+		vi.ForklessCauseProgress(named["a01"].ID(), named["c00"].ID(),
+			[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), missing})
+	})
+}
+
 /*
 // codegen4ForklessCausedStability is for test data generation.
 func codegen4ForklessCausedStability() {
