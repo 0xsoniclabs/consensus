@@ -72,10 +72,10 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
 		return err
 	}
 
-	recalculatedAtropoi := make([]consensus.EventHash, 0)
-	// Capture the elected atropoi by planting the `applyBlock` callback (nil by default)
+	recalculatedLeaders := make([]consensus.EventHash, 0)
+	// Capture the elected leaders by planting the `applyBlock` callback (nil by default)
 	testLachesis.applyBlock = func(block *consensus.Block) *consensus.Validators {
-		recalculatedAtropoi = append(recalculatedAtropoi, block.Atropos)
+		recalculatedLeaders = append(recalculatedLeaders, block.Leader)
 		return nil
 	}
 
@@ -83,16 +83,16 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
 		return err
 	}
 
-	expectedAtropoi, err := getAtropoi(conn, epoch)
+	expectedLeaders, err := getLeaders(conn, epoch)
 	if err != nil {
 		return err
 	}
-	if want, got := len(expectedAtropoi), len(recalculatedAtropoi); want > got {
-		return fmt.Errorf("incorrect number of atropoi recalculated for epoch %d, expected at least: %d, got: %d", epoch, want, got)
+	if want, got := len(expectedLeaders), len(recalculatedLeaders); want > got {
+		return fmt.Errorf("incorrect number of leaders recalculated for epoch %d, expected at least: %d, got: %d", epoch, want, got)
 	}
-	for idx := range expectedAtropoi {
-		if want, got := expectedAtropoi[idx], recalculatedAtropoi[idx]; want != got {
-			return fmt.Errorf("incorrect atropos for epoch %d on position %d, expected: %s got: %s", epoch, idx, eventMap[want].String(), eventMap[got].String())
+	for idx := range expectedLeaders {
+		if want, got := expectedLeaders[idx], recalculatedLeaders[idx]; want != got {
+			return fmt.Errorf("incorrect leader for epoch %d on position %d, expected: %s got: %s", epoch, idx, eventMap[want].String(), eventMap[got].String())
 		}
 	}
 	return nil
@@ -281,7 +281,7 @@ func appointParents(conn *sql.DB, eventMap map[consensus.EventHash]*dbEvent, epo
 	return nil
 }
 
-func getAtropoi(conn *sql.DB, epoch consensus.Epoch) ([]consensus.EventHash, error) {
+func getLeaders(conn *sql.DB, epoch consensus.Epoch) ([]consensus.EventHash, error) {
 	rows, err := conn.Query(`
 		SELECT e.EventHash
 		FROM Atropos a JOIN Event e ON a.AtroposId = e.EventId
@@ -293,21 +293,21 @@ func getAtropoi(conn *sql.DB, epoch consensus.Epoch) ([]consensus.EventHash, err
 	}
 	defer closeRowsAndCombineErrors(&err, rows)
 
-	atropoi := make([]consensus.EventHash, 0)
+	leaders := make([]consensus.EventHash, 0)
 	for rows.Next() {
-		var atroposHashStr string
-		err = rows.Scan(&atroposHashStr)
+		var leaderHashStr string
+		err = rows.Scan(&leaderHashStr)
 		if err != nil {
 			return nil, err
 		}
 
-		atroposHash, err := decodeHashStr(atroposHashStr)
+		leaderHash, err := decodeHashStr(leaderHashStr)
 		if err != nil {
 			return nil, err
 		}
-		atropoi = append(atropoi, atroposHash)
+		leaders = append(leaders, leaderHash)
 	}
-	return atropoi, nil
+	return leaders, nil
 }
 
 // hashStr is in hex format, i.e. 0x1a2b3c4d...

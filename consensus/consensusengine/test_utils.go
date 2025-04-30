@@ -27,7 +27,7 @@ type BlockKey struct {
 }
 
 type BlockResult struct {
-	Atropos    consensus.EventHash
+	Leader     consensus.EventHash
 	Cheaters   consensus.Cheaters
 	Validators *consensus.Validators
 }
@@ -66,7 +66,7 @@ func NewBootstrappedCoreConsensus(
 						Frame: extended.store.GetLastDecidedFrame() + 1,
 					}
 					extended.blocks[key] = &BlockResult{
-						Atropos:    block.Atropos,
+						Leader:     block.Leader,
 						Cheaters:   block.Cheaters,
 						Validators: extended.store.GetValidators(),
 					}

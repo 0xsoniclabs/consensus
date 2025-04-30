@@ -16,11 +16,11 @@ import (
 
 // onFrameDecided moves LastDecidedFrameN to frame.
 // It includes: moving current decided frame, txs ordering and execution, epoch sealing.
-func (p *Orderer) onFrameDecided(frame consensus.Frame, atropos consensus.EventHash) (bool, error) {
+func (p *Orderer) onFrameDecided(frame consensus.Frame, leader consensus.EventHash) (bool, error) {
 	// new checkpoint
 	var newValidators *consensus.Validators
-	if p.callback.ApplyAtropos != nil {
-		newValidators = p.callback.ApplyAtropos(frame, atropos)
+	if p.callback.ApplyLeader != nil {
+		newValidators = p.callback.ApplyLeader(frame, leader)
 	}
 
 	lastDecidedState := *p.store.GetLastDecidedState()

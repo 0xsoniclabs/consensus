@@ -79,7 +79,7 @@ func (p *IndexedLachesis) Process(e consensus.Event) (err error) {
 func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error {
 	base := p.Lachesis.OrdererCallbacks()
 	ordererCallbacks := OrdererCallbacks{
-		ApplyAtropos: base.ApplyAtropos,
+		ApplyLeader: base.ApplyLeader,
 		EpochDBLoaded: func(epoch consensus.Epoch) {
 			if base.EpochDBLoaded != nil {
 				base.EpochDBLoaded(epoch)

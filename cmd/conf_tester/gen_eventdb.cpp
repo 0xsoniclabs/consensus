@@ -20,8 +20,8 @@
 
 using namespace std;
 
-// checkAtroposEvent checks whether the event is an Atropos event
-inline bool checkAtroposEvent(sqlite3 *db, int64_t event_id, int &validator_id,
+// checkLeaderEvent checks whether the event is an Leader event
+inline bool checkLeaderEvent(sqlite3 *db, int64_t event_id, int &validator_id,
                               int &seq_num) {
   bool result = false;
   sqlite3_stmt *stmt;
@@ -237,9 +237,9 @@ int EventDbGenerator::process(int argc, char *argv[]) {
   set<int64_t> processed;
   getEventList(db, epoch, unprocessed);
 
-  // vars for atropos check
-  t_event prev_atropos;
-  bool first_atropos = true;
+  // vars for leader check
+  t_event prev_leader;
+  bool first_leader = true;
 
   while (!unprocessed.empty()) {
     for (int64_t event_id : unprocessed) {
@@ -343,30 +343,30 @@ int EventDbGenerator::process(int argc, char *argv[]) {
       }
 
       // check
-      int atropos_validator = 0;
-      int atropos_seqnum = 0;
-      if (checkAtroposEvent(db, event_id, atropos_validator, atropos_seqnum)) {
-        int atropos_id = proc_map[atropos_validator];
-        atropos_seqnum--;
-        cout << "; Event file classifies event (" << atropos_id << ","
-             << atropos_seqnum << ") as atropos." << endl;
-        t_event current_atropos = make_pair(atropos_id, atropos_seqnum);
-        if (first_atropos) {
-          first_atropos = false;
-          if (!l.check_first_atropos(current_atropos)) {
-            cout << "; (1) Algorithm fails to classify event as atropos"
+      int leader_validator = 0;
+      int leader_seqnum = 0;
+      if (checkLeaderEvent(db, event_id, leader_validator, leader_seqnum)) {
+        int leader_id = proc_map[leader_validator];
+        leader_seqnum--;
+        cout << "; Event file classifies event (" << leader_id << ","
+             << leader_seqnum << ") as leader." << endl;
+        t_event current_leader = make_pair(leader_id, leader_seqnum);
+        if (first_leader) {
+          first_leader = false;
+          if (!l.check_first_leader(current_leader)) {
+            cout << "; (1) Algorithm fails to classify event as leader"
                  << endl;
             throw std::exception();
           }
         } else {
-          if (!l.check_subsequent_atropos(prev_atropos, current_atropos) &&
-              current_atropos.second != 1 && current_atropos.second != 3) {
-            cout << "; (2) Algorithm fails to classify event as atropos"
+          if (!l.check_subsequent_leader(prev_leader, current_leader) &&
+              current_leader.second != 1 && current_leader.second != 3) {
+            cout << "; (2) Algorithm fails to classify event as leader"
                  << endl;
             throw std::exception();
           }
         }
-        prev_atropos = current_atropos;
+        prev_leader = current_leader;
       }
       // mark event as process
       unprocessed.erase(event_id);

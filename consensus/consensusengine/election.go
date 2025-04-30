@@ -22,9 +22,9 @@ type (
 	GetFrameBasesFn func(f consensus.Frame) []consensusstore.BaseDescriptor
 )
 
-type atroposDecision struct {
-	Frame       consensus.Frame
-	AtroposHash consensus.EventHash
+type leaderDecision struct {
+	Frame      consensus.Frame
+	LeaderHash consensus.EventHash
 }
 
 type baseVoteContext struct {
@@ -42,8 +42,8 @@ type election struct {
 	validatorIDMap map[consensus.ValidatorID]consensus.ValidatorIndex
 	validatorCount consensus.Frame
 
-	atroposDeliveryBuffer *atroposHeap
-	frameToDeliver        consensus.Frame
+	leaderDeliveryBuffer *leaderHeap
+	frameToDeliver       consensus.Frame
 }
 
 func NewElection(
@@ -62,7 +62,7 @@ func NewElection(
 }
 
 func (el *election) ResetEpoch(frameToDeliver consensus.Frame, validators *consensus.Validators) {
-	el.atroposDeliveryBuffer = NewAtroposHeap()
+	el.leaderDeliveryBuffer = NewLeaderHeap()
 	el.frameToDeliver = frameToDeliver
 	el.validators = validators
 	el.vote = make(map[consensus.Frame][]map[consensus.EventHash]*baseVoteContext)
@@ -74,11 +74,11 @@ func (el *election) VoteAndAggregate(
 	frame consensus.Frame,
 	validatorId consensus.ValidatorID,
 	baseHash consensus.EventHash,
-) ([]*atroposDecision, error) {
+) ([]*leaderDecision, error) {
 	validatorIdx := el.validatorIDMap[validatorId]
 	el.prepareNewElectorBase(frame, validatorIdx, baseHash)
 	if frame <= el.frameToDeliver {
-		return []*atroposDecision{}, nil
+		return []*leaderDecision{}, nil
 	}
 
 	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
@@ -108,9 +108,9 @@ func (el *election) VoteAndAggregate(
 	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(validatorIdx)))
 	el.vote[frame][validatorIdx][baseHash].voteMatrix = aggregationMatrix
 
-	atropoi := el.atroposDeliveryBuffer.getDeliveryReadyAtropoi(el.frameToDeliver)
-	el.frameToDeliver += consensus.Frame(len(atropoi))
-	return atropoi, nil
+	leaders := el.leaderDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
+	el.frameToDeliver += consensus.Frame(len(leaders))
+	return leaders, nil
 }
 
 func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []int32, observedBasesWeight int32) {
@@ -131,8 +131,8 @@ func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []i
 			voteMatrixOffset := (frame-el.frameToDeliver)*el.validatorCount + consensus.Frame(validatorIdx)
 
 			if yesDecisions[voteMatrixOffset] {
-				atroposHash := el.elect(frame, candidateValidator)
-				heap.Push(el.atroposDeliveryBuffer, &atroposDecision{frame, atroposHash})
+				leaderHash := el.elect(frame, candidateValidator)
+				heap.Push(el.leaderDeliveryBuffer, &leaderDecision{frame, leaderHash})
 				el.cleanupDecidedFrame(frame)
 				break
 			}
@@ -144,32 +144,32 @@ func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []i
 	}
 }
 
-// elect picks the final atropos event once its frame and validator number have been finalized
+// elect picks the final leader event once its frame and validator number have been finalized
 // by the "upper frame" base votes'. This is trivial in case of non-forking events as such
 // bases are uniquely identified by (frame, validator).
 // In the case of a fork, a tiebreaker algorithm has to be run.
 func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.ValidatorID) consensus.EventHash {
 	validatorIdx := el.validatorIDMap[validatorCandidate]
 	candidateMap := el.vote[frame][validatorIdx]
-	atroposHash := consensus.EventHash{}
+	leaderHash := consensus.EventHash{}
 	for hash := range candidateMap {
-		atroposHash = hash
+		leaderHash = hash
 	}
 	// tiebreaker can simply pick the first encountered base that is forkless caused by any event.
 	// It is easiest to look for any vote (forkless cause) by frame + 1 bases.
 	// Due to forkless cause semantics, only one forkless-caused base can exist with specified frame and validator number.
 	if len(candidateMap) > 1 {
 		judgeBases := el.getFrameBases(frame + 1)
-		for atroposCandidateHash := range candidateMap {
+		for leaderCandidateHash := range candidateMap {
 			for _, judge := range judgeBases {
-				if el.forklessCauses(judge.BaseHash, atroposCandidateHash) {
-					return atroposCandidateHash
+				if el.forklessCauses(judge.BaseHash, leaderCandidateHash) {
+					return leaderCandidateHash
 				}
 			}
 		}
 	}
 
-	return atroposHash
+	return leaderHash
 }
 
 func (el *election) observedBases(base consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {

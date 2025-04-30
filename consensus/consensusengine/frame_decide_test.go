@@ -108,10 +108,10 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 
 	for i, block := range blocks {
 		frame := frames[i]
-		atropos := blocks[i].Atropos
+		leader := blocks[i].Leader
 
 		// call confirmBlock again
-		_, err := lch.onFrameDecided(frame, atropos)
+		_, err := lch.onFrameDecided(frame, leader)
 		gotBlock := lch.blocks[lch.lastBlock]
 
 		if !assertar.NoError(err) {
@@ -123,7 +123,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 		if !assertar.Equal(block.Cheaters, gotBlock.Cheaters) {
 			break
 		}
-		if !assertar.Equal(block.Atropos, gotBlock.Atropos) {
+		if !assertar.Equal(block.Leader, gotBlock.Leader) {
 			break
 		}
 	}

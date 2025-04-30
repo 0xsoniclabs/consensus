@@ -38,8 +38,8 @@ func NewLachesis(store *consensusstore.Store, input EventSource, dagIndex *dagin
 	return p
 }
 
-func (p *Lachesis) confirmEvents(frame consensus.Frame, atropos consensus.EventHash, onEventConfirmed func(consensus.Event)) error {
-	err := p.dfsSubgraph(atropos, func(e consensus.Event) bool {
+func (p *Lachesis) confirmEvents(frame consensus.Frame, leader consensus.EventHash, onEventConfirmed func(consensus.Event)) error {
+	err := p.dfsSubgraph(leader, func(e consensus.Event) bool {
 		decidedFrame := p.store.GetEventConfirmedOn(e.ID())
 		if decidedFrame != 0 {
 			return false
@@ -54,14 +54,14 @@ func (p *Lachesis) confirmEvents(frame consensus.Frame, atropos consensus.EventH
 	return err
 }
 
-func (p *Lachesis) applyAtropos(decidedFrame consensus.Frame, atropos consensus.EventHash) *consensus.Validators {
-	atroposVecClock := p.dagIndex.GetMergedHighestBefore(atropos).VSeq
+func (p *Lachesis) applyLeader(decidedFrame consensus.Frame, leader consensus.EventHash) *consensus.Validators {
+	leaderVecClock := p.dagIndex.GetMergedHighestBefore(leader).VSeq
 
 	validators := p.store.GetValidators()
 	// cheaters are ordered deterministically
 	cheaters := make([]consensus.ValidatorID, 0, validators.Len())
 	for creatorIdx, creator := range validators.SortedIDs() {
-		if atroposVecClock.Get(consensus.ValidatorIndex(creatorIdx)).IsForkDetected() {
+		if leaderVecClock.Get(consensus.ValidatorIndex(creatorIdx)).IsForkDetected() {
 			cheaters = append(cheaters, creator)
 		}
 	}
@@ -70,12 +70,12 @@ func (p *Lachesis) applyAtropos(decidedFrame consensus.Frame, atropos consensus.
 		return nil
 	}
 	blockCallback := p.callback.BeginBlock(&consensus.Block{
-		Atropos:  atropos,
+		Leader:   leader,
 		Cheaters: cheaters,
 	})
 
 	// traverse newly confirmed events
-	err := p.confirmEvents(decidedFrame, atropos, blockCallback.ApplyEvent)
+	err := p.confirmEvents(decidedFrame, leader, blockCallback.ApplyEvent)
 	if err != nil {
 		p.crit(err)
 	}
@@ -101,6 +101,6 @@ func (p *Lachesis) BootstrapWithOrderer(callback consensus.ConsensusCallbacks, o
 
 func (p *Lachesis) OrdererCallbacks() OrdererCallbacks {
 	return OrdererCallbacks{
-		ApplyAtropos: p.applyAtropos,
+		ApplyLeader: p.applyLeader,
 	}
 }
