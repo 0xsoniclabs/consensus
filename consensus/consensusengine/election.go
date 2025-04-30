@@ -113,16 +113,16 @@ func (el *election) VoteAndAggregate(
 	return atropoi, nil
 }
 
-func (el *election) decide(aggregationMatrix consensus.Frame, aggregationMatr []int32, observedBasesWeight int32) {
+func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatrix []int32, observedBasesWeight int32) {
 	// Q = ceil((4*TotalValidatorWeight - 3*observedBasesWeight)/3)
 	// numerator (Q_0) can exceed the int32 limits before division
 	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedBasesWeight)
 	Q := int32((Q_0 + 3 - 1) / 3)
-	decisionMatrix := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
-	indecisionMatrix := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
+	decisionMatrix := boolMaskInt32Vec(aggregationMatrix, func(x int32) bool { return x >= Q })
+	indecisionMatrix := boolMaskInt32Vec(aggregationMatrix, func(x int32) bool { return x <= -Q })
 
 	for frame := range el.vote {
-		if frame < el.frameToDeliver || frame >= aggregationMatrix-1 {
+		if frame < el.frameToDeliver || frame >= aggregatingFrame-1 {
 			continue
 		}
 
