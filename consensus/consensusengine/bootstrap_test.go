@@ -44,13 +44,13 @@ func testBootstrap_ReprocessBases(t *testing.T, lastDecidedFrame, sealingFrame, 
 	nodes := consensustest.GenNodes(1)
 	engine, _, eventSource, _ := NewCoreConsensus(nodes, []consensus.Weight{1})
 	engine.store.SetLastDecidedState(&consensusstore.LastDecidedState{LastDecidedFrame: lastDecidedFrame})
-	numAtropoiDelivered := consensus.Frame(0)
+	numLeadersDelivered := consensus.Frame(0)
 	if err := engine.Bootstrap(consensus.ConsensusCallbacks{
 		BeginBlock: func(block *consensus.Block) consensus.BlockCallbacks {
 			return consensus.BlockCallbacks{
 				EndBlock: func() (sealEpoch *consensus.Validators) {
-					numAtropoiDelivered++
-					if currentFrame := lastDecidedFrame + numAtropoiDelivered; currentFrame == sealingFrame {
+					numLeadersDelivered++
+					if currentFrame := lastDecidedFrame + numLeadersDelivered; currentFrame == sealingFrame {
 						return engine.election.validators
 					}
 					return nil
@@ -70,20 +70,20 @@ func testBootstrap_ReprocessBases(t *testing.T, lastDecidedFrame, sealingFrame, 
 	}
 
 	// scenario 1 - not enough frames to deliver anything (at least 2 above are necessary) i.e. numFrames < lastDecidedFrame + 2
-	expectedNumAtropoiDelivered := consensus.Frame(0)
+	expectedNumLeadersDelivered := consensus.Frame(0)
 	if numFrames >= lastDecidedFrame+2 {
 		// scenario 2 - enough frames to deliver and sealingFrame value (!= 0) provided
 		if sealingFrame != 0 {
-			expectedNumAtropoiDelivered = sealingFrame - lastDecidedFrame
+			expectedNumLeadersDelivered = sealingFrame - lastDecidedFrame
 		} else {
 			// scenario 3 - enough frames to deliver and no sealingFrame value provided
-			// implies that all frames with 2+ frames above will recieve their atropoi
+			// implies that all frames with 2+ frames above will recieve their leaders
 			// offset the expected number by -2 as last two frames don't have enough frames above to make a decision for them
-			expectedNumAtropoiDelivered = numFrames - 2 - lastDecidedFrame
+			expectedNumLeadersDelivered = numFrames - 2 - lastDecidedFrame
 		}
 	}
-	if expectedNumAtropoiDelivered != numAtropoiDelivered {
-		t.Fatalf("unexpected number of atropoi delivered, expected: %d, got: %d", expectedNumAtropoiDelivered, numAtropoiDelivered)
+	if expectedNumLeadersDelivered != numLeadersDelivered {
+		t.Fatalf("unexpected number of leaders delivered, expected: %d, got: %d", expectedNumLeadersDelivered, numLeadersDelivered)
 	}
 }
 

@@ -46,15 +46,15 @@ bool Lachesis::is_frame_base(t_proc pid, t_event event) {
   return false;
 }
 
-bool Lachesis::is_atropos(t_proc pid, t_event event) {
-  if (first_atropos == event) {
+bool Lachesis::is_leader(t_proc pid, t_event event) {
+  if (first_leader == event) {
     return true;
   } else {
-    if (atropos_chain.count(event) > 0) {
+    if (leader_chain.count(event) > 0) {
       return true;
     } else {
-      for (const auto &[prev_atropos, current_atropos] : atropos_chain) {
-        if (current_atropos == event) {
+      for (const auto &[prev_leader, current_leader] : leader_chain) {
+        if (current_leader == event) {
           return true;
         }
       }
@@ -73,7 +73,7 @@ void Lachesis::dump(t_proc pid, string filename) {
         os << "node_" << i << "_" << j << " [pos=\"" << i << "," << j
            << "\", label=\"" << i << "," << j << "\"";
         if (is_frame_base(pid, t_event(i, j))) {
-          if (is_atropos(pid, t_event(i, j))) {
+          if (is_leader(pid, t_event(i, j))) {
             os << ", color=green";
           } else {
             os << ", color=red";
@@ -154,56 +154,56 @@ void Lachesis::check_event(t_event a) {
            "Self-parent missing");
   }
 }
-bool Lachesis::check_subsequent_atropos(t_event prev_atropos,
-                                        t_event current_atropos) {
-  // if a processor has already computed more than one atropos events,
+bool Lachesis::check_subsequent_leader(t_event prev_leader,
+                                        t_event current_leader) {
+  // if a processor has already computed more than one leader events,
   // this function is checked.
 
-  // check whether the atropos chain has already the current atropos event
-  if (atropos_chain.count(prev_atropos) > 0) {
-    // we found the current atropos event in the chain
+  // check whether the leader chain has already the current leader event
+  if (leader_chain.count(prev_leader) > 0) {
+    // we found the current leader event in the chain
     // which was calculated by another processor.
-    if (atropos_chain[prev_atropos] != current_atropos) {
-      // bail out: local atropos calculation does not conform with previous
-      // atropos calculation of another processor.
-      cout << ";Expected atropos: "
-           << event_to_string(atropos_chain[prev_atropos]) << endl;
+    if (leader_chain[prev_leader] != current_leader) {
+      // bail out: local leader calculation does not conform with previous
+      // leader calculation of another processor.
+      cout << ";Expected leader: "
+           << event_to_string(leader_chain[prev_leader]) << endl;
       return false;
     }
   } else {
-    // new atropos found in the network; let's update atropos chain
-    atropos_chain[prev_atropos] = current_atropos;
+    // new leader found in the network; let's update leader chain
+    leader_chain[prev_leader] = current_leader;
   }
   return true;
 }
 
-bool Lachesis::check_first_atropos(t_event atropos) {
-  if (first_atropos != nil_event) {
-    if (first_atropos != atropos) {
-      // bail out: local atropos calculation does not conform with previous
-      // atropos calculations of other processors.
+bool Lachesis::check_first_leader(t_event leader) {
+  if (first_leader != nil_event) {
+    if (first_leader != leader) {
+      // bail out: local leader calculation does not conform with previous
+      // leader calculations of other processors.
       return false;
     }
   } else {
-    first_atropos = atropos;
+    first_leader = leader;
   }
   return true;
 }
 
-void Lachesis::check_atropos(t_proc pid, t_event atropos) {
+void Lachesis::check_leader(t_proc pid, t_event leader) {
   bool correct;
-  if (head_atropos.count(pid) == 0) {
-    correct = check_first_atropos(atropos);
+  if (head_leader.count(pid) == 0) {
+    correct = check_first_leader(leader);
   } else {
-    correct = check_subsequent_atropos(head_atropos[pid], atropos);
+    correct = check_subsequent_leader(head_leader[pid], leader);
   }
   if (!correct) {
     dump_state();
     cout << ";Consensus is inconsistent for processor " << pid << " and event ("
-         << atropos.first << "," << atropos.second << ")" << endl;
+         << leader.first << "," << leader.second << ")" << endl;
     exit(1);
   }
-  head_atropos[pid] = atropos;
+  head_leader[pid] = leader;
 }
 
 void Lachesis::check_frame(t_frame frame, t_event new_event) {
@@ -287,17 +287,17 @@ bool Lachesis::forkless_cause(t_event a, t_event b) {
 // Consensus
 /////////////////////////////////////////////////////////////////////////////
 
-void Lachesis::update_frame_atropos(t_proc pid, t_event new_event) {
+void Lachesis::update_frame_leader(t_proc pid, t_event new_event) {
   // update frame state and check whether new event is a base event. Select legacy calculation if reuqired
   bool is_frame_updated = is_legacy_frame_calc ? update_frame_legacy(pid, new_event) : update_frame(pid, new_event);
 
   if (is_frame_updated) {
-    // update atropos information
-    update_atropos(pid, new_event);
+    // update leader information
+    update_leader(pid, new_event);
   }
 }
 
-void Lachesis::choose_atropos(t_proc pid) {
+void Lachesis::choose_leader(t_proc pid) {
   t_frame frame = last_decided_frame[pid] + 1;
   for (int i = 0; i < num_processors; i++) {
     t_proc j = sorted_pid[i];
@@ -305,19 +305,19 @@ void Lachesis::choose_atropos(t_proc pid) {
     if (base_decision[pid][frame].count(j) > 0) {
       // is it a elgible candidate
       if (base_decision[pid][frame][j]) {
-        // select atropos
+        // select leader
         const auto &it = find_if(
             frame_bases[pid][frame].begin(), frame_bases[pid][frame].end(),
-            [&](t_event atropos) { return (atropos.first == j); });
+            [&](t_event leader) { return (leader.first == j); });
         assert(it != frame_bases[pid][frame].end() &&
-               "Atropos decided but not found in frame");
+               "Leader decided but not found in frame");
 
-        t_event atropos = *it;
+        t_event leader = *it;
 
-        // check whether atropos selection is consistent
-        check_atropos(pid, atropos);
+        // check whether leader selection is consistent
+        check_leader(pid, leader);
 
-        cout << ";Setting atropos " << event_to_string(atropos)
+        cout << ";Setting leader " << event_to_string(leader)
              << " in processor " << pid << endl;
 
         // clear base_decision and voting data structure of the frame
@@ -331,7 +331,7 @@ void Lachesis::choose_atropos(t_proc pid) {
       }
     } else {
       // if a more dominant processor is not decided yet,
-      // stop choosing an atropos event until it is found.
+      // stop choosing an leader event until it is found.
       return;
     }
   }
@@ -391,12 +391,12 @@ void Lachesis::perform_voting(t_proc pid, t_event new_base) {
   }
 }
 
-void Lachesis::update_atropos(t_proc pid, t_event new_base) {
+void Lachesis::update_leader(t_proc pid, t_event new_base) {
   int round = frame_idx[pid][new_base] - last_decided_frame[pid];
   if (round > 0) {
     perform_voting(pid, new_base);
     perform_aggregation(pid, new_base);
-    choose_atropos(pid);
+    choose_leader(pid);
   }
 }
 
@@ -557,7 +557,7 @@ void Lachesis::create_event(t_proc producer,
   check_event(new_event);
 
   // update bases of producer
-  update_frame_atropos(producer, new_event);
+  update_frame_leader(producer, new_event);
 
   // dump state transition
   // dump(producer, "graph_" + to_string(producer) + "_" + to_string(step));
@@ -626,7 +626,7 @@ void Lachesis::receive_event(t_proc receiver, t_proc sender) {
     cout << "R " << receiver << " " << sender << endl;
 
     // update bases of receiver
-    update_frame_atropos(receiver, new_event);
+    update_frame_leader(receiver, new_event);
 
     // dump state transition
     // dump(receiver, "graph_" + to_string(receiver) + "_" + to_string(step));
@@ -640,7 +640,7 @@ void Lachesis::receive_event(t_proc receiver, t_proc sender) {
 /////////////////////////////////////////////////////////////////////////////
 
 Lachesis::Lachesis(int n, vector<uint64_t> s, bool legacy)
-    : num_processors(n), step(1), first_atropos(nil_event), stake(s), is_legacy_frame_calc(legacy) {
+    : num_processors(n), step(1), first_leader(nil_event), stake(s), is_legacy_frame_calc(legacy) {
   // print init command
   cout << "N " << num_processors;
   for (t_proc k = 0; k < n; k++) {

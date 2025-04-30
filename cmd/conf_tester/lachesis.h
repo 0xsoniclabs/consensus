@@ -94,19 +94,19 @@ private:
   // Frame bases of a frame indexed by processor and frame number
   vector<vector<t_eventset>> frame_bases;
 
-  // First atropos event for the whole network
-  // NB: The first processor finding the first atropos will set the first
-  // atropos
-  t_event first_atropos = nil_event;
+  // First leader event for the whole network
+  // NB: The first processor finding the first leader will set the first
+  // leader
+  t_event first_leader = nil_event;
 
-  // Chain of atropos events for the whole network
-  map<t_event, t_event> atropos_chain;
+  // Chain of leader events for the whole network
+  map<t_event, t_event> leader_chain;
 
-  // Most recent atropos event of a processor as a function t_proc -> t_event
-  map<t_proc, t_event> head_atropos;
+  // Most recent leader event of a processor as a function t_proc -> t_event
+  map<t_proc, t_event> head_leader;
 
   // Base decision of a processor that is a function t_proc -> t_frame -> t_proc
-  // -> bool deciding whether a base node is either an atropos candidate or not.
+  // -> bool deciding whether a base node is either an leader candidate or not.
   // If a base node is not in the map, it is still undecided.
   vector<map<t_frame, map<t_proc, bool>>> base_decision;
 
@@ -154,9 +154,9 @@ private:
   // check whether an event is semantically correct
   void check_event(t_event a);
 
-  // check whether the proposed atropos event of processor pid
-  // is consistent and update head atropos.
-  void check_atropos(t_proc pid, t_event atropos);
+  // check whether the proposed leader event of processor pid
+  // is consistent and update head leader.
+  void check_leader(t_proc pid, t_event leader);
 
   // check whether the proposed base event is consistent among all processors,
   // there must not exist a different event of the same processors in another
@@ -187,8 +187,8 @@ private:
   // Consensus
   /////////////////////////////////////////////////////////////////////////////
 
-  // Choose an atropos event
-  void choose_atropos(t_proc pid);
+  // Choose an leader event
+  void choose_leader(t_proc pid);
 
   // Perform voting
   void perform_voting(t_proc pid, t_event new_base);
@@ -207,8 +207,8 @@ private:
   // needed
   void insert_frame_base(t_proc pid, t_frame frame, t_event new_event);
 
-  // Update atropos event if the new base event is an atropos event
-  void update_atropos(t_proc pid, t_event new_base);
+  // Update leader event if the new base event is an leader event
+  void update_leader(t_proc pid, t_event new_base);
 
   // Assign a frame index to a new event. If the new event becomes
   // a new frame base, the function returns true; otherwise false.
@@ -218,11 +218,11 @@ private:
 
   bool update_frame_legacy(t_proc pid, t_event new_event);
 
-  // Update frames and atropos for a newly created/received event
-  void update_frame_atropos(t_proc pid, t_event new_event);
+  // Update frames and leader for a newly created/received event
+  void update_frame_leader(t_proc pid, t_event new_event);
 
-  // Check if a base event is an atropos event
-  bool is_atropos(t_proc pid, t_event event);
+  // Check if a base event is an leader event
+  bool is_leader(t_proc pid, t_event event);
 
 public:
   /////////////////////////////////////////////////////////////////////////////
@@ -246,11 +246,11 @@ public:
   // Check if a base event is a frame base in a processor
   bool is_frame_base(t_proc pid, t_event event);
 
-  // Check new atropos event for correctness
-  bool check_subsequent_atropos(t_event prev_atropos, t_event current_atropos);
+  // Check new leader event for correctness
+  bool check_subsequent_leader(t_event prev_leader, t_event current_leader);
 
-  // Check first atropos event of a processor
-  bool check_first_atropos(t_event atropos);
+  // Check first leader event of a processor
+  bool check_first_leader(t_event leader);
 
   // Dump DAG of processor
   void dump(t_proc pid, string filename);

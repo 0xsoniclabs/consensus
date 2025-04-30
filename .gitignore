@@ -63,3 +63,8 @@ build/
 report.json
 cover.prof
 .stats.msi
+
+# Conf tester
+cmd/conf_tester/test/test
+cmd/conf_tester/conf_tester
+base_failure.g

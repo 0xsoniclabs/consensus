@@ -35,9 +35,9 @@ type (
 )
 
 type testExpected struct {
-	DecidedFrame   consensus.Frame
-	DecidedAtropos string
-	DecisiveBases  map[string]bool
+	DecidedFrame  consensus.Frame
+	DecidedLeader string
+	DecisiveBases map[string]bool
 }
 
 func TestProcessBase(t *testing.T) {
@@ -68,9 +68,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 equalWeights", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:   1,
-				DecidedAtropos: "c1_1",
-				DecisiveBases:  map[string]bool{"a3_3": true},
+				DecidedFrame:  1,
+				DecidedLeader: "c1_1",
+				DecisiveBases: map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -96,9 +96,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 equalWeights missingBase", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:   1,
-				DecidedAtropos: "c1_1",
-				DecisiveBases:  map[string]bool{"a3_3": true},
+				DecidedFrame:  1,
+				DecidedLeader: "c1_1",
+				DecisiveBases: map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -122,9 +122,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 differentWeights", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:   1,
-				DecidedAtropos: "a1_1",
-				DecisiveBases:  map[string]bool{"b3_3": true},
+				DecidedFrame:  1,
+				DecidedLeader: "a1_1",
+				DecisiveBases: map[string]bool{"b3_3": true},
 			},
 			weights{
 				"nodeA": math.MaxUint32/2 - 3,
@@ -150,9 +150,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 differentWeights 4rounds", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:   1,
-				DecidedAtropos: "a1_1",
-				DecisiveBases:  map[string]bool{"c3_3": true, "b3_3": true},
+				DecidedFrame:  1,
+				DecidedLeader: "a1_1",
+				DecisiveBases: map[string]bool{"c3_3": true, "b3_3": true},
 			},
 			weights{
 				"nodeA": 4,
@@ -285,7 +285,7 @@ func testVoteAndAggregate(
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		atropoi, err := election.VoteAndAggregate(baseSlot.frame, baseSlot.validatorID, baseHash)
+		leaders, err := election.VoteAndAggregate(baseSlot.frame, baseSlot.validatorID, baseHash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -293,13 +293,13 @@ func testVoteAndAggregate(
 		// checking:
 		decisive := expected != nil && expected.DecisiveBases[base.ID().String()]
 		if decisive {
-			assertar.NotNil(atropoi)
-			assertar.NotEmpty(atropoi)
-			assertar.Equal(expected.DecidedFrame, atropoi[0].Frame)
-			assertar.Equal(expected.DecidedAtropos, atropoi[0].AtroposHash.String())
+			assertar.NotNil(leaders)
+			assertar.NotEmpty(leaders)
+			assertar.Equal(expected.DecidedFrame, leaders[0].Frame)
+			assertar.Equal(expected.DecidedLeader, leaders[0].LeaderHash.String())
 			return
 		} else {
-			assertar.Empty(atropoi)
+			assertar.Empty(leaders)
 		}
 	}
 }
