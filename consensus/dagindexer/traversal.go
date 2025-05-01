@@ -16,7 +16,7 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 )
 
-// DfsSubgraph iterates all the event which are observed by head, and accepted by a filter
+// DfsSubgraph iterates all the event which are reachable by head, and accepted by a filter
 // Excluding head
 // filter MAY BE called twice for the same event.
 func (vi *Index) DfsSubgraph(head consensus.Event, walk func(consensus.EventHash) (godeeper bool)) error {

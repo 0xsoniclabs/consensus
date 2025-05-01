@@ -13,7 +13,7 @@ type medianTimeIndex struct {
 	creationTime Timestamp
 }
 
-// MedianTime calculates weighted median of claimed time within highest observed events.
+// MedianTime calculates weighted median of claimed time within highest reachable events.
 func (vi *Index) MedianTime(id consensus.EventHash, defaultTime Timestamp) Timestamp {
 	vi.InitBranchesInfo()
 	// Get event by hash
@@ -37,7 +37,7 @@ func (vi *Index) MedianTime(id consensus.EventHash, defaultTime Timestamp) Times
 			// cheaters don't influence medianTime
 			highest.weight = 0
 		} else if seq.Seq == 0 {
-			// if no event was observed from this node, then use genesisTime
+			// if no event was reachable from this node, then use genesisTime
 			highest.creationTime = defaultTime
 		}
 

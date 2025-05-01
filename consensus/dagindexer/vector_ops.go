@@ -59,7 +59,7 @@ func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.Validat
 		mySeq := hb.VSeq.Get(branchID)
 
 		if mySeq.IsForkDetected() {
-			// mySeq observes the maximum already
+			// mySeq reaches the maximum already
 			continue
 		}
 		if hisSeq.IsForkDetected() {

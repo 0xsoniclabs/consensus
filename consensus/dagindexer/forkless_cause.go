@@ -55,15 +55,15 @@ func (vi *Index) forklessCause(aID, bID consensus.EventHash) bool {
 	}
 	a := aFull.VSeq
 
-	// check A doesn't observe any forks from B
+	// check A doesn't have any reachable forks from B
 	if vi.AtLeastOneFork() {
 		bBranchID := vi.GetEventBranchID(bID)
-		if a.Get(bBranchID).IsForkDetected() { // B is observed as cheater by A
+		if a.Get(bBranchID).IsForkDetected() { // B is reachable as cheater by A
 			return false
 		}
 	}
 
-	// check A observes that {QUORUM} non-cheater-validators observe B
+	// check A has a reachable {QUORUM} of non-cheater-validators that have B as reachable
 	b := vi.GetLowestAfter(bID)
 	if b == nil {
 		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
@@ -76,12 +76,12 @@ func (vi *Index) forklessCause(aID, bID consensus.EventHash) bool {
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := consensus.ValidatorIndex(branchIDint)
 
-		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
-		bLowestAfter := b.Get(branchID)   // lowest event from creator on branchID, which observes B
-		aHighestBefore := a.Get(branchID) // highest event from creator, observed by A
+		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which reaches B
+		bLowestAfter := b.Get(branchID)   // lowest event from creator on branchID, which reaches B
+		aHighestBefore := a.Get(branchID) // highest event from creator, reachable by A
 
-		// if lowest event from branchID which observes B <= highest from branchID observed by A
-		// then {highest from branchID observed by A} observes B
+		// if lowest event from branchID which reaches B <= highest from branchID reachable by A
+		// then {highest from branchID reachable by A} reaches B
 		if bLowestAfter <= aHighestBefore.Seq && bLowestAfter != 0 && !aHighestBefore.IsForkDetected() {
 			// we may count the same creator multiple times (on different branches)!
 			// so not every call increases the counter
@@ -144,29 +144,29 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 		chosenParentsHB[i] = hbFull.VSeq
 	}
 
-	// check A doesn't observe any forks from B
+	// check A doesn't have any reachable forks from B
 	if vi.AtLeastOneFork() {
 		bBranchID := vi.GetEventBranchID(bID)
-		if aHB.Get(bBranchID).IsForkDetected() { // B is observed as cheater by A
+		if aHB.Get(bBranchID).IsForkDetected() { // B is reachable as cheater by A
 			return chosenParentsFCProgress, candidateParentsFCProgress
 		}
 	}
 
-	// check chosenParents don't observe any forks from B
+	// check chosenParents don't have any reachable forks from B
 	for i := 0; i < len(chosenParentsHB); i++ {
 		if vi.AtLeastOneFork() {
 			bBranchID := vi.GetEventBranchID(bID)
-			if chosenParentsHB[i].Get(bBranchID).IsForkDetected() { // B is observed as cheater by a chosen parent
+			if chosenParentsHB[i].Get(bBranchID).IsForkDetected() { // B is reachable as cheater by a chosen parent
 				return chosenParentsFCProgress, candidateParentsFCProgress
 			}
 		}
 	}
 
-	// check candidateParents don't observe any forks from B
+	// check candidateParents don't have any reachable forks from B
 	for i := 0; i < len(candidateParentsHB); i++ {
 		if vi.AtLeastOneFork() {
 			bBranchID := vi.GetEventBranchID(bID)
-			if candidateParentsHB[i].Get(bBranchID).IsForkDetected() { // B is observed as cheater by a candidate parent
+			if candidateParentsHB[i].Get(bBranchID).IsForkDetected() { // B is reachable as cheater by a candidate parent
 				return chosenParentsFCProgress, candidateParentsFCProgress
 			}
 		}
@@ -177,15 +177,15 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := consensus.ValidatorIndex(branchIDint)
 
-		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
-		bLowestAfter := bLA.Get(branchID)  // lowest event from creator on branchID, which observes B
-		HighestBefore := aHB.Get(branchID) // highest event from creator, observed by A
+		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which reaches B
+		bLowestAfter := bLA.Get(branchID)  // lowest event from creator on branchID, which reaches B
+		HighestBefore := aHB.Get(branchID) // highest event from creator, reachable by A
 
 		IsForkDetected := HighestBefore.IsForkDetected()
 
 		for i := range chosenParents {
-			chosenParentHighestBefore := chosenParentsHB[i].Get(branchID)                  // highest event from creator, observed by a chosen parent
-			HighestBefore.Seq = maxEvent(HighestBefore.Seq, chosenParentHighestBefore.Seq) // find HighestBefore as observed by a and all chosen parents
+			chosenParentHighestBefore := chosenParentsHB[i].Get(branchID)                  // highest event from creator, reachable by a chosen parent
+			HighestBefore.Seq = maxEvent(HighestBefore.Seq, chosenParentHighestBefore.Seq) // find HighestBefore as reachable by a and all chosen parents
 			IsForkDetected = IsForkDetected || chosenParentHighestBefore.IsForkDetected()
 		}
 
@@ -214,7 +214,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 	// these potential new events, so ensure the contribution of aID's creator is checked and made here
 	aCreatorID := vi.getEvent(aID).Creator()
 	for _, FC := range candidateParentsFCProgress {
-		if FC.Sum() > 0 { // if anything in candidate event's subgraph observes bID, then the candidate must too
+		if FC.Sum() > 0 { // if anything in candidate event's subgraph reaches bID, then the candidate must too
 			FC.CountVoteByID(aCreatorID)
 		}
 	}
