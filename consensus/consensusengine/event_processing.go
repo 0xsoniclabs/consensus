@@ -111,17 +111,17 @@ func (p *Orderer) bootstrapElection() error {
 
 // forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W bases on specified frame
 func (p *Orderer) forklessCausedByQuorumOn(e consensus.Event, f consensus.Frame) bool {
-	observedCounter := p.store.GetValidators().NewCounter()
+	reachableCounter := p.store.GetValidators().NewCounter()
 	// check "observing" prev bases only if called by creator, or if creator has marked that event as base
 	for _, it := range p.store.GetFrameBases(f) {
 		if p.dagIndex.ForklessCause(e.ID(), it.BaseHash) {
-			observedCounter.CountVoteByID(it.ValidatorID)
+			reachableCounter.CountVoteByID(it.ValidatorID)
 		}
-		if observedCounter.HasQuorum() {
+		if reachableCounter.HasQuorum() {
 			break
 		}
 	}
-	return observedCounter.HasQuorum()
+	return reachableCounter.HasQuorum()
 }
 
 // calcFrameIdx is not safe for concurrent use.

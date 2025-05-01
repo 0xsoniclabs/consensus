@@ -566,7 +566,7 @@ void Lachesis::create_event(t_proc producer,
 }
 
 // receive the next events from processor "sender" in processor "receiver"
-// until a given sequence number in the receiver is observed
+// until a given sequence number in the receiver is reachable
 void Lachesis::receive_event(t_proc receiver, t_proc sender, t_proc seqnum) {
   // check
   check_procid(receiver);

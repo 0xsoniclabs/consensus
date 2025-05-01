@@ -22,9 +22,9 @@ import (
  */
 
 type (
-	// LowestAfterSeq is a vector of lowest events (their Seq) which do observe the source event
+	// LowestAfterSeq is a vector of lowest events (their Seq) from which the source event is reachable
 	LowestAfterSeq []byte
-	// HighestBeforeSeq is a vector of highest events (their Seq + IsForkDetected) which are observed by source event
+	// HighestBeforeSeq is a vector of highest events (their Seq + IsForkDetected) which are reachable by source event
 	HighestBeforeSeq []byte
 
 	// BranchSeq encodes Seq and MinSeq into 8 bytes
@@ -41,7 +41,7 @@ func NewLowestAfterSeq(size consensus.ValidatorIndex) *LowestAfterSeq {
 }
 
 type (
-	// HighestBeforeTime is a vector of highest events (their CreationTime) which are observed by source event
+	// HighestBeforeTime is a vector of highest events (their CreationTime) which are reachable by source event
 	HighestBeforeTime []byte
 
 	HighestBefore struct {
@@ -120,14 +120,14 @@ func (b *HighestBeforeSeq) Set(i consensus.ValidatorIndex, seq BranchSeq) {
 }
 
 var (
-	// forkDetectedSeq is a special marker of observed fork by a creator
+	// forkDetectedSeq is a special marker of reachable fork by a creator
 	forkDetectedSeq = BranchSeq{
 		Seq:    0,
 		MinSeq: consensus.Seq(math.MaxInt32),
 	}
 )
 
-// IsForkDetected returns true if observed fork by a creator (in combination of branches)
+// IsForkDetected returns true if reachable fork by a creator (in combination of branches)
 func (seq BranchSeq) IsForkDetected() bool {
 	return seq == forkDetectedSeq
 }

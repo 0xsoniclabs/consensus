@@ -334,11 +334,11 @@ func indexTestEvent(state *testState, base *consensustest.TestEvent, isFork bool
 			noPrev = true
 		}
 		from := base.ID()
-		for _, observed := range base.Parents() {
-			if base.IsSelfParent(observed) && noPrev {
+		for _, reachable := range base.Parents() {
+			if base.IsSelfParent(reachable) && noPrev {
 				continue
 			}
-			to := observed
+			to := reachable
 			edge := fakeEdge{
 				from: from,
 				to:   to,

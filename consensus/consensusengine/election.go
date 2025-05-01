@@ -84,23 +84,23 @@ func (el *election) VoteAndAggregate(
 	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
 	directVoteVector := initInt32WithConst(-1, int(el.validatorCount))
 
-	observedBases := el.observedBases(baseHash, frame-1)
-	observedBasesWeight := int32(0)
+	reachableBases := el.reachableBases(baseHash, frame-1)
+	reachableBasesWeight := int32(0)
 
-	for _, observedBase := range observedBases {
-		validatorIdx := el.validatorIDMap[observedBase.ValidatorID]
+	for _, reachableBase := range reachableBases {
+		validatorIdx := el.validatorIDMap[reachableBase.ValidatorID]
 		directVoteVector[validatorIdx] = 1
-		observedBasesWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
+		reachableBasesWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
 
 		if el.vote[frame-1][validatorIdx] != nil {
-			if baseContext, ok := el.vote[frame-1][validatorIdx][observedBase.BaseHash]; ok {
+			if baseContext, ok := el.vote[frame-1][validatorIdx][reachableBase.BaseHash]; ok {
 				nonDeliveredFramesOffset := (el.frameToDeliver - baseContext.frameToDeliverOffset) * el.validatorCount
 				addInt32Vecs(aggregationMatrix, aggregationMatrix, baseContext.voteMatrix[nonDeliveredFramesOffset:])
 			}
 		}
 	}
 
-	el.decide(frame, aggregationMatrix, observedBasesWeight)
+	el.decide(frame, aggregationMatrix, reachableBasesWeight)
 
 	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
 	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
@@ -113,10 +113,10 @@ func (el *election) VoteAndAggregate(
 	return leaders, nil
 }
 
-func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []int32, observedBasesWeight int32) {
-	// Q = ceil((4*TotalValidatorWeight - 3*observedBasesWeight)/3)
+func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []int32, reachableBasesWeight int32) {
+	// Q = ceil((4*TotalValidatorWeight - 3*reachableBasesWeight)/3)
 	// numerator (Q_0) can exceed the int32 limits before division
-	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedBasesWeight)
+	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(reachableBasesWeight)
 	Q := int32((Q_0 + 3 - 1) / 3)
 	yesDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
 	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
@@ -172,15 +172,15 @@ func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.Va
 	return leaderHash
 }
 
-func (el *election) observedBases(base consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {
-	observedBases := make([]consensusstore.BaseDescriptor, 0, el.validators.Len())
+func (el *election) reachableBases(base consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {
+	reachableBases := make([]consensusstore.BaseDescriptor, 0, el.validators.Len())
 	frameBases := el.getFrameBases(frame)
 	for _, frameBase := range frameBases {
 		if el.forklessCauses(base, frameBase.BaseHash) {
-			observedBases = append(observedBases, frameBase)
+			reachableBases = append(reachableBases, frameBase)
 		}
 	}
-	return observedBases
+	return reachableBases
 }
 
 func (el *election) prepareNewElectorBase(frame consensus.Frame, validatorIdx consensus.ValidatorIndex, base consensus.EventHash) {

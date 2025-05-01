@@ -200,7 +200,7 @@ func (vi *Index) fillGlobalBranchID(e consensus.Event, meIdx consensus.Validator
 		}
 	}
 
-	// if we're here, then new fork is observed (only globally), create new branchID due to a new fork
+	// if we're here, then new fork is reachable (only globally), create new branchID due to a new fork
 	vi.branchesInfo.BranchIDLastSeq = append(vi.branchesInfo.BranchIDLastSeq, e.Seq())
 	vi.branchesInfo.BranchIDCreatorIdxs = append(vi.branchesInfo.BranchIDCreatorIdxs, meIdx)
 	newBranchID := consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDLastSeq) - 1)
@@ -208,7 +208,7 @@ func (vi *Index) fillGlobalBranchID(e consensus.Event, meIdx consensus.Validator
 	return newBranchID, nil
 }
 
-// fillEventVectors calculates (and stores) event's vectors, and updates LowestAfter of newly-observed events.
+// fillEventVectors calculates (and stores) event's vectors, and updates LowestAfter of newly-reachable events.
 func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 	meIdx := vi.validatorIdxs[e.Creator()]
 	myVecs := allVecs{
@@ -232,15 +232,15 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 		}
 	}
 
-	// observed by himself
+	// reachable by himself
 	myVecs.after.InitWithEvent(meBranchID, e)
 	myVecs.before.InitWithEvent(meBranchID, e)
 
 	for _, pVec := range parentsVecs {
-		// calculate HighestBefore  Detect forks for a case when parent observes a fork
+		// calculate HighestBefore  Detect forks for a case when parent reaches a fork
 		myVecs.before.CollectFrom(pVec, consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDCreatorIdxs)))
 	}
-	// Detect forks, which were not observed by parents
+	// Detect forks, which were not reachable by parents
 	if vi.AtLeastOneFork() {
 		for n := consensus.ValidatorIndex(0); n < vi.validators.Len(); n++ {
 			if len(vi.branchesInfo.BranchIDByCreators[n]) <= 1 {
@@ -248,7 +248,7 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 			}
 			for _, branchID := range vi.branchesInfo.BranchIDByCreators[n] {
 				if myVecs.before.IsForkDetected(branchID) {
-					// if one branch observes a fork, mark all the branches as observing the fork
+					// if one branch reaches a fork, mark all the branches as observing the fork
 					vi.setForkDetected(myVecs.before, n)
 					break
 				}
@@ -284,7 +284,7 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 	onWalk := func(walk consensus.EventHash) (godeeper bool) {
 		wLowestAfterSeq := vi.GetLowestAfter(walk)
 
-		// update LowestAfter vector of the old event, because newly-connected event observes it
+		// update LowestAfter vector of the old event, because newly-connected event reaches it
 		if wLowestAfterSeq.Visit(meBranchID, e) {
 			vi.SetLowestAfter(walk, wLowestAfterSeq)
 			return true

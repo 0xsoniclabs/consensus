@@ -18,7 +18,7 @@ import (
 
 type eventFilterFn func(event consensus.Event) bool
 
-// dfsSubgraph iterates all the events which are observed by head, and accepted by a filter.
+// dfsSubgraph iterates all the events which are reachable by head, and accepted by a filter.
 // filter MAY BE called twice for the same event.
 func (p *Orderer) dfsSubgraph(head consensus.EventHash, filter eventFilterFn) error {
 	stack := make(consensus.EventHashStack, 0, 300)
