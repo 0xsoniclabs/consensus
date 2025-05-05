@@ -258,7 +258,7 @@ func testVoteAndAggregate(
 	}
 	validators := validatorsBuilder.Build()
 
-	forklessCauseFn := func(a consensus.EventHash, b consensus.EventHash) bool {
+	stronglyReachFn := func(a consensus.EventHash, b consensus.EventHash) bool {
 		edge := fakeEdge{
 			from: a,
 			to:   b,
@@ -276,7 +276,7 @@ func testVoteAndAggregate(
 	}
 	state.ordered = unordered.ByParents()
 
-	election := NewElection(consensus.FirstFrame, validators, forklessCauseFn, getFrameBasesFn)
+	election := NewElection(consensus.FirstFrame, validators, stronglyReachFn, getFrameBasesFn)
 
 	// processing:
 	for _, base := range state.ordered {

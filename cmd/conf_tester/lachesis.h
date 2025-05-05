@@ -179,9 +179,9 @@ private:
   // either in a or in b.
   t_eventvector join_downset(const t_eventvector &a, const t_eventvector &b);
 
-  // Forkless cause predicate with unit stake for processors
+  // Strongly reach predicate with unit stake for processors
   // assuming that there are no forks.
-  bool forkless_cause(t_event a, t_event b);
+  bool strongly_reach(t_event a, t_event b);
 
   /////////////////////////////////////////////////////////////////////////////
   // Consensus
@@ -199,9 +199,8 @@ private:
   // Obtain the maximum frame index of all parents
   t_frame get_max_parent_frame(t_proc pid, t_event new_event);
 
-  // Determine if a quorum of bases in a frame can be forkless cause by new
-  // event
-  bool forkless_cause_on_quorum(t_proc pid, t_frame frame, t_event new_event);
+  // Determine if a quorum of bases in a frame can be strongly reachable by new event
+  bool strongly_reach_quorum(t_proc pid, t_frame frame, t_event new_event);
 
   // Insert base into the frame_bases data structure and increases size if
   // needed

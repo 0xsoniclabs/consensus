@@ -260,7 +260,7 @@ t_eventvector Lachesis::join_downset(const t_eventvector &a,
   return c;
 }
 
-bool Lachesis::forkless_cause(t_event a, t_event b) {
+bool Lachesis::strongly_reach(t_event a, t_event b) {
   // check correctness of events
   check_event(a);
   check_event(b);
@@ -349,7 +349,7 @@ void Lachesis::perform_aggregation(t_proc pid, t_event new_base) {
         uint64_t num_no = 0;
 
         for (const auto &base : frame_bases[pid][new_base_frame - 1]) {
-          if (forkless_cause(new_base, base)) { // Problem
+          if (strongly_reach(new_base, base)) { // Problem
             t_proc base_proc = base.first;
             if (votes[pid][frame][base][i]) {
               num_yes += stake[base_proc];
@@ -383,7 +383,7 @@ void Lachesis::perform_voting(t_proc pid, t_event new_base) {
   // depending whether the base can be strongly seen by the new found base.
   for (const auto &base : frame_bases[pid][frame]) {
     t_proc base_proc = base.first;
-    if (forkless_cause(new_base, base)) {
+    if (strongly_reach(new_base, base)) {
       votes[pid][frame][new_base][base_proc] = true;
     } else {
       votes[pid][frame][new_base][base_proc] = false;
@@ -417,7 +417,7 @@ bool Lachesis::update_frame_legacy(t_proc pid, t_event new_event) {
   t_frame max_bound = selfparent_frame + 100;
   t_frame frame = selfparent_frame;
 
-  while (forkless_cause_on_quorum(pid, frame, new_event) && frame < max_bound) {
+  while (strongly_reach_quorum(pid, frame, new_event) && frame < max_bound) {
     frame++;
   }
 
@@ -448,7 +448,7 @@ bool Lachesis::update_frame(t_proc pid, t_event new_event) {
   t_frame max_frame = get_max_parent_frame(pid, new_event);
   t_frame result_frame = max_frame;
 
-  if (forkless_cause_on_quorum(pid, max_frame, new_event)) {
+  if (strongly_reach_quorum(pid, max_frame, new_event)) {
 	result_frame++;
   }
 
@@ -468,13 +468,13 @@ bool Lachesis::update_frame(t_proc pid, t_event new_event) {
   }
 }
 
-bool Lachesis::forkless_cause_on_quorum(t_proc pid, t_frame frame,
+bool Lachesis::strongly_reach_quorum(t_proc pid, t_frame frame,
                                         t_event new_event) {
-  // accumulate stake of bases that forklessly cause the new event
+  // accumulate stake of bases that the new event strongly reaches
   uint64_t event_stake = 0;
   if (frame < (t_frame)frame_bases[pid].size()) {
     for (t_event base : frame_bases[pid][frame]) {
-      if (forkless_cause(new_event, base)) {
+      if (strongly_reach(new_event, base)) {
         event_stake += stake[base.first];
       }
     }
