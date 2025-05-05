@@ -109,12 +109,12 @@ func (p *Orderer) bootstrapElection() error {
 	return nil
 }
 
-// forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W bases on specified frame
-func (p *Orderer) forklessCausedByQuorumOn(e consensus.Event, f consensus.Frame) bool {
+// stronglyReachableByQuorum returns true if event is strongly reachable by 2/3W bases on specified frame
+func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame) bool {
 	reachableCounter := p.store.GetValidators().NewCounter()
 	// check "observing" prev bases only if called by creator, or if creator has marked that event as base
 	for _, it := range p.store.GetFrameBases(f) {
-		if p.dagIndex.ForklessCause(e.ID(), it.BaseHash) {
+		if p.dagIndex.StronglyReach(e.ID(), it.BaseHash) {
 			reachableCounter.CountVoteByID(it.ValidatorID)
 		}
 		if reachableCounter.HasQuorum() {
@@ -135,7 +135,7 @@ func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consen
 		frame = max(frame, p.Input.GetEvent(parent).Frame())
 	}
 
-	if p.forklessCausedByQuorumOn(e, frame) {
+	if p.stronglyReachableByQuorum(e, frame) {
 		frame++
 	}
 	return selfParentFrame, frame

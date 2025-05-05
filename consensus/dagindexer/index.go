@@ -33,7 +33,7 @@ type Timestamp = uint64
 type IndexCacheConfig struct {
 	HighestBeforeTimeSize uint
 	DBCache               int
-	ForklessCausePairs    int
+	StronglyReachPairs    int
 	HighestBeforeSeqSize  uint
 	LowestAfterSeqSize    uint
 }
@@ -43,7 +43,7 @@ type IndexConfig struct {
 	Caches IndexCacheConfig
 }
 
-// Index is a data to detect forkless-cause condition, calculate median timestamp, detect forks.
+// Index is a data to detect strongly-reach condition, calculate median timestamp, detect forks.
 type Index struct {
 	crit          func(error)
 	validators    *consensus.Validators
@@ -64,7 +64,7 @@ type Index struct {
 
 	cache struct {
 		HighestBeforeTime *wlru.Cache
-		ForklessCause     *simplewlru.Cache
+		StronglyReach     *simplewlru.Cache
 		HighestBeforeSeq  *simplewlru.Cache
 		LowestAfterSeq    *simplewlru.Cache
 	}
@@ -78,7 +78,7 @@ func DefaultConfig(scale cachescale.Func) IndexConfig {
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: scale.U(160 * 1024),
 			DBCache:               scale.I(10 * opt.MiB),
-			ForklessCausePairs:    scale.I(20000),
+			StronglyReachPairs:    scale.I(20000),
 			HighestBeforeSeqSize:  scale.U(160 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
@@ -91,7 +91,7 @@ func LiteConfig() IndexConfig {
 	return IndexConfig{
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: 4 * 1024,
-			ForklessCausePairs:    scale.I(20000),
+			StronglyReachPairs:    scale.I(20000),
 			HighestBeforeSeqSize:  scale.U(160 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
@@ -129,7 +129,7 @@ func (vi *Index) Flush() {
 
 func (vi *Index) initCaches() {
 	vi.cache.HighestBeforeTime, _ = wlru.New(vi.cfg.Caches.HighestBeforeTimeSize, int(vi.cfg.Caches.HighestBeforeTimeSize))
-	vi.cache.ForklessCause, _ = simplewlru.New(uint(vi.cfg.Caches.ForklessCausePairs), vi.cfg.Caches.ForklessCausePairs)
+	vi.cache.StronglyReach, _ = simplewlru.New(uint(vi.cfg.Caches.StronglyReachPairs), vi.cfg.Caches.StronglyReachPairs)
 	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
 	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
 }
@@ -155,7 +155,7 @@ func (vi *Index) Reset(validators *consensus.Validators, db kvdb.FlushableKVStor
 	vi.validatorIdxs = validators.Idxs()
 	vi.DropNotFlushed()
 	table.MigrateTables(&vi.table, vi.vecDb)
-	vi.cache.ForklessCause.Purge()
+	vi.cache.StronglyReach.Purge()
 	vi.OnDropNotFlushed()
 }
 

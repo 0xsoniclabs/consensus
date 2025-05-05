@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	ForklessCauseFn func(a consensus.EventHash, b consensus.EventHash) bool
+	StronglyReachFn func(a consensus.EventHash, b consensus.EventHash) bool
 	GetFrameBasesFn func(f consensus.Frame) []consensusstore.BaseDescriptor
 )
 
@@ -35,8 +35,8 @@ type baseVoteContext struct {
 type election struct {
 	validators *consensus.Validators
 
-	forklessCauses ForklessCauseFn
-	getFrameBases  GetFrameBasesFn
+	stronglyReaches StronglyReachFn
+	getFrameBases   GetFrameBasesFn
 
 	vote           map[consensus.Frame][]map[consensus.EventHash]*baseVoteContext
 	validatorIDMap map[consensus.ValidatorID]consensus.ValidatorIndex
@@ -49,13 +49,13 @@ type election struct {
 func NewElection(
 	frameToDeliver consensus.Frame,
 	validators *consensus.Validators,
-	forklessCauseFn ForklessCauseFn,
+	stronglyReachFn StronglyReachFn,
 	getFrameBases GetFrameBasesFn,
 ) *election {
 	election := &election{
-		forklessCauses: forklessCauseFn,
-		getFrameBases:  getFrameBases,
-		validators:     validators,
+		stronglyReaches: stronglyReachFn,
+		getFrameBases:   getFrameBases,
+		validators:      validators,
 	}
 	election.ResetEpoch(frameToDeliver, validators)
 	return election
@@ -155,14 +155,14 @@ func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.Va
 	for hash := range candidateMap {
 		leaderHash = hash
 	}
-	// tiebreaker can simply pick the first encountered base that is forkless caused by any event.
-	// It is easiest to look for any vote (forkless cause) by frame + 1 bases.
-	// Due to forkless cause semantics, only one forkless-caused base can exist with specified frame and validator number.
+	// tiebreaker can simply pick the first encountered base that is strongly reachable by any event.
+	// It is easiest to look for any vote (strongly reach) by frame + 1 bases.
+	// Due to strongly reach semantics, only one strongly-reachable base can exist with specified frame and validator number.
 	if len(candidateMap) > 1 {
 		judgeBases := el.getFrameBases(frame + 1)
 		for leaderCandidateHash := range candidateMap {
 			for _, judge := range judgeBases {
-				if el.forklessCauses(judge.BaseHash, leaderCandidateHash) {
+				if el.stronglyReaches(judge.BaseHash, leaderCandidateHash) {
 					return leaderCandidateHash
 				}
 			}
@@ -176,7 +176,7 @@ func (el *election) reachableBases(base consensus.EventHash, frame consensus.Fra
 	reachableBases := make([]consensusstore.BaseDescriptor, 0, el.validators.Len())
 	frameBases := el.getFrameBases(frame)
 	for _, frameBase := range frameBases {
-		if el.forklessCauses(base, frameBase.BaseHash) {
+		if el.stronglyReaches(base, frameBase.BaseHash) {
 			reachableBases = append(reachableBases, frameBase)
 		}
 	}

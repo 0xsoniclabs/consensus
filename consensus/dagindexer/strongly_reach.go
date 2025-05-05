@@ -20,7 +20,7 @@ type kv struct {
 	a, b consensus.EventHash
 }
 
-// ForklessCause calculates "sufficient coherence" between the events.
+// StronglyReach calculates "sufficient coherence" between the events.
 // The A.HighestBefore array remembers the sequence number of the last
 // event by each validator that is an ancestor of A. The array for
 // B.LowestAfter remembers the sequence number of the earliest
@@ -30,23 +30,23 @@ type kv struct {
 // array. If there are more than 2n/3 such matches, then the A and B
 // have achieved sufficient coherency.
 //
-// If B1 and B2 are forks, then they cannot BOTH forkless-cause any specific event A,
+// If B1 and B2 are forks, then they cannot BOTH strongly-reach any specific event A,
 // unless more than 1/3W are Byzantine.
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
-func (vi *Index) ForklessCause(aID, bID consensus.EventHash) bool {
-	if res, ok := vi.cache.ForklessCause.Get(kv{aID, bID}); ok {
+func (vi *Index) StronglyReach(aID, bID consensus.EventHash) bool {
+	if res, ok := vi.cache.StronglyReach.Get(kv{aID, bID}); ok {
 		return res.(bool)
 	}
 
 	vi.InitBranchesInfo()
-	res := vi.forklessCause(aID, bID)
+	res := vi.stronglyReaches(aID, bID)
 
-	vi.cache.ForklessCause.Add(kv{aID, bID}, res, 1)
+	vi.cache.StronglyReach.Add(kv{aID, bID}, res, 1)
 	return res
 }
 
-func (vi *Index) forklessCause(aID, bID consensus.EventHash) bool {
+func (vi *Index) stronglyReaches(aID, bID consensus.EventHash) bool {
 	// Get events by hash
 	aFull := vi.GetHighestBefore(aID)
 	if aFull == nil {
@@ -71,7 +71,7 @@ func (vi *Index) forklessCause(aID, bID consensus.EventHash) bool {
 	}
 
 	yes := vi.validators.NewCounter()
-	// calculate forkless causing using the indexes
+	// calculate strongly reaching using the indexes
 	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := consensus.ValidatorIndex(branchIDint)
@@ -91,37 +91,37 @@ func (vi *Index) forklessCause(aID, bID consensus.EventHash) bool {
 	return yes.HasQuorum()
 }
 
-func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidateParents, chosenParents consensus.EventHashes) (*consensus.WeightCounter, []*consensus.WeightCounter) {
-	// This function is used to determine progress of event bID in forkless causing aID.
-	// It may be used to determine progress toward the forkless cause condition for an event not in vi, but whose parents are in vi.
+func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidateParents, chosenParents consensus.EventHashes) (*consensus.WeightCounter, []*consensus.WeightCounter) {
+	// This function is used to determine progress of event bID in strongly reaching aID.
+	// It may be used to determine progress toward the strongly reach condition for an event not in vi, but whose parents are in vi.
 	// To do so, aID should be the self-parent while chosenParents should be the parents of the not-yet-created event.
-	// Further, this function can be used to determine the incremental improvement in progress toward satisfying the forkless
-	// cause condition beyond the progress of aId and chosenParents, obtained by inclusion of one additional candidate head at a time.
+	// Further, this function can be used to determine the incremental improvement in progress toward satisfying the strongly
+	// reach condition beyond the progress of aId and chosenParents, obtained by inclusion of one additional candidate head at a time.
 	// This function is useful in parent selection and event creation timing.
 
-	// The first return is ForklessCause(a + chosenParents, b).
-	// The second return argument is a slice containing ForklessCause(a + chosenParents + candidateParent, b) with each element in the
+	// The first return is StronglyReach(a + chosenParents, b).
+	// The second return argument is a slice containing StronglyReach(a + chosenParents + candidateParent, b) with each element in the
 	// slice corresponding to each candidate parent in candidateParents.
 
-	// create the counters that measure the forkless cause progress
-	candidateParentsFCProgress := make([]*consensus.WeightCounter, len(candidateParents))
-	for i := range candidateParentsFCProgress {
-		candidateParentsFCProgress[i] = vi.validators.NewCounter() // initialise the counter for each candidate parent
+	// create the counters that measure the strongly reach progress
+	candidateParentsSRProgress := make([]*consensus.WeightCounter, len(candidateParents))
+	for i := range candidateParentsSRProgress {
+		candidateParentsSRProgress[i] = vi.validators.NewCounter() // initialise the counter for each candidate parent
 	}
-	chosenParentsFCProgress := vi.validators.NewCounter() // initialise the counter for chosen parents only
+	chosenParentsSRProgress := vi.validators.NewCounter() // initialise the counter for chosen parents only
 
 	// Get events by hash
 	aHBFull := vi.GetHighestBefore(aID)
 	if aHBFull == nil {
 		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
-		return chosenParentsFCProgress, candidateParentsFCProgress
+		return chosenParentsSRProgress, candidateParentsSRProgress
 	}
 	aHB := aHBFull.VSeq
 
 	bLA := vi.GetLowestAfter(bID)
 	if bLA == nil {
 		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
-		return chosenParentsFCProgress, candidateParentsFCProgress
+		return chosenParentsSRProgress, candidateParentsSRProgress
 	}
 
 	candidateParentsHB := make([]*HighestBeforeSeq, len(candidateParents))
@@ -129,7 +129,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 		hbFull := vi.GetHighestBefore(candidateParents[i])
 		if hbFull == nil {
 			vi.crit(fmt.Errorf("candidate parent=%s not found", candidateParents[i].String()))
-			return chosenParentsFCProgress, candidateParentsFCProgress
+			return chosenParentsSRProgress, candidateParentsSRProgress
 		}
 		candidateParentsHB[i] = hbFull.VSeq
 	}
@@ -139,7 +139,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 		hbFull := vi.GetHighestBefore(chosenParents[i])
 		if hbFull == nil {
 			vi.crit(fmt.Errorf("chosen parent=%s not found", chosenParents[i].String()))
-			return chosenParentsFCProgress, candidateParentsFCProgress
+			return chosenParentsSRProgress, candidateParentsSRProgress
 		}
 		chosenParentsHB[i] = hbFull.VSeq
 	}
@@ -148,7 +148,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 	if vi.AtLeastOneFork() {
 		bBranchID := vi.GetEventBranchID(bID)
 		if aHB.Get(bBranchID).IsForkDetected() { // B is reachable as cheater by A
-			return chosenParentsFCProgress, candidateParentsFCProgress
+			return chosenParentsSRProgress, candidateParentsSRProgress
 		}
 	}
 
@@ -157,7 +157,7 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 		if vi.AtLeastOneFork() {
 			bBranchID := vi.GetEventBranchID(bID)
 			if chosenParentsHB[i].Get(bBranchID).IsForkDetected() { // B is reachable as cheater by a chosen parent
-				return chosenParentsFCProgress, candidateParentsFCProgress
+				return chosenParentsSRProgress, candidateParentsSRProgress
 			}
 		}
 	}
@@ -167,12 +167,12 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 		if vi.AtLeastOneFork() {
 			bBranchID := vi.GetEventBranchID(bID)
 			if candidateParentsHB[i].Get(bBranchID).IsForkDetected() { // B is reachable as cheater by a candidate parent
-				return chosenParentsFCProgress, candidateParentsFCProgress
+				return chosenParentsSRProgress, candidateParentsSRProgress
 			}
 		}
 	}
 
-	// calculate forkless causing using the indexes
+	// calculate strongly reaching using the indexes
 	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := consensus.ValidatorIndex(branchIDint)
@@ -189,13 +189,13 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 			IsForkDetected = IsForkDetected || chosenParentHighestBefore.IsForkDetected()
 		}
 
-		// first do forkless cause for a + chosenParents only
+		// first do strongly reach for a + chosenParents only
 		if bLowestAfter <= HighestBefore.Seq && bLowestAfter != 0 && !IsForkDetected {
 			// we may count the same creator multiple times (on different branches)!
 			// so not every call increases the counter
-			chosenParentsFCProgress.CountVoteByIndex(creatorIdx)
+			chosenParentsSRProgress.CountVoteByIndex(creatorIdx)
 		}
-		// now do forkless cause for a + chosenParents + each candidate parent
+		// now do strongly reach for a + chosenParents + each candidate parent
 		for i := range candidateParents {
 			candidateParentHighestBefore := candidateParentsHB[i].Get(branchID)
 			candidateParentIsForkDetected := IsForkDetected || candidateParentHighestBefore.IsForkDetected()
@@ -204,21 +204,21 @@ func (vi *Index) ForklessCauseProgress(aID, bID consensus.EventHash, candidatePa
 			if bLowestAfter <= candidateParentHighestBefore.Seq && bLowestAfter != 0 && !candidateParentIsForkDetected {
 				// we may count the same creator multiple times (on different branches)!
 				// so not every call increases the counter
-				candidateParentsFCProgress[i].CountVoteByIndex(creatorIdx)
+				candidateParentsSRProgress[i].CountVoteByIndex(creatorIdx)
 			}
 		}
 	}
-	// We want FC progress for new candidate events with parents aID + chosenParents + head
-	// aID may not contribute to forkless cause without the heads,
+	// We want SR progress for new candidate events with parents aID + chosenParents + head
+	// aID may not contribute to strongly reach without the heads,
 	// but may contribute with the heads. HighestBefore and LowestAfter used above do not incorporate
 	// these potential new events, so ensure the contribution of aID's creator is checked and made here
 	aCreatorID := vi.getEvent(aID).Creator()
-	for _, FC := range candidateParentsFCProgress {
-		if FC.Sum() > 0 { // if anything in candidate event's subgraph reaches bID, then the candidate must too
-			FC.CountVoteByID(aCreatorID)
+	for _, SR := range candidateParentsSRProgress {
+		if SR.Sum() > 0 { // if anything in candidate event's subgraph reaches bID, then the candidate must too
+			SR.CountVoteByID(aCreatorID)
 		}
 	}
-	return chosenParentsFCProgress, candidateParentsFCProgress
+	return chosenParentsSRProgress, candidateParentsSRProgress
 }
 
 func maxEvent(a consensus.Seq, b consensus.Seq) consensus.Seq {
