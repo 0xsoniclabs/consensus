@@ -22,16 +22,16 @@ import (
 
 func TestLeaderHeap_RandomPushPop(t *testing.T) {
 	leaderHeap := NewLeaderHeap()
-	leaders := make([]*leaderDecision, 100)
+	leaders := make([]*leaderCertification, 100)
 	for i := range leaders {
-		leaders[i] = &leaderDecision{LeaderHash: consensus.EventHash{byte(i)}, Frame: consensus.Frame(i)}
+		leaders[i] = &leaderCertification{LeaderHash: consensus.EventHash{byte(i)}, Frame: consensus.Frame(i)}
 	}
 	rand.Shuffle(len(leaders), func(i, j int) { leaders[i], leaders[j] = leaders[j], leaders[i] })
-	for _, leaderDecision := range leaders {
-		heap.Push(leaderHeap, leaderDecision)
+	for _, leaderCertification := range leaders {
+		heap.Push(leaderHeap, leaderCertification)
 	}
 	for i := range leaders {
-		want, got := consensus.EventHash{byte(i)}, heap.Pop(leaderHeap).(*leaderDecision).LeaderHash
+		want, got := consensus.EventHash{byte(i)}, heap.Pop(leaderHeap).(*leaderCertification).LeaderHash
 		if want != got {
 			t.Errorf("expected popped leader hash to be %v, got: %v", want, got)
 		}
@@ -42,50 +42,50 @@ func TestLeaderHeap_SingleDeliveredSequence(t *testing.T) {
 	testLeaderHeapDelivery(
 		t,
 		100,
-		[]*leaderDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
-		[]*leaderDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
-		[]*leaderDecision{},
+		[]*leaderCertification{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
+		[]*leaderCertification{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
+		[]*leaderCertification{},
 	)
 }
 func TestLeaderHeap_EmptyDeliverySequence(t *testing.T) {
 	testLeaderHeapDelivery(
 		t,
 		100,
-		[]*leaderDecision{{101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
-		[]*leaderDecision{},
-		[]*leaderDecision{{101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
+		[]*leaderCertification{{101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
+		[]*leaderCertification{},
+		[]*leaderCertification{{101, consensus.EventHash{101}}, {102, consensus.EventHash{102}}},
 	)
 }
 func TestLeaderHeap_BrokenDeliverySequence(t *testing.T) {
 	testLeaderHeapDelivery(
 		t,
 		100,
-		[]*leaderDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {104, consensus.EventHash{104}}, {105, consensus.EventHash{105}}},
-		[]*leaderDecision{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}},
-		[]*leaderDecision{{104, consensus.EventHash{104}}, {105, consensus.EventHash{105}}},
+		[]*leaderCertification{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}, {104, consensus.EventHash{104}}, {105, consensus.EventHash{105}}},
+		[]*leaderCertification{{100, consensus.EventHash{100}}, {101, consensus.EventHash{101}}},
+		[]*leaderCertification{{104, consensus.EventHash{104}}, {105, consensus.EventHash{105}}},
 	)
 }
 
 func testLeaderHeapDelivery(
 	t *testing.T,
 	frameToDeliver consensus.Frame,
-	leaders []*leaderDecision,
-	expectedDelivered []*leaderDecision,
-	expectedContainer []*leaderDecision,
+	leaders []*leaderCertification,
+	expectedDelivered []*leaderCertification,
+	expectedContainer []*leaderCertification,
 ) {
 	leaderHeap := NewLeaderHeap()
 	for _, leader := range leaders {
 		heap.Push(leaderHeap, leader)
 	}
 	delivered := leaderHeap.getDeliveryReadyLeaders(frameToDeliver)
-	if !slices.EqualFunc(delivered, expectedDelivered, func(a, b *leaderDecision) bool { return a.LeaderHash == b.LeaderHash }) {
+	if !slices.EqualFunc(delivered, expectedDelivered, func(a, b *leaderCertification) bool { return a.LeaderHash == b.LeaderHash }) {
 		t.Errorf("incorrect delivered leaders sequence, expected: %v, got: %v", expectedDelivered, delivered)
 	}
-	if !slices.EqualFunc(leaderHeap.container, expectedContainer, func(a, b *leaderDecision) bool { return a.LeaderHash == b.LeaderHash }) {
+	if !slices.EqualFunc(leaderHeap.container, expectedContainer, func(a, b *leaderCertification) bool { return a.LeaderHash == b.LeaderHash }) {
 		t.Errorf("incorrect remaining leaders container, expected: %v, got: %v", expectedContainer, leaderHeap.container)
 	}
 }
 
-func (ad *leaderDecision) String() string {
+func (ad *leaderCertification) String() string {
 	return fmt.Sprintf("[frame: %d, hash: %v]", ad.Frame, ad.LeaderHash)
 }

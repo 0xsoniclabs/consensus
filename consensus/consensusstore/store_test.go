@@ -7,7 +7,7 @@ import (
 func TestStore_Close(t *testing.T) {
 	store := NewMemStore()
 	populateWithEpochState(store)
-	populateWithLastDecidedState(store)
+	populateWithLastCertifiedState(store)
 	populateWithBases(t, store, 10, 10)
 	err := store.Close()
 	if err != nil {
@@ -16,8 +16,8 @@ func TestStore_Close(t *testing.T) {
 	if store.table.EpochState != nil {
 		t.Fatalf("expected EpochState table to be nil")
 	}
-	if store.table.LastDecidedState != nil {
-		t.Fatalf("expected LastDecidedState table to be nil")
+	if store.table.LastCertifiedState != nil {
+		t.Fatalf("expected LastCertifiedState table to be nil")
 	}
 	if store.EpochTable.Bases != nil {
 		t.Fatalf("expected Bases table to be nil")

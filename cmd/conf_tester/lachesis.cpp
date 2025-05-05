@@ -298,19 +298,19 @@ void Lachesis::update_frame_leader(t_proc pid, t_event new_event) {
 }
 
 void Lachesis::choose_leader(t_proc pid) {
-  t_frame frame = last_decided_frame[pid] + 1;
+  t_frame frame = last_certified_frame[pid] + 1;
   for (int i = 0; i < num_processors; i++) {
     t_proc j = sorted_pid[i];
-    // check if processor has been decided
-    if (base_decision[pid][frame].count(j) > 0) {
+    // check if processor has been certified
+    if (base_certification[pid][frame].count(j) > 0) {
       // is it a elgible candidate
-      if (base_decision[pid][frame][j]) {
+      if (base_certification[pid][frame][j]) {
         // select leader
         const auto &it = find_if(
             frame_bases[pid][frame].begin(), frame_bases[pid][frame].end(),
             [&](t_event leader) { return (leader.first == j); });
         assert(it != frame_bases[pid][frame].end() &&
-               "Leader decided but not found in frame");
+               "Leader certified but not found in frame");
 
         t_event leader = *it;
 
@@ -320,17 +320,17 @@ void Lachesis::choose_leader(t_proc pid) {
         cout << ";Setting leader " << event_to_string(leader)
              << " in processor " << pid << endl;
 
-        // clear base_decision and voting data structure of the frame
+        // clear base_certification and voting data structure of the frame
         // since it is no longer needed.
-        base_decision[pid].erase(frame);
+        base_certification[pid].erase(frame);
         votes[pid][frame].clear();
 
-        // advance decided frame view of a processor and exit
-        last_decided_frame[pid]++;
+        // advance certified frame view of a processor and exit
+        last_certified_frame[pid]++;
         return;
       }
     } else {
-      // if a more dominant processor is not decided yet,
+      // if a more dominant processor is not certified yet,
       // stop choosing an leader event until it is found.
       return;
     }
@@ -338,13 +338,13 @@ void Lachesis::choose_leader(t_proc pid) {
 }
 
 void Lachesis::perform_aggregation(t_proc pid, t_event new_base) {
-  for (t_frame frame = last_decided_frame[pid] + 1;
+  for (t_frame frame = last_certified_frame[pid] + 1;
        frame < frame_idx[pid][new_base] - 1; frame++) {
     t_frame new_base_frame = frame_idx[pid][new_base];
     assert(new_base_frame > frame && "frame overlap error");
     assert(new_base_frame - frame > 1);
     for (t_proc i = 0; i < num_processors; i++) {
-      if (base_decision[pid][frame].count(i) == 0) {
+      if (base_certification[pid][frame].count(i) == 0) {
         uint64_t num_yes = 0;
         uint64_t num_no = 0;
 
@@ -360,7 +360,7 @@ void Lachesis::perform_aggregation(t_proc pid, t_event new_base) {
         }
         votes[pid][frame][new_base][i] = num_yes >= num_no;
         if (num_yes >= quorum || num_no >= quorum) {
-          base_decision[pid][frame][i] = num_yes >= num_no;
+          base_certification[pid][frame][i] = num_yes >= num_no;
         }
       }
     }
@@ -368,8 +368,8 @@ void Lachesis::perform_aggregation(t_proc pid, t_event new_base) {
 }
 
 void Lachesis::perform_voting(t_proc pid, t_event new_base) {
-  assert(last_decided_frame[pid] < frame_idx[pid][new_base] &&
-         "Cannot vote on a decided frame");
+  assert(last_certified_frame[pid] < frame_idx[pid][new_base] &&
+         "Cannot vote on a certified frame");
   // vote on previous frame of new base event
   check_procid(pid);
 
@@ -392,7 +392,7 @@ void Lachesis::perform_voting(t_proc pid, t_event new_base) {
 }
 
 void Lachesis::update_leader(t_proc pid, t_event new_base) {
-  int round = frame_idx[pid][new_base] - last_decided_frame[pid];
+  int round = frame_idx[pid][new_base] - last_certified_frame[pid];
   if (round > 0) {
     perform_voting(pid, new_base);
     perform_aggregation(pid, new_base);
@@ -662,7 +662,7 @@ Lachesis::Lachesis(int n, vector<uint64_t> s, bool legacy)
   frame_idx.resize(num_processors);
   votes.resize(num_processors);
   frame_bases.resize(num_processors);
-  base_decision.resize(num_processors);
+  base_certification.resize(num_processors);
   votes.resize(num_processors);
   sorted_pid.resize(num_processors);
 
@@ -685,6 +685,6 @@ Lachesis::Lachesis(int n, vector<uint64_t> s, bool legacy)
     for (t_proc j = 0; j < num_processors; j++) {
       head_seqnum[i] = vector<t_seq>(num_processors, -1);
     }
-    last_decided_frame[i] = -1;
+    last_certified_frame[i] = -1;
   }
 }

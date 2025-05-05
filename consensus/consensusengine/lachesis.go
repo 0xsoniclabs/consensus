@@ -40,8 +40,8 @@ func NewLachesis(store *consensusstore.Store, input EventSource, dagIndex *dagin
 
 func (p *Lachesis) confirmEvents(frame consensus.Frame, leader consensus.EventHash, onEventConfirmed func(consensus.Event)) error {
 	err := p.dfsSubgraph(leader, func(e consensus.Event) bool {
-		decidedFrame := p.store.GetEventConfirmedOn(e.ID())
-		if decidedFrame != 0 {
+		certifiedFrame := p.store.GetEventConfirmedOn(e.ID())
+		if certifiedFrame != 0 {
 			return false
 		}
 		// mark all the walked events as confirmed
@@ -54,7 +54,7 @@ func (p *Lachesis) confirmEvents(frame consensus.Frame, leader consensus.EventHa
 	return err
 }
 
-func (p *Lachesis) applyLeader(decidedFrame consensus.Frame, leader consensus.EventHash) *consensus.Validators {
+func (p *Lachesis) applyLeader(certifiedFrame consensus.Frame, leader consensus.EventHash) *consensus.Validators {
 	leaderVecClock := p.dagIndex.GetMergedHighestBefore(leader).VSeq
 
 	validators := p.store.GetValidators()
@@ -75,7 +75,7 @@ func (p *Lachesis) applyLeader(decidedFrame consensus.Frame, leader consensus.Ev
 	})
 
 	// traverse newly confirmed events
-	err := p.confirmEvents(decidedFrame, leader, blockCallback.ApplyEvent)
+	err := p.confirmEvents(certifiedFrame, leader, blockCallback.ApplyEvent)
 	if err != nil {
 		p.crit(err)
 	}

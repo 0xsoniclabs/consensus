@@ -23,34 +23,34 @@ func TestBootstrap_AlreadyBootstrapped(t *testing.T) {
 func TestBootstrap_NoNewBases(t *testing.T) {
 	testBootstrap_ReprocessBases(t, 10, 0, 10)
 }
-func TestBootstrap_NoDecidedFramesNoSealing(t *testing.T) {
+func TestBootstrap_NoCertifiedFramesNoSealing(t *testing.T) {
 	testBootstrap_ReprocessBases(t, 0, 0, 10)
 }
-func TestBootstrap_NoDecidedFramesSealing(t *testing.T) {
+func TestBootstrap_NoCertifiedFramesSealing(t *testing.T) {
 	testBootstrap_ReprocessBases(t, 0, 4, 10)
 }
-func TestBootstrap_DecidedFramesNoSealing(t *testing.T) {
+func TestBootstrap_CertifiedFramesNoSealing(t *testing.T) {
 	testBootstrap_ReprocessBases(t, 3, 0, 10)
 }
-func TestBootstrap_DecidedFramesSealing(t *testing.T) {
+func TestBootstrap_CertifiedFramesSealing(t *testing.T) {
 	testBootstrap_ReprocessBases(t, 2, 6, 10)
 }
 
 // bootstrapping can be triggered on a mid-epoch DB checkpoint (due to a crash for example)
 // testBootstrap_ReprocessBases tests for a correct starting and ending point of the election bootstrap process
-// by varying last checkpoint's last decided Frame, future sealing Frame and number of frame bases
+// by varying last checkpoint's last certified Frame, future sealing Frame and number of frame bases
 // available to be run through the election
-func testBootstrap_ReprocessBases(t *testing.T, lastDecidedFrame, sealingFrame, numFrames consensus.Frame) {
+func testBootstrap_ReprocessBases(t *testing.T, lastCertifiedFrame, sealingFrame, numFrames consensus.Frame) {
 	nodes := consensustest.GenNodes(1)
 	engine, _, eventSource, _ := NewCoreConsensus(nodes, []consensus.Weight{1})
-	engine.store.SetLastDecidedState(&consensusstore.LastDecidedState{LastDecidedFrame: lastDecidedFrame})
+	engine.store.SetLastCertifiedState(&consensusstore.LastCertifiedState{LastCertifiedFrame: lastCertifiedFrame})
 	numLeadersDelivered := consensus.Frame(0)
 	if err := engine.Bootstrap(consensus.ConsensusCallbacks{
 		BeginBlock: func(block *consensus.Block) consensus.BlockCallbacks {
 			return consensus.BlockCallbacks{
 				EndBlock: func() (sealEpoch *consensus.Validators) {
 					numLeadersDelivered++
-					if currentFrame := lastDecidedFrame + numLeadersDelivered; currentFrame == sealingFrame {
+					if currentFrame := lastCertifiedFrame + numLeadersDelivered; currentFrame == sealingFrame {
 						return engine.election.validators
 					}
 					return nil
@@ -69,17 +69,17 @@ func testBootstrap_ReprocessBases(t *testing.T, lastDecidedFrame, sealingFrame, 
 		t.Fatal(err)
 	}
 
-	// scenario 1 - not enough frames to deliver anything (at least 2 above are necessary) i.e. numFrames < lastDecidedFrame + 2
+	// scenario 1 - not enough frames to deliver anything (at least 2 above are necessary) i.e. numFrames < lastCertifiedFrame + 2
 	expectedNumLeadersDelivered := consensus.Frame(0)
-	if numFrames >= lastDecidedFrame+2 {
+	if numFrames >= lastCertifiedFrame+2 {
 		// scenario 2 - enough frames to deliver and sealingFrame value (!= 0) provided
 		if sealingFrame != 0 {
-			expectedNumLeadersDelivered = sealingFrame - lastDecidedFrame
+			expectedNumLeadersDelivered = sealingFrame - lastCertifiedFrame
 		} else {
 			// scenario 3 - enough frames to deliver and no sealingFrame value provided
 			// implies that all frames with 2+ frames above will recieve their leaders
-			// offset the expected number by -2 as last two frames don't have enough frames above to make a decision for them
-			expectedNumLeadersDelivered = numFrames - 2 - lastDecidedFrame
+			// offset the expected number by -2 as last two frames don't have enough frames above to make a certification for them
+			expectedNumLeadersDelivered = numFrames - 2 - lastCertifiedFrame
 		}
 	}
 	if expectedNumLeadersDelivered != numLeadersDelivered {

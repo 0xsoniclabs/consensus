@@ -30,14 +30,14 @@ type Store struct {
 
 	MainDB kvdb.Store
 	table  struct {
-		LastDecidedState kvdb.Store `table:"c"`
-		EpochState       kvdb.Store `table:"e"`
+		LastCertifiedState kvdb.Store `table:"c"`
+		EpochState         kvdb.Store `table:"e"`
 	}
 
 	cache struct {
-		LastDecidedState *LastDecidedState
-		EpochState       *EpochState
-		FrameBases       *simplewlru.Cache `cache:"-"` // store by pointer
+		LastCertifiedState *LastCertifiedState
+		EpochState         *EpochState
+		FrameBases         *simplewlru.Cache `cache:"-"` // store by pointer
 	}
 
 	EpochDB    kvdb.Store

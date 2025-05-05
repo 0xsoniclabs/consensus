@@ -25,11 +25,11 @@ func TestGenesis_Sucess(t *testing.T) {
 	if want, got := epochState.Validators.Get(1), validators.Get(1); want != got {
 		t.Fatalf("expected set validator weight: %d, got: %d", want, got)
 	}
-	lastDecidedState, exists := store.get(store.table.LastDecidedState, []byte(dsKey), &LastDecidedState{}).(*LastDecidedState)
+	lastCertifiedState, exists := store.get(store.table.LastCertifiedState, []byte(dsKey), &LastCertifiedState{}).(*LastCertifiedState)
 	if !exists {
-		t.Fatal("last decided state not set")
+		t.Fatal("last certified state not set")
 	}
-	if want, got := lastDecidedState.LastDecidedFrame, consensus.FirstFrame-1; want != got {
+	if want, got := lastCertifiedState.LastCertifiedFrame, consensus.FirstFrame-1; want != got {
 		t.Fatalf("expected frame for last state: %d, got: %d", want, got)
 	}
 }
@@ -43,9 +43,9 @@ func TestGenesis_Fail(t *testing.T) {
 	}
 	validatorBuilder := consensus.NewValidatorsBuilder()
 	validatorBuilder.Set(1, 10)
-	err := store.table.LastDecidedState.Put([]byte(dsKey), []byte{})
+	err := store.table.LastCertifiedState.Put([]byte(dsKey), []byte{})
 	if err != nil {
-		t.Fatalf("failed to set up prerequisite state (Put LastDecidedState): %v", err)
+		t.Fatalf("failed to set up prerequisite state (Put LastCertifiedState): %v", err)
 	}
 	if err := store.ApplyGenesis(&Genesis{Epoch: 1, Validators: validatorBuilder.Build()}); err == nil {
 		t.Fatal("error expected but not received")

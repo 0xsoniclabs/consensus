@@ -22,7 +22,7 @@ type (
 	GetFrameBasesFn func(f consensus.Frame) []consensusstore.BaseDescriptor
 )
 
-type leaderDecision struct {
+type leaderCertification struct {
 	Frame      consensus.Frame
 	LeaderHash consensus.EventHash
 }
@@ -74,11 +74,11 @@ func (el *election) VoteAndAggregate(
 	frame consensus.Frame,
 	validatorId consensus.ValidatorID,
 	baseHash consensus.EventHash,
-) ([]*leaderDecision, error) {
+) ([]*leaderCertification, error) {
 	validatorIdx := el.validatorIDMap[validatorId]
 	el.prepareNewElectorBase(frame, validatorIdx, baseHash)
 	if frame <= el.frameToDeliver {
-		return []*leaderDecision{}, nil
+		return []*leaderCertification{}, nil
 	}
 
 	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
@@ -100,7 +100,7 @@ func (el *election) VoteAndAggregate(
 		}
 	}
 
-	el.decide(frame, aggregationMatrix, reachableBasesWeight)
+	el.certify(frame, aggregationMatrix, reachableBasesWeight)
 
 	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
 	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
@@ -113,7 +113,7 @@ func (el *election) VoteAndAggregate(
 	return leaders, nil
 }
 
-func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []int32, reachableBasesWeight int32) {
+func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []int32, reachableBasesWeight int32) {
 	// Q = ceil((4*TotalValidatorWeight - 3*reachableBasesWeight)/3)
 	// numerator (Q_0) can exceed the int32 limits before division
 	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(reachableBasesWeight)
@@ -132,8 +132,8 @@ func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []i
 
 			if yesDecisions[voteMatrixOffset] {
 				leaderHash := el.elect(frame, candidateValidator)
-				heap.Push(el.leaderDeliveryBuffer, &leaderDecision{frame, leaderHash})
-				el.cleanupDecidedFrame(frame)
+				heap.Push(el.leaderDeliveryBuffer, &leaderCertification{frame, leaderHash})
+				el.cleanupCertifiedFrame(frame)
 				break
 			}
 
@@ -195,6 +195,6 @@ func (el *election) prepareNewElectorBase(frame consensus.Frame, validatorIdx co
 	el.vote[frame][validatorIdx][base] = &baseVoteContext{frameToDeliverOffset: el.frameToDeliver}
 }
 
-func (el *election) cleanupDecidedFrame(frame consensus.Frame) {
+func (el *election) cleanupCertifiedFrame(frame consensus.Frame) {
 	delete(el.vote, frame)
 }

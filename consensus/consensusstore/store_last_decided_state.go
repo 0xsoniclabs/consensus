@@ -14,36 +14,36 @@ import "github.com/0xsoniclabs/consensus/consensus"
 
 const dsKey = "d"
 
-// LastDecidedState is for persistent storing.
-type LastDecidedState struct {
-	// fields can change only after a frame is decided
-	LastDecidedFrame consensus.Frame
+// LastCertifiedState is for persistent storing.
+type LastCertifiedState struct {
+	// fields can change only after a frame is certified
+	LastCertifiedFrame consensus.Frame
 }
 
-// SetLastDecidedState save LastDecidedState.
-// LastDecidedState is seldom read; so no cache.
-func (s *Store) SetLastDecidedState(v *LastDecidedState) {
-	s.cache.LastDecidedState = v
+// SetLastCertifiedState save LastCertifiedState.
+// LastCertifiedState is seldom read; so no cache.
+func (s *Store) SetLastCertifiedState(v *LastCertifiedState) {
+	s.cache.LastCertifiedState = v
 
-	s.set(s.table.LastDecidedState, []byte(dsKey), v)
+	s.set(s.table.LastCertifiedState, []byte(dsKey), v)
 }
 
-// GetLastDecidedState returns stored LastDecidedState.
+// GetLastCertifiedState returns stored LastCertifiedState.
 // State is seldom read; so no cache.
-func (s *Store) GetLastDecidedState() *LastDecidedState {
-	if s.cache.LastDecidedState != nil {
-		return s.cache.LastDecidedState
+func (s *Store) GetLastCertifiedState() *LastCertifiedState {
+	if s.cache.LastCertifiedState != nil {
+		return s.cache.LastCertifiedState
 	}
 
-	w, exists := s.get(s.table.LastDecidedState, []byte(dsKey), &LastDecidedState{}).(*LastDecidedState)
+	w, exists := s.get(s.table.LastCertifiedState, []byte(dsKey), &LastCertifiedState{}).(*LastCertifiedState)
 	if !exists {
 		s.crit(ErrNoGenesis)
 	}
 
-	s.cache.LastDecidedState = w
+	s.cache.LastCertifiedState = w
 	return w
 }
 
-func (s *Store) GetLastDecidedFrame() consensus.Frame {
-	return s.GetLastDecidedState().LastDecidedFrame
+func (s *Store) GetLastCertifiedFrame() consensus.Frame {
+	return s.GetLastCertifiedState().LastCertifiedFrame
 }

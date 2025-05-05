@@ -96,11 +96,11 @@ func testLachesisRandomAndReset(t *testing.T, weights []consensus.Weight, mutate
 	// maxEpochBlocks should be much smaller than eventCount so that there would be enough events to seal epoch
 	var maxEpochBlocks = eventCount / 20
 
-	// seal epoch on decided frame == maxEpochBlocks
+	// seal epoch on certified frame == maxEpochBlocks
 	for _, _lch := range lchs {
 		lch := _lch // capture
 		lch.applyBlock = func(block *consensus.Block) *consensus.Validators {
-			if lch.store.GetLastDecidedFrame()+1 == consensus.Frame(maxEpochBlocks) {
+			if lch.store.GetLastCertifiedFrame()+1 == consensus.Frame(maxEpochBlocks) {
 				// seal epoch
 				if mutateWeights {
 					return mutateValidators(lch.store.GetValidators())
@@ -192,7 +192,7 @@ func compareResults(t *testing.T, lchs []*CoreLachesis) {
 		for j := i + 1; j < len(lchs); j++ {
 			lch1 := lchs[j]
 
-			assertar.Equal(*(lchs[j].store.GetLastDecidedState()), *(lchs[i].store.GetLastDecidedState()))
+			assertar.Equal(*(lchs[j].store.GetLastCertifiedState()), *(lchs[i].store.GetLastCertifiedState()))
 			assertar.Equal(*(lchs[j].store.GetEpochState()), *(lchs[i].store.GetEpochState()))
 
 			for e := consensus.Epoch(1); e <= lch0.store.GetEpoch(); e++ {
