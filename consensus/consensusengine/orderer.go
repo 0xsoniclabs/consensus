@@ -17,7 +17,7 @@ import (
 )
 
 type OrdererCallbacks struct {
-	ApplyLeader func(decidedFrame consensus.Frame, leader consensus.EventHash) (sealEpoch *consensus.Validators)
+	ApplyLeader func(certifiedFrame consensus.Frame, leader consensus.EventHash) (sealEpoch *consensus.Validators)
 
 	EpochDBLoaded func(consensus.Epoch)
 }

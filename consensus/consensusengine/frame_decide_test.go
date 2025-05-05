@@ -72,7 +72,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 		blocks []*consensus.Block
 	)
 	lch.applyBlock = func(block *consensus.Block) *consensus.Validators {
-		frames = append(frames, lch.store.GetLastDecidedFrame()+1)
+		frames = append(frames, lch.store.GetLastCertifiedFrame()+1)
 		blocks = append(blocks, block)
 
 		return nil
@@ -111,7 +111,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 		leader := blocks[i].Leader
 
 		// call confirmBlock again
-		_, err := lch.onFrameDecided(frame, leader)
+		_, err := lch.onFrameCertified(frame, leader)
 		gotBlock := lch.blocks[lch.lastBlock]
 
 		if !assertar.NoError(err) {

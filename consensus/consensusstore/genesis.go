@@ -23,7 +23,7 @@ type Genesis struct {
 }
 
 func (s *Store) ApplyGenesis(g *Genesis) error {
-	if ok, _ := s.table.LastDecidedState.Has([]byte(dsKey)); ok {
+	if ok, _ := s.table.LastCertifiedState.Has([]byte(dsKey)); ok {
 		return fmt.Errorf("genesis already applied")
 	}
 	return s.SwitchGenesis(g)
@@ -37,11 +37,11 @@ func (s *Store) SwitchGenesis(g *Genesis) error {
 		return fmt.Errorf("genesis validators shouldn't be empty")
 	}
 	es := &EpochState{}
-	ds := &LastDecidedState{}
+	ds := &LastCertifiedState{}
 	es.Validators = g.Validators
 	es.Epoch = g.Epoch
-	ds.LastDecidedFrame = consensus.FirstFrame - 1
+	ds.LastCertifiedFrame = consensus.FirstFrame - 1
 	s.SetEpochState(es)
-	s.SetLastDecidedState(ds)
+	s.SetLastCertifiedState(ds)
 	return nil
 }

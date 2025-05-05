@@ -99,11 +99,11 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 	// maxEpochBlocks should be much smaller than eventCount so that there would be enough events to seal epoch
 	var maxEpochBlocks = eventCount / 4
 
-	// seal epoch on decided frame == maxEpochBlocks
+	// seal epoch on certified frame == maxEpochBlocks
 	for _, _lch := range lchs {
 		lch := _lch // capture
 		lch.applyBlock = func(block *consensus.Block) *consensus.Validators {
-			if lch.store.GetLastDecidedFrame()+1 == consensus.Frame(maxEpochBlocks) {
+			if lch.store.GetLastCertifiedFrame()+1 == consensus.Frame(maxEpochBlocks) {
 				// seal epoch
 				if mutateWeights {
 					return mutateValidators(lch.store.GetValidators())
@@ -219,7 +219,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 
 func compareStates(assertar *assert.Assertions, expected, restored *CoreLachesis) {
 	assertar.Equal(
-		*(expected.store.GetLastDecidedState()), *(restored.store.GetLastDecidedState()))
+		*(expected.store.GetLastCertifiedState()), *(restored.store.GetLastCertifiedState()))
 	assertar.Equal(
 		expected.store.GetEpochState().String(), restored.store.GetEpochState().String())
 	// check last block

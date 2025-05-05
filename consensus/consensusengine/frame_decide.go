@@ -14,27 +14,27 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 )
 
-// onFrameDecided moves LastDecidedFrameN to frame.
-// It includes: moving current decided frame, txs ordering and execution, epoch sealing.
-func (p *Orderer) onFrameDecided(frame consensus.Frame, leader consensus.EventHash) (bool, error) {
+// onFrameCertified moves LastCertifiedFrameN to frame.
+// It includes: moving current certified frame, txs ordering and execution, epoch sealing.
+func (p *Orderer) onFrameCertified(frame consensus.Frame, leader consensus.EventHash) (bool, error) {
 	// new checkpoint
 	var newValidators *consensus.Validators
 	if p.callback.ApplyLeader != nil {
 		newValidators = p.callback.ApplyLeader(frame, leader)
 	}
 
-	lastDecidedState := *p.store.GetLastDecidedState()
+	lastCertifiedState := *p.store.GetLastCertifiedState()
 	if newValidators != nil {
-		lastDecidedState.LastDecidedFrame = consensus.FirstFrame - 1
+		lastCertifiedState.LastCertifiedFrame = consensus.FirstFrame - 1
 		err := p.sealEpoch(newValidators)
 		if err != nil {
 			return true, err
 		}
 		p.election.ResetEpoch(consensus.FirstFrame, newValidators)
 	} else {
-		lastDecidedState.LastDecidedFrame = frame
+		lastCertifiedState.LastCertifiedFrame = frame
 	}
-	p.store.SetLastDecidedState(&lastDecidedState)
+	p.store.SetLastCertifiedState(&lastCertifiedState)
 	return newValidators != nil, nil
 }
 

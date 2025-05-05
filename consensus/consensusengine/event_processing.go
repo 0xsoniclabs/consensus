@@ -72,14 +72,14 @@ func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) 
 	return selfParentFrame, nil
 }
 
-// runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was decided
+// runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
 func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
-	decisions, err := p.election.VoteAndAggregate(frame, validatorID, baseHash)
+	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash)
 	if err != nil {
 		return false, err
 	}
-	for _, leaderDecision := range decisions {
-		sealed, err := p.onFrameDecided(leaderDecision.Frame, leaderDecision.LeaderHash)
+	for _, leaderCertification := range certifications {
+		sealed, err := p.onFrameCertified(leaderCertification.Frame, leaderCertification.LeaderHash)
 		if err != nil {
 			return false, err
 		}
@@ -91,7 +91,7 @@ func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus
 }
 
 func (p *Orderer) bootstrapElection() error {
-	for frame := p.store.GetLastDecidedFrame() + 1; ; frame++ {
+	for frame := p.store.GetLastCertifiedFrame() + 1; ; frame++ {
 		frameBases := p.store.GetFrameBases(frame)
 		if len(frameBases) == 0 {
 			break

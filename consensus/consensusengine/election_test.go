@@ -35,13 +35,13 @@ type (
 )
 
 type testExpected struct {
-	DecidedFrame  consensus.Frame
-	DecidedLeader string
-	DecisiveBases map[string]bool
+	CertifiedFrame  consensus.Frame
+	CertifiedLeader string
+	CertifyingBases map[string]bool
 }
 
 func TestProcessBase(t *testing.T) {
-	t.Run("4 equalWeights notDecided", func(t *testing.T) {
+	t.Run("4 equalWeights notCertified", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			nil,
 			weights{
@@ -68,9 +68,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 equalWeights", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:  1,
-				DecidedLeader: "c1_1",
-				DecisiveBases: map[string]bool{"a3_3": true},
+				CertifiedFrame:  1,
+				CertifiedLeader: "c1_1",
+				CertifyingBases: map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -96,9 +96,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 equalWeights missingBase", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:  1,
-				DecidedLeader: "c1_1",
-				DecisiveBases: map[string]bool{"a3_3": true},
+				CertifiedFrame:  1,
+				CertifiedLeader: "c1_1",
+				CertifyingBases: map[string]bool{"a3_3": true},
 			},
 			weights{
 				"nodeA": 1,
@@ -122,9 +122,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 differentWeights", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:  1,
-				DecidedLeader: "a1_1",
-				DecisiveBases: map[string]bool{"b3_3": true},
+				CertifiedFrame:  1,
+				CertifiedLeader: "a1_1",
+				CertifyingBases: map[string]bool{"b3_3": true},
 			},
 			weights{
 				"nodeA": math.MaxUint32/2 - 3,
@@ -150,9 +150,9 @@ func TestProcessBase(t *testing.T) {
 	t.Run("4 differentWeights 4rounds", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			&testExpected{
-				DecidedFrame:  1,
-				DecidedLeader: "a1_1",
-				DecisiveBases: map[string]bool{"c3_3": true, "b3_3": true},
+				CertifiedFrame:  1,
+				CertifiedLeader: "a1_1",
+				CertifyingBases: map[string]bool{"c3_3": true, "b3_3": true},
 			},
 			weights{
 				"nodeA": 4,
@@ -180,7 +180,7 @@ func TestProcessBase(t *testing.T) {
 	`, map[string]string{"a1_1": "a1_1_equivocation"})
 	})
 
-	t.Run("4 equalWeights notDecided", func(t *testing.T) {
+	t.Run("4 equalWeights notCertified", func(t *testing.T) {
 		testVoteAndAggregate(t,
 			nil,
 			weights{
@@ -291,12 +291,12 @@ func testVoteAndAggregate(
 		}
 
 		// checking:
-		decisive := expected != nil && expected.DecisiveBases[base.ID().String()]
-		if decisive {
+		certifying := expected != nil && expected.CertifyingBases[base.ID().String()]
+		if certifying {
 			assertar.NotNil(leaders)
 			assertar.NotEmpty(leaders)
-			assertar.Equal(expected.DecidedFrame, leaders[0].Frame)
-			assertar.Equal(expected.DecidedLeader, leaders[0].LeaderHash.String())
+			assertar.Equal(expected.CertifiedFrame, leaders[0].Frame)
+			assertar.Equal(expected.CertifiedLeader, leaders[0].LeaderHash.String())
 			return
 		} else {
 			assertar.Empty(leaders)

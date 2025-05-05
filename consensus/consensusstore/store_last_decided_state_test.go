@@ -8,24 +8,24 @@ import (
 
 func TestStore_StatesPersisting(t *testing.T) {
 	store := NewMemStore()
-	lastDecidedState := populateWithLastDecidedState(store)
-	if want, got := lastDecidedState, store.GetLastDecidedState(); want.LastDecidedFrame != got.LastDecidedFrame {
-		t.Fatalf("incorrect last decided state retrieved. expected: %v, got: %v", want, got)
+	lastCertifiedState := populateWithLastCertifiedState(store)
+	if want, got := lastCertifiedState, store.GetLastCertifiedState(); want.LastCertifiedFrame != got.LastCertifiedFrame {
+		t.Fatalf("incorrect last certified state retrieved. expected: %v, got: %v", want, got)
 	}
 	// force non-cached retrieval
-	store.cache.LastDecidedState = nil
-	if want, got := lastDecidedState, store.GetLastDecidedState(); want.LastDecidedFrame != got.LastDecidedFrame {
-		t.Fatalf("incorrect last decided state retrieved. expected: %v, got: %v", want, got)
+	store.cache.LastCertifiedState = nil
+	if want, got := lastCertifiedState, store.GetLastCertifiedState(); want.LastCertifiedFrame != got.LastCertifiedFrame {
+		t.Fatalf("incorrect last certified state retrieved. expected: %v, got: %v", want, got)
 	}
-	if want, got := lastDecidedState.LastDecidedFrame, store.GetLastDecidedFrame(); want != got {
-		t.Fatalf("incorrect last decided frame retrieved. expected: %d, got: %d", want, got)
+	if want, got := lastCertifiedState.LastCertifiedFrame, store.GetLastCertifiedFrame(); want != got {
+		t.Fatalf("incorrect last certified frame retrieved. expected: %d, got: %d", want, got)
 	}
 }
 
-func populateWithLastDecidedState(store *Store) *LastDecidedState {
+func populateWithLastCertifiedState(store *Store) *LastCertifiedState {
 	validatorBuilder := consensus.NewValidatorsBuilder()
 	validatorBuilder.Set(1, 10)
-	lastDecidedState := &LastDecidedState{LastDecidedFrame: 5}
-	store.SetLastDecidedState(lastDecidedState)
-	return lastDecidedState
+	lastCertifiedState := &LastCertifiedState{LastCertifiedFrame: 5}
+	store.SetLastCertifiedState(lastCertifiedState)
+	return lastCertifiedState
 }

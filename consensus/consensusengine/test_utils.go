@@ -63,7 +63,7 @@ func NewBootstrappedCoreConsensus(
 					// track blocks
 					key := BlockKey{
 						Epoch: extended.store.GetEpoch(),
-						Frame: extended.store.GetLastDecidedFrame() + 1,
+						Frame: extended.store.GetLastCertifiedFrame() + 1,
 					}
 					extended.blocks[key] = &BlockResult{
 						Leader:     block.Leader,
