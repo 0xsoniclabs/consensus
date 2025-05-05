@@ -24,7 +24,7 @@ import (
 type (
 	// LowestAfterSeq is a vector of lowest events (their Seq) from which the source event is reachable
 	LowestAfterSeq []byte
-	// HighestBeforeSeq is a vector of highest events (their Seq + IsForkDetected) which are reachable by source event
+	// HighestBeforeSeq is a vector of highest events (their Seq + IsEquivocationDetected) which are reachable by source event
 	HighestBeforeSeq []byte
 
 	// BranchSeq encodes Seq and MinSeq into 8 bytes
@@ -120,16 +120,16 @@ func (b *HighestBeforeSeq) Set(i consensus.ValidatorIndex, seq BranchSeq) {
 }
 
 var (
-	// forkDetectedSeq is a special marker of reachable fork by a creator
-	forkDetectedSeq = BranchSeq{
+	// equivocationDetectedSeq is a special marker of reachable equivocation by a creator
+	equivocationDetectedSeq = BranchSeq{
 		Seq:    0,
 		MinSeq: consensus.Seq(math.MaxInt32),
 	}
 )
 
-// IsForkDetected returns true if reachable fork by a creator (in combination of branches)
-func (seq BranchSeq) IsForkDetected() bool {
-	return seq == forkDetectedSeq
+// IsEquivocationDetected returns true if reachable equivocation by a creator (in combination of branches)
+func (seq BranchSeq) IsEquivocationDetected() bool {
+	return seq == equivocationDetectedSeq
 }
 
 // Get i's position in the byte-encoded vector clock

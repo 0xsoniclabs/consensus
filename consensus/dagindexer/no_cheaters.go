@@ -14,11 +14,11 @@ func (vi *Index) NoCheaters(selfParent *consensus.EventHash, options consensus.E
 	}
 	vi.InitBranchesInfo()
 
-	if !vi.AtLeastOneFork() {
+	if !vi.AtLeastOneEquivocation() {
 		return options
 	}
 
-	// no need to merge, because every branch is marked by IsForkDetected if fork is reachable
+	// no need to merge, because every branch is marked by IsEquivocationDetected if equivocation is reachable
 	highest := vi.GetHighestBefore(*selfParent)
 	filtered := make(consensus.EventHashes, 0, len(options))
 	for _, id := range options {
@@ -26,7 +26,7 @@ func (vi *Index) NoCheaters(selfParent *consensus.EventHash, options consensus.E
 		if e == nil {
 			vi.crit(errors.New("event not found"))
 		}
-		if !highest.VSeq.Get(vi.validatorIdxs[e.Creator()]).IsForkDetected() {
+		if !highest.VSeq.Get(vi.validatorIdxs[e.Creator()]).IsEquivocationDetected() {
 			filtered.Add(id)
 		}
 	}

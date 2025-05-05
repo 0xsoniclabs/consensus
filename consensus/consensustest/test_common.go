@@ -42,16 +42,16 @@ func GenNodes(
 	return
 }
 
-// ForEachRandFork generates random events with forks for test purpose.
+// ForEachRandEquivocation generates random events with equivocations for test purpose.
 // Result:
 //   - callbacks are called for each new event;
 //   - events maps node address to array of its events;
-func ForEachRandFork(
+func ForEachRandEquivocation(
 	nodes []consensus.ValidatorID,
 	cheatersArr []consensus.ValidatorID,
 	eventCount int,
 	parentCount int,
-	forksCount int,
+	equivocationsCount int,
 	r *rand.Rand,
 	callback ForEachEvent,
 ) (
@@ -91,12 +91,12 @@ func ForEachRandFork(
 		if ee := events[creator]; len(ee) > 0 {
 			parent = ee[len(ee)-1]
 
-			// may insert fork
-			forksAlready, isCheater := cheaters[creator]
-			forkPossible := len(ee) > 1
-			forkLimitOk := forksAlready < forksCount
-			forkFlipped := r.IntN(eventCount) <= forksCount || i < (nodeCount-1)*eventCount
-			if isCheater && forkPossible && forkLimitOk && forkFlipped {
+			// may insert equivocation
+			equivocationsAlready, isCheater := cheaters[creator]
+			equivocationPossible := len(ee) > 1
+			equivocationLimitOk := equivocationsAlready < equivocationsCount
+			equivocationFlipped := r.IntN(eventCount) <= equivocationsCount || i < (nodeCount-1)*eventCount
+			if isCheater && equivocationPossible && equivocationLimitOk && equivocationFlipped {
 				parent = ee[r.IntN(len(ee)-1)]
 				if r.IntN(len(ee)) == 0 {
 					parent = nil
@@ -158,7 +158,7 @@ func ForEachRandEvent(
 ) (
 	events map[consensus.ValidatorID]consensus.Events,
 ) {
-	return ForEachRandFork(nodes, []consensus.ValidatorID{}, eventCount, parentCount, 0, r, callback)
+	return ForEachRandEquivocation(nodes, []consensus.ValidatorID{}, eventCount, parentCount, 0, r, callback)
 }
 
 // GenRandEvents generates random events for test purpose.

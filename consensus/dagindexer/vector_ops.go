@@ -30,11 +30,11 @@ func (b *LowestAfter) Visit(i consensus.ValidatorIndex, e consensus.Event) bool 
 
 func (b *HighestBefore) IsEmpty(i consensus.ValidatorIndex) bool {
 	seq := b.VSeq.Get(i)
-	return !seq.IsForkDetected() && seq.Seq == 0
+	return !seq.IsEquivocationDetected() && seq.Seq == 0
 }
 
-func (b *HighestBefore) IsForkDetected(i consensus.ValidatorIndex) bool {
-	return b.VSeq.Get(i).IsForkDetected()
+func (b *HighestBefore) IsEquivocationDetected(i consensus.ValidatorIndex) bool {
+	return b.VSeq.Get(i).IsEquivocationDetected()
 }
 
 func (b *HighestBefore) Seq(i consensus.ValidatorIndex) consensus.Seq {
@@ -45,26 +45,26 @@ func (b *HighestBefore) MinSeq(i consensus.ValidatorIndex) consensus.Seq {
 	return b.VSeq.Get(i).MinSeq
 }
 
-func (b *HighestBefore) SetForkDetected(i consensus.ValidatorIndex) {
-	b.VSeq.Set(i, forkDetectedSeq)
+func (b *HighestBefore) SetEquivocationDetected(i consensus.ValidatorIndex) {
+	b.VSeq.Set(i, equivocationDetectedSeq)
 }
 
 func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.ValidatorIndex) {
 	for branchID := consensus.ValidatorIndex(0); branchID < num; branchID++ {
 		hisSeq := other.VSeq.Get(branchID)
-		if hisSeq.Seq == 0 && !hisSeq.IsForkDetected() {
+		if hisSeq.Seq == 0 && !hisSeq.IsEquivocationDetected() {
 			// hisSeq doesn't observe anything about this branchID
 			continue
 		}
 		mySeq := hb.VSeq.Get(branchID)
 
-		if mySeq.IsForkDetected() {
+		if mySeq.IsEquivocationDetected() {
 			// mySeq reaches the maximum already
 			continue
 		}
-		if hisSeq.IsForkDetected() {
-			// set fork detected
-			hb.SetForkDetected(branchID)
+		if hisSeq.IsEquivocationDetected() {
+			// set equivocation detected
+			hb.SetEquivocationDetected(branchID)
 		} else {
 			if mySeq.Seq == 0 || mySeq.MinSeq > hisSeq.MinSeq {
 				// take hisSeq.MinSeq
@@ -88,7 +88,7 @@ func (hb *HighestBefore) GatherFrom(to consensus.ValidatorIndex, other *HighestB
 	for _, branchID := range from {
 		vseq := other.VSeq.Get(branchID)
 		vtime := other.VTime.Get(branchID)
-		if vseq.IsForkDetected() {
+		if vseq.IsEquivocationDetected() {
 			highestBranchSeq = vseq
 			break
 		}

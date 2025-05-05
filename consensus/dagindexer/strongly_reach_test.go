@@ -540,8 +540,8 @@ type eventSlot struct {
 	creator consensus.ValidatorID
 }
 
-// naive implementation of fork detection, O(n)
-func testForksDetected(vi *Index, head consensus.Event) (cheaters map[consensus.ValidatorID]bool, err error) {
+// naive implementation of equivocation detection, O(n)
+func testEquivocationsDetected(vi *Index, head consensus.Event) (cheaters map[consensus.ValidatorID]bool, err error) {
 	cheaters = map[consensus.ValidatorID]bool{}
 	visited := consensus.EventHashSet{}
 	detected := map[eventSlot]int{}
@@ -570,7 +570,7 @@ func testForksDetected(vi *Index, head consensus.Event) (cheaters map[consensus.
 	return cheaters, err
 }
 
-func TestRandomForksSanity(t *testing.T) {
+func TestRandomEquivocationsSanity(t *testing.T) {
 	nodes := consensustest.GenNodes(8)
 	cheaters := []consensus.ValidatorID{nodes[0], nodes[1], nodes[2]}
 
@@ -592,8 +592,8 @@ func TestRandomForksSanity(t *testing.T) {
 	vi := NewIndex(tCrit, LiteConfig())
 	vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-	// Many forks from each node in large graph, so probability of not seeing a fork is negligible
-	events := consensustest.ForEachRandFork(nodes, cheaters, 300, 4, 30, nil, consensustest.ForEachEvent{
+	// Many equivocations from each node in large graph, so probability of not seeing an equivocation is negligible
+	events := consensustest.ForEachRandEquivocation(nodes, cheaters, 300, 4, 30, nil, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			if _, ok := processed[e.ID()]; ok {
 				return
@@ -609,7 +609,7 @@ func TestRandomForksSanity(t *testing.T) {
 	vi.Flush()
 	vi.DropNotFlushed() // doesn't drop anything, because everything is flushed
 
-	// quick sanity check. all the nodes should see that cheaters have a fork, and honest nodes don't have forks
+	// quick sanity check. all the nodes should see that cheaters have an equivocation, and honest nodes don't have equivocations
 	assertar := assert.New(t)
 	idxs := validatorsBuilder.Build().Idxs()
 	for _, node := range nodes {
@@ -618,7 +618,7 @@ func TestRandomForksSanity(t *testing.T) {
 		for n, cheater := range nodes {
 			branchSeq := highestBefore.VSeq.Get(idxs[cheater])
 			isCheater := n < len(cheaters)
-			assertar.Equal(isCheater, branchSeq.IsForkDetected(), cheater)
+			assertar.Equal(isCheater, branchSeq.IsEquivocationDetected(), cheater)
 			if isCheater {
 				assertar.Equal(consensus.Seq(0), branchSeq.Seq, cheater)
 			} else {
@@ -628,78 +628,78 @@ func TestRandomForksSanity(t *testing.T) {
 	}
 }
 
-func TestRandomForks(t *testing.T) {
+func TestRandomEquivocations(t *testing.T) {
 	for i, test := range []struct {
-		nodesNum      int
-		cheatersNum   int
-		eventsNum     int
-		forksNum      int
-		parentsNum    int
-		reorderChecks int
+		nodesNum         int
+		cheatersNum      int
+		eventsNum        int
+		equivocationsNum int
+		parentsNum       int
+		reorderChecks    int
 	}{
 		{
-			nodesNum:      1,
-			parentsNum:    1,
-			cheatersNum:   1,
-			eventsNum:     10,
-			forksNum:      3,
-			reorderChecks: 30,
+			nodesNum:         1,
+			parentsNum:       1,
+			cheatersNum:      1,
+			eventsNum:        10,
+			equivocationsNum: 3,
+			reorderChecks:    30,
 		},
 		{
-			nodesNum:      2,
-			parentsNum:    1,
-			cheatersNum:   1,
-			eventsNum:     10,
-			forksNum:      3,
-			reorderChecks: 20,
+			nodesNum:         2,
+			parentsNum:       1,
+			cheatersNum:      1,
+			eventsNum:        10,
+			equivocationsNum: 3,
+			reorderChecks:    20,
 		},
 		{
-			nodesNum:      2,
-			parentsNum:    2,
-			cheatersNum:   2,
-			eventsNum:     10,
-			forksNum:      20,
-			reorderChecks: 5,
+			nodesNum:         2,
+			parentsNum:       2,
+			cheatersNum:      2,
+			eventsNum:        10,
+			equivocationsNum: 20,
+			reorderChecks:    5,
 		},
 		{
-			nodesNum:      10,
-			parentsNum:    4,
-			cheatersNum:   1,
-			eventsNum:     10,
-			forksNum:      3,
-			reorderChecks: 5,
+			nodesNum:         10,
+			parentsNum:       4,
+			cheatersNum:      1,
+			eventsNum:        10,
+			equivocationsNum: 3,
+			reorderChecks:    5,
 		},
 		{
-			nodesNum:      10,
-			parentsNum:    4,
-			cheatersNum:   10,
-			eventsNum:     10,
-			forksNum:      3,
-			reorderChecks: 3,
+			nodesNum:         10,
+			parentsNum:       4,
+			cheatersNum:      10,
+			eventsNum:        10,
+			equivocationsNum: 3,
+			reorderChecks:    3,
 		},
 		{
-			nodesNum:      20,
-			parentsNum:    4,
-			cheatersNum:   10,
-			eventsNum:     5,
-			forksNum:      2,
-			reorderChecks: 3,
+			nodesNum:         20,
+			parentsNum:       4,
+			cheatersNum:      10,
+			eventsNum:        5,
+			equivocationsNum: 2,
+			reorderChecks:    3,
 		},
 		{
-			nodesNum:      40,
-			parentsNum:    4,
-			cheatersNum:   10,
-			eventsNum:     3,
-			forksNum:      1,
-			reorderChecks: 2,
+			nodesNum:         40,
+			parentsNum:       4,
+			cheatersNum:      10,
+			eventsNum:        3,
+			equivocationsNum: 1,
+			reorderChecks:    2,
 		},
 		{
-			nodesNum:      5,
-			parentsNum:    4,
-			cheatersNum:   2,
-			eventsNum:     30,
-			forksNum:      30,
-			reorderChecks: 2,
+			nodesNum:         5,
+			parentsNum:       4,
+			cheatersNum:      2,
+			eventsNum:        30,
+			equivocationsNum: 30,
+			reorderChecks:    2,
 		},
 	} {
 		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
@@ -719,7 +719,7 @@ func TestRandomForks(t *testing.T) {
 			vi := NewIndex(tCrit, LiteConfig())
 			vi.Reset(validators, vecflushable.Wrap(memorydb.New(), vecflushable.TestSizeLimit), getEvent)
 
-			_ = consensustest.ForEachRandFork(nodes, cheaters, test.eventsNum, test.parentsNum, test.forksNum, r, consensustest.ForEachEvent{
+			_ = consensustest.ForEachRandEquivocation(nodes, cheaters, test.eventsNum, test.parentsNum, test.equivocationsNum, r, consensustest.ForEachEvent{
 				Process: func(e consensus.Event, name string) {
 					if _, ok := processed[e.ID()]; ok {
 						return
@@ -735,16 +735,16 @@ func TestRandomForks(t *testing.T) {
 
 			assertar := assert.New(t)
 			idxs := validators.Idxs()
-			// check that fork observing is identical to naive version
+			// check that equivocation observing is identical to naive version
 			for _, e := range processed {
 				highestBefore := vi.GetHighestBefore(e.ID())
-				expectedCheaters, err := testForksDetected(vi, e)
+				expectedCheaters, err := testEquivocationsDetected(vi, e)
 				assertar.NoError(err)
 
 				for _, cheater := range nodes {
 					expectedCheater := expectedCheaters[cheater]
 					branchSeq := highestBefore.VSeq.Get(idxs[cheater])
-					assertar.Equal(expectedCheater, branchSeq.IsForkDetected(), e.String())
+					assertar.Equal(expectedCheater, branchSeq.IsEquivocationDetected(), e.String())
 					if expectedCheater {
 						assertar.Equal(consensus.Seq(0), branchSeq.Seq, e.String())
 					}
@@ -844,11 +844,11 @@ func TestStronglyReachProgressCheater(t *testing.T) {
 		║3      ║       ║
 		║╚═════─╫─═════ a01
 		║      3║       ║
-		║      ╚ c01════╣ // fork
+		║      ╚ c01════╣ // equivocation
 		║║      ║       ║
 		║╚══════╬══════ a02
 		║      3║       ║
-		║      ╚ c03════╣ // fork
+		║      ╚ c03════╣ // equivocation
 		║       ║       ║
 		╠═══════╬══════ a03
 	`
@@ -869,9 +869,9 @@ func TestStronglyReachProgressCheater(t *testing.T) {
 	}
 }
 
-// Only globally seen fork. However, this function does not support those properly, as it has
+// Only globally seen equivocation. However, this function does not support those properly, as it has
 // little incentive to do so.
-func TestStronglyReachProgressOnlyGloballySeenFork(t *testing.T) {
+func TestStronglyReachProgressOnlyGloballySeenEquivocation(t *testing.T) {
 	dagAscii := `
 		a00           b00            c00
 		║             ║              ║
@@ -908,7 +908,7 @@ func TestStronglyReachProgressOnlyGloballySeenFork(t *testing.T) {
 	chosenRes, candidatesRes := vi.StronglyReachProgress(named["a01"].ID(), named["c00"].ID(),
 		[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
 	assertar.True(chosenRes.HasQuorum())
-	// NOTE!!! if the logic supported fork seen only globally, this would be false!
+	// NOTE!!! if the logic supported equivocation seen only globally, this would be false!
 	// This is not a concern at the moment, since it does not impede the method's use case.
 	assertar.True(candidatesRes[0].HasQuorum())
 }

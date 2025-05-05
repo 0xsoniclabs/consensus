@@ -61,7 +61,7 @@ func (p *Lachesis) applyLeader(decidedFrame consensus.Frame, leader consensus.Ev
 	// cheaters are ordered deterministically
 	cheaters := make([]consensus.ValidatorID, 0, validators.Len())
 	for creatorIdx, creator := range validators.SortedIDs() {
-		if leaderVecClock.Get(consensus.ValidatorIndex(creatorIdx)).IsForkDetected() {
+		if leaderVecClock.Get(consensus.ValidatorIndex(creatorIdx)).IsEquivocationDetected() {
 			cheaters = append(cheaters, creator)
 		}
 	}

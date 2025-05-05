@@ -145,9 +145,9 @@ func (el *election) decide(aggregatingFrame consensus.Frame, aggregationMatr []i
 }
 
 // elect picks the final leader event once its frame and validator number have been finalized
-// by the "upper frame" base votes'. This is trivial in case of non-forking events as such
+// by the "upper frame" base votes'. This is trivial in case of non-equivocating events as such
 // bases are uniquely identified by (frame, validator).
-// In the case of a fork, a tiebreaker algorithm has to be run.
+// In the case of an equivocation, a tiebreaker algorithm has to be run.
 func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.ValidatorID) consensus.EventHash {
 	validatorIdx := el.validatorIDMap[validatorCandidate]
 	candidateMap := el.vote[frame][validatorIdx]

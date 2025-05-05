@@ -43,7 +43,7 @@ type IndexConfig struct {
 	Caches IndexCacheConfig
 }
 
-// Index is a data to detect strongly-reach condition, calculate median timestamp, detect forks.
+// Index is a data to detect strongly-reach condition, calculate median timestamp, detect equivocations.
 type Index struct {
 	crit          func(error)
 	validators    *consensus.Validators
@@ -163,10 +163,10 @@ func (vi *Index) Close() error {
 	return vi.vecDb.Close()
 }
 
-func (vi *Index) setForkDetected(before *HighestBefore, branchID consensus.ValidatorIndex) {
+func (vi *Index) setEquivocationDetected(before *HighestBefore, branchID consensus.ValidatorIndex) {
 	creatorIdx := vi.branchesInfo.BranchIDCreatorIdxs[branchID]
 	for _, branchID := range vi.branchesInfo.BranchIDByCreators[creatorIdx] {
-		before.SetForkDetected(branchID)
+		before.SetEquivocationDetected(branchID)
 	}
 }
 
@@ -182,7 +182,7 @@ func (vi *Index) fillGlobalBranchID(e consensus.Event, meIdx consensus.Validator
 	if e.SelfParent() == nil {
 		// is it first event indeed?
 		if vi.branchesInfo.BranchIDLastSeq[meIdx] == 0 {
-			// OK, not a new fork
+			// OK, not a new equivocation
 			vi.branchesInfo.BranchIDLastSeq[meIdx] = e.Seq()
 			return meIdx, nil
 		}
@@ -195,12 +195,12 @@ func (vi *Index) fillGlobalBranchID(e consensus.Event, meIdx consensus.Validator
 
 		if vi.branchesInfo.BranchIDLastSeq[selfParentBranchID]+1 == e.Seq() {
 			vi.branchesInfo.BranchIDLastSeq[selfParentBranchID] = e.Seq()
-			// OK, not a new fork
+			// OK, not a new equivocation
 			return selfParentBranchID, nil
 		}
 	}
 
-	// if we're here, then new fork is reachable (only globally), create new branchID due to a new fork
+	// if we're here, then new equivocation is reachable (only globally), create new branchID due to a new equivocation
 	vi.branchesInfo.BranchIDLastSeq = append(vi.branchesInfo.BranchIDLastSeq, e.Seq())
 	vi.branchesInfo.BranchIDCreatorIdxs = append(vi.branchesInfo.BranchIDCreatorIdxs, meIdx)
 	newBranchID := consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDLastSeq) - 1)
@@ -237,19 +237,19 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 	myVecs.before.InitWithEvent(meBranchID, e)
 
 	for _, pVec := range parentsVecs {
-		// calculate HighestBefore  Detect forks for a case when parent reaches a fork
+		// calculate HighestBefore  Detect equivocations for a case when parent reaches an equivocation
 		myVecs.before.CollectFrom(pVec, consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDCreatorIdxs)))
 	}
-	// Detect forks, which were not reachable by parents
-	if vi.AtLeastOneFork() {
+	// Detect equivocations, which were not reachable by parents
+	if vi.AtLeastOneEquivocation() {
 		for n := consensus.ValidatorIndex(0); n < vi.validators.Len(); n++ {
 			if len(vi.branchesInfo.BranchIDByCreators[n]) <= 1 {
 				continue
 			}
 			for _, branchID := range vi.branchesInfo.BranchIDByCreators[n] {
-				if myVecs.before.IsForkDetected(branchID) {
-					// if one branch reaches a fork, mark all the branches as observing the fork
-					vi.setForkDetected(myVecs.before, n)
+				if myVecs.before.IsEquivocationDetected(branchID) {
+					// if one branch reaches an equivocation, mark all the branches as observing the equivocation
+					vi.setEquivocationDetected(myVecs.before, n)
 					break
 				}
 			}
@@ -257,7 +257,7 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 
 	nextCreator:
 		for n := consensus.ValidatorIndex(0); n < vi.validators.Len(); n++ {
-			if myVecs.before.IsForkDetected(n) {
+			if myVecs.before.IsEquivocationDetected(n) {
 				continue
 			}
 			for _, branchID1 := range vi.branchesInfo.BranchIDByCreators[n] {
@@ -272,7 +272,7 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 						continue
 					}
 					if myVecs.before.MinSeq(a) <= myVecs.before.Seq(b) && myVecs.before.MinSeq(b) <= myVecs.before.Seq(a) {
-						vi.setForkDetected(myVecs.before, n)
+						vi.setEquivocationDetected(myVecs.before, n)
 						continue nextCreator
 					}
 				}
@@ -308,7 +308,7 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 func (vi *Index) GetMergedHighestBefore(id consensus.EventHash) *HighestBefore {
 	vi.InitBranchesInfo()
 
-	if vi.AtLeastOneFork() {
+	if vi.AtLeastOneEquivocation() {
 		scatteredBefore := vi.GetHighestBefore(id)
 
 		mergedBefore := NewHighestBefore(vi.validators.Len())
