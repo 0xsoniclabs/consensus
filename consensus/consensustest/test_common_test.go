@@ -43,14 +43,14 @@ func TestGenNodes_CreateSpecifiedNodeCount(t *testing.T) {
 	}
 }
 
-func TestForEachRandFork_CreateEventsWithoutForks(t *testing.T) {
+func TestForEachRandEquivocation_CreateEventsWithoutEquivocations(t *testing.T) {
 	nodes := GenNodes(3)
 	eventCount := 2
 	parentCount := 2
-	forksCount := 0
+	equivocationsCount := 0
 	r := NewIntSeededRandGenerator(42) // fixed seed for reproducibility
 
-	events := ForEachRandFork(nodes, nil, eventCount, parentCount, forksCount, r, ForEachEvent{})
+	events := ForEachRandEquivocation(nodes, nil, eventCount, parentCount, equivocationsCount, r, ForEachEvent{})
 
 	assert.Equal(t, len(nodes), len(events), "Events should be created for each node")
 
@@ -60,11 +60,11 @@ func TestForEachRandFork_CreateEventsWithoutForks(t *testing.T) {
 	}
 }
 
-func TestForEachRandFork_CreateEventsWithForks(t *testing.T) {
+func TestForEachRandEquivocation_CreateEventsWithEquivocations(t *testing.T) {
 	nodes := GenNodes(3)
 	eventCount := 5
 	parentCount := 2
-	forksCount := 2
+	equivocationsCount := 2
 	cheaters := []consensus.ValidatorID{nodes[0]} // first node is a cheater
 	r := NewIntSeededRandGenerator(42)
 
@@ -75,7 +75,7 @@ func TestForEachRandFork_CreateEventsWithForks(t *testing.T) {
 		},
 	}
 
-	events := ForEachRandFork(nodes, cheaters, eventCount, parentCount, forksCount, r, callback)
+	events := ForEachRandEquivocation(nodes, cheaters, eventCount, parentCount, equivocationsCount, r, callback)
 
 	assert.NotEmpty(t, processedEvents, "Process callback should be called")
 
@@ -95,11 +95,11 @@ func TestForEachRandFork_CreateEventsWithForks(t *testing.T) {
 		"Number of unique sequence numbers should be less than eventCount for cheater nodes")
 }
 
-func TestForEachRandFork_WithCallbacks(t *testing.T) {
+func TestForEachRandEquivocation_WithCallbacks(t *testing.T) {
 	nodes := GenNodes(2)
 	eventCount := 2
 	parentCount := 2
-	forksCount := 0
+	equivocationsCount := 0
 	r := NewIntSeededRandGenerator(42)
 
 	var builtEvents []*TestEvent
@@ -115,7 +115,7 @@ func TestForEachRandFork_WithCallbacks(t *testing.T) {
 		},
 	}
 
-	ForEachRandFork(nodes, nil, eventCount, parentCount, forksCount, r, callback)
+	ForEachRandEquivocation(nodes, nil, eventCount, parentCount, equivocationsCount, r, callback)
 
 	assert.NotEmpty(t, builtEvents, "Build callback should be called")
 	assert.NotEmpty(t, processedEvents, "Process callback should be called")
@@ -123,11 +123,11 @@ func TestForEachRandFork_WithCallbacks(t *testing.T) {
 		"Build and Process callbacks should be called the same number of times")
 }
 
-func TestForEachRandFork_BuildCallbackError(t *testing.T) {
+func TestForEachRandEquivocation_BuildCallbackError(t *testing.T) {
 	nodes := GenNodes(3)
 	eventCount := 5
 	parentCount := 2
-	forksCount := 0
+	equivocationsCount := 0
 	r := NewIntSeededRandGenerator(42)
 
 	var processedEventNames []string
@@ -145,7 +145,7 @@ func TestForEachRandFork_BuildCallbackError(t *testing.T) {
 		},
 	}
 
-	events := ForEachRandFork(nodes, nil, eventCount, parentCount, forksCount, r, callback)
+	events := ForEachRandEquivocation(nodes, nil, eventCount, parentCount, equivocationsCount, r, callback)
 
 	for _, names := range processedEventNames {
 		assert.NotEqual(t, "a001", names, "Event with Build error should be skipped")
@@ -159,36 +159,36 @@ func TestForEachRandFork_BuildCallbackError(t *testing.T) {
 	assert.Less(t, totalEvents, len(nodes)*eventCount, "Total events should be less than expected due to skipped events")
 }
 
-func TestForEachRandFork_CheaterCreatesNilParentFork(t *testing.T) {
+func TestForEachRandEquivocation_CheaterCreatesNilParentEquivocation(t *testing.T) {
 	nodes := GenNodes(3)
 	cheaters := []consensus.ValidatorID{nodes[0]} // First node is the cheater
-	eventCount := 5                               // Need enough events for forkPossible (len(ee) > 1)
+	eventCount := 5                               // Need enough events for equivocationPossible (len(ee) > 1)
 	parentCount := 2
-	forksCount := 3   // Allow multiple forks
-	seed := uint64(5) // Deterministic seed triggers the r.IntN(len(ee)) == 0 case under these conditions
+	equivocationsCount := 3 // Allow multiple equivocations
+	seed := uint64(5)       // Deterministic seed triggers the r.IntN(len(ee)) == 0 case under these conditions
 	r := NewIntSeededRandGenerator(seed)
 
-	events := ForEachRandFork(nodes, cheaters, eventCount, parentCount, forksCount, r, ForEachEvent{})
+	events := ForEachRandEquivocation(nodes, cheaters, eventCount, parentCount, equivocationsCount, r, ForEachEvent{})
 
 	cheaterEvents := events[cheaters[0]]
 	assert.Len(t, cheaterEvents, eventCount, "Cheater should have the expected number of events")
 
-	foundNilParentFork := false
+	foundNilParentEquivocation := false
 	for i, ev := range cheaterEvents {
 		// The very first event naturally has no parents and Seq 1.
 		// We are looking for a subsequent event that resets Seq to 1,
-		// indicating its parent was set to nil during fork creation.
+		// indicating its parent was set to nil during equivocation creation.
 		if i > 0 && ev.Seq() == 1 && len(ev.Parents()) == 0 {
-			fmt.Printf("Found nil-parent fork event: %s (Index %d)\n", consensus.GetEventName(ev.ID()), i)
-			foundNilParentFork = true
+			fmt.Printf("Found nil-parent equivocation event: %s (Index %d)\n", consensus.GetEventName(ev.ID()), i)
+			foundNilParentEquivocation = true
 			break
 		}
 	}
 
-	assert.True(t, foundNilParentFork, "Expected to find an event created via nil-parent fork by the cheater")
+	assert.True(t, foundNilParentEquivocation, "Expected to find an event created via nil-parent equivocation by the cheater")
 }
 
-func TestForEachRandEvent_DelegateToForEachRandFork(t *testing.T) {
+func TestForEachRandEvent_DelegateToForEachRandEquivocation(t *testing.T) {
 	nodes := GenNodes(2)
 	eventCount := 2
 	parentCount := 2
@@ -197,8 +197,8 @@ func TestForEachRandEvent_DelegateToForEachRandFork(t *testing.T) {
 	events1 := ForEachRandEvent(nodes, eventCount, parentCount, r, ForEachEvent{})
 
 	r = NewIntSeededRandGenerator(42)
-	events2 := ForEachRandFork(nodes, []consensus.ValidatorID{}, eventCount, parentCount, 0, r, ForEachEvent{})
-	assert.Equal(t, len(events1), len(events2), "ForEachRandEvent should produce the same number of node events as ForEachRandFork")
+	events2 := ForEachRandEquivocation(nodes, []consensus.ValidatorID{}, eventCount, parentCount, 0, r, ForEachEvent{})
+	assert.Equal(t, len(events1), len(events2), "ForEachRandEvent should produce the same number of node events as ForEachRandEquivocation")
 
 	for node, nodeEvents1 := range events1 {
 		nodeEvents2 := events2[node]

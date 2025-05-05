@@ -30,7 +30,7 @@ type kv struct {
 // array. If there are more than 2n/3 such matches, then the A and B
 // have achieved sufficient coherency.
 //
-// If B1 and B2 are forks, then they cannot BOTH strongly-reach any specific event A,
+// If B1 and B2 are equivocations, then they cannot BOTH strongly-reach any specific event A,
 // unless more than 1/3W are Byzantine.
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
@@ -55,10 +55,10 @@ func (vi *Index) stronglyReaches(aID, bID consensus.EventHash) bool {
 	}
 	a := aFull.VSeq
 
-	// check A doesn't have any reachable forks from B
-	if vi.AtLeastOneFork() {
+	// check A doesn't have any reachable equivocations from B
+	if vi.AtLeastOneEquivocation() {
 		bBranchID := vi.GetEventBranchID(bID)
-		if a.Get(bBranchID).IsForkDetected() { // B is reachable as cheater by A
+		if a.Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by A
 			return false
 		}
 	}
@@ -82,7 +82,7 @@ func (vi *Index) stronglyReaches(aID, bID consensus.EventHash) bool {
 
 		// if lowest event from branchID which reaches B <= highest from branchID reachable by A
 		// then {highest from branchID reachable by A} reaches B
-		if bLowestAfter <= aHighestBefore.Seq && bLowestAfter != 0 && !aHighestBefore.IsForkDetected() {
+		if bLowestAfter <= aHighestBefore.Seq && bLowestAfter != 0 && !aHighestBefore.IsEquivocationDetected() {
 			// we may count the same creator multiple times (on different branches)!
 			// so not every call increases the counter
 			yes.CountVoteByIndex(creatorIdx)
@@ -144,29 +144,29 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 		chosenParentsHB[i] = hbFull.VSeq
 	}
 
-	// check A doesn't have any reachable forks from B
-	if vi.AtLeastOneFork() {
+	// check A doesn't have any reachable equivocations from B
+	if vi.AtLeastOneEquivocation() {
 		bBranchID := vi.GetEventBranchID(bID)
-		if aHB.Get(bBranchID).IsForkDetected() { // B is reachable as cheater by A
+		if aHB.Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by A
 			return chosenParentsSRProgress, candidateParentsSRProgress
 		}
 	}
 
-	// check chosenParents don't have any reachable forks from B
+	// check chosenParents don't have any reachable equivocations from B
 	for i := 0; i < len(chosenParentsHB); i++ {
-		if vi.AtLeastOneFork() {
+		if vi.AtLeastOneEquivocation() {
 			bBranchID := vi.GetEventBranchID(bID)
-			if chosenParentsHB[i].Get(bBranchID).IsForkDetected() { // B is reachable as cheater by a chosen parent
+			if chosenParentsHB[i].Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by a chosen parent
 				return chosenParentsSRProgress, candidateParentsSRProgress
 			}
 		}
 	}
 
-	// check candidateParents don't have any reachable forks from B
+	// check candidateParents don't have any reachable equivocations from B
 	for i := 0; i < len(candidateParentsHB); i++ {
-		if vi.AtLeastOneFork() {
+		if vi.AtLeastOneEquivocation() {
 			bBranchID := vi.GetEventBranchID(bID)
-			if candidateParentsHB[i].Get(bBranchID).IsForkDetected() { // B is reachable as cheater by a candidate parent
+			if candidateParentsHB[i].Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by a candidate parent
 				return chosenParentsSRProgress, candidateParentsSRProgress
 			}
 		}
@@ -181,16 +181,16 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 		bLowestAfter := bLA.Get(branchID)  // lowest event from creator on branchID, which reaches B
 		HighestBefore := aHB.Get(branchID) // highest event from creator, reachable by A
 
-		IsForkDetected := HighestBefore.IsForkDetected()
+		IsEquivocationDetected := HighestBefore.IsEquivocationDetected()
 
 		for i := range chosenParents {
 			chosenParentHighestBefore := chosenParentsHB[i].Get(branchID)                  // highest event from creator, reachable by a chosen parent
 			HighestBefore.Seq = maxEvent(HighestBefore.Seq, chosenParentHighestBefore.Seq) // find HighestBefore as reachable by a and all chosen parents
-			IsForkDetected = IsForkDetected || chosenParentHighestBefore.IsForkDetected()
+			IsEquivocationDetected = IsEquivocationDetected || chosenParentHighestBefore.IsEquivocationDetected()
 		}
 
 		// first do strongly reach for a + chosenParents only
-		if bLowestAfter <= HighestBefore.Seq && bLowestAfter != 0 && !IsForkDetected {
+		if bLowestAfter <= HighestBefore.Seq && bLowestAfter != 0 && !IsEquivocationDetected {
 			// we may count the same creator multiple times (on different branches)!
 			// so not every call increases the counter
 			chosenParentsSRProgress.CountVoteByIndex(creatorIdx)
@@ -198,10 +198,10 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 		// now do strongly reach for a + chosenParents + each candidate parent
 		for i := range candidateParents {
 			candidateParentHighestBefore := candidateParentsHB[i].Get(branchID)
-			candidateParentIsForkDetected := IsForkDetected || candidateParentHighestBefore.IsForkDetected()
+			candidateParentIsEquivocationDetected := IsEquivocationDetected || candidateParentHighestBefore.IsEquivocationDetected()
 			candidateParentHighestBefore.Seq = maxEvent(HighestBefore.Seq, candidateParentHighestBefore.Seq)
 
-			if bLowestAfter <= candidateParentHighestBefore.Seq && bLowestAfter != 0 && !candidateParentIsForkDetected {
+			if bLowestAfter <= candidateParentHighestBefore.Seq && bLowestAfter != 0 && !candidateParentIsEquivocationDetected {
 				// we may count the same creator multiple times (on different branches)!
 				// so not every call increases the counter
 				candidateParentsSRProgress[i].CountVoteByIndex(creatorIdx)

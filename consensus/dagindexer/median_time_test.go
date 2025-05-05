@@ -43,15 +43,15 @@ func TestMedianTimeOnIndex(t *testing.T) {
 		assertar.Equal(Timestamp(1), vi.MedianTime(e, 1))
 	}
 
-	{ // fork seen = true
+	{ // equivocation seen = true
 		e := consensus.ZeroEventHash
 		// validator indexes are sorted by weight amount
 		before := NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
 
-		before.SetForkDetected(0)
+		before.SetEquivocationDetected(0)
 		before.VTime.Set(0, 100)
 
-		before.SetForkDetected(1)
+		before.SetEquivocationDetected(1)
 		before.VTime.Set(1, 100)
 
 		before.VSeq.Set(2, BranchSeq{Seq: 1})

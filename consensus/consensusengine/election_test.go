@@ -62,7 +62,7 @@ func TestProcessBase(t *testing.T) {
 	║     ║     ║     ║
 	a3_3══╬═════╬═════╣
 	║     ║     ║     ║
-	`, map[string]string{"a1_1": "a1_1_fork", "b_1_1": "b1_1_fork"})
+	`, map[string]string{"a1_1": "a1_1_equivocation", "b_1_1": "b1_1_equivocation"})
 	})
 
 	t.Run("4 equalWeights", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestProcessBase(t *testing.T) {
 			║     ║     ║     ║
 			a3_3══╬═════╬═════╣
 			║     ║     ║     ║
-			`, map[string]string{"c1_1": "c1_1_fork"})
+			`, map[string]string{"c1_1": "c1_1_equivocation"})
 	})
 
 	t.Run("4 equalWeights missingBase", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestProcessBase(t *testing.T) {
 		║     ║     ║     ║
 		╠═════b3_3══╬═════╣
 		║     ║     ║     ║
-		`, map[string]string{"a1_1": "a1_1_fork", "d1_1": "d1_1_fork"})
+		`, map[string]string{"a1_1": "a1_1_equivocation", "d1_1": "d1_1_equivocation"})
 	})
 
 	t.Run("4 differentWeights 4rounds", func(t *testing.T) {
@@ -177,7 +177,7 @@ func TestProcessBase(t *testing.T) {
 	║╚═══─╫╩════c3_3══╣
 	║     ║     ║     ║
 	║╚═══─╫╩═══─╫─════+d3_3
-	`, map[string]string{"a1_1": "a1_1_fork"})
+	`, map[string]string{"a1_1": "a1_1_equivocation"})
 	})
 
 	t.Run("4 equalWeights notDecided", func(t *testing.T) {
@@ -201,7 +201,7 @@ func TestProcessBase(t *testing.T) {
 	║     ║     ║     ║
 	a3_3══╬═════╬═════╣
 	║     ║     ║     ║
-	`, map[string]string{"a1_1": "a1_1_fork", "d1_1": "d1_1_fork"})
+	`, map[string]string{"a1_1": "a1_1_equivocation", "d1_1": "d1_1_equivocation"})
 	})
 
 }
@@ -223,7 +223,7 @@ func testVoteAndAggregate(
 	expected *testExpected,
 	weights weights,
 	dagAscii string,
-	forks map[string]string,
+	equivocations map[string]string,
 ) {
 	t.Helper()
 	assertar := assert.New(t)
@@ -239,11 +239,11 @@ func testVoteAndAggregate(
 		Process: func(_base consensus.Event, name string) {
 			base := _base.(*consensustest.TestEvent)
 			indexTestEvent(&state, base, false)
-			if forkedBaseName, ok := forks[name]; ok {
-				forkedBase := *base
-				forkedBase.Name = forkedBaseName
-				forkedBase.SetID(consensustest.CalcHashForTestEvent(&forkedBase))
-				indexTestEvent(&state, &forkedBase, true)
+			if equivocatedBaseName, ok := equivocations[name]; ok {
+				equivocatedBase := *base
+				equivocatedBase.Name = equivocatedBaseName
+				equivocatedBase.SetID(consensustest.CalcHashForTestEvent(&equivocatedBase))
+				indexTestEvent(&state, &equivocatedBase, true)
 			}
 		},
 	})
@@ -313,7 +313,7 @@ func frameOf(dsc string) consensus.Frame {
 	return consensus.Frame(h)
 }
 
-func indexTestEvent(state *testState, base *consensustest.TestEvent, isFork bool) {
+func indexTestEvent(state *testState, base *consensustest.TestEvent, isEquivocation bool) {
 	state.ordered = append(state.ordered, base)
 	slt := slot{
 		frame:       frameOf(base.Name),
@@ -328,7 +328,7 @@ func indexTestEvent(state *testState, base *consensustest.TestEvent, isFork bool
 			ValidatorID: slt.validatorID,
 		},
 	)
-	if !isFork {
+	if !isEquivocation {
 		noPrev := false
 		if strings.HasPrefix(base.Name, "+") {
 			noPrev = true

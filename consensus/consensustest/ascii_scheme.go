@@ -115,7 +115,7 @@ func ASCIIschemeForEach(
 			if symbol != "╚" && symbol != "╝" {
 				col++
 			} else {
-				// for link with fork
+				// for link with equivocation
 				if ref, ok := prevFarRefs[col]; ok {
 					prevRef = ref - 1
 				} else {
@@ -155,7 +155,7 @@ func ASCIIschemeForEach(
 				}
 				other := nodes[i]
 				last := len(events[other]) - ref
-				// fork first event -> Don't add any parents.
+				// equivocation first event -> Don't add any parents.
 				if last < 0 {
 					break
 				}
@@ -239,7 +239,7 @@ func DAGtoASCIIscheme(events consensus.Events) (string, error) {
 		seqCount = make(map[consensus.ValidatorID]map[consensus.Seq]int)
 	)
 	for _, e := range events {
-		// if count of unique seq > 1 -> fork
+		// if count of unique seq > 1 -> equivocation
 		if _, exist := seqCount[e.Creator()]; !exist {
 			seqCount[e.Creator()] = map[consensus.Seq]int{}
 			eventIndex[e.Creator()] = map[consensus.EventHash]int{}
@@ -286,7 +286,7 @@ func DAGtoASCIIscheme(events consensus.Events) (string, error) {
 			if parent.Creator() == e.Creator() {
 				selfRefs++
 
-				// if more then 1 -> fork. Don't skip refs filling.
+				// if more then 1 -> equivocation. Don't skip refs filling.
 				if seqCount[e.Creator()][e.Seq()] == 1 {
 					continue
 				}

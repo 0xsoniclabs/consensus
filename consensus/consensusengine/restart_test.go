@@ -122,7 +122,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
 	r := consensustest.NewIntSeededRandGenerator(uint64(len(nodes) + cheatersCount))
 	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
-		consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
+		consensustest.ForEachRandEquivocation(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 			Process: func(e consensus.Event, name string) {
 				inputs[GENERATOR].SetEvent(e)
 				assertar.NoError(

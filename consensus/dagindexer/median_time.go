@@ -33,7 +33,7 @@ func (vi *Index) MedianTime(id consensus.EventHash, defaultTime Timestamp) Times
 		seq := before.VSeq.Get(creatorIdx)
 
 		// edge cases
-		if seq.IsForkDetected() {
+		if seq.IsEquivocationDetected() {
 			// cheaters don't influence medianTime
 			highest.weight = 0
 		} else if seq.Seq == 0 {

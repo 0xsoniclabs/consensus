@@ -275,8 +275,8 @@ a004══╬═════╣     ║     ║     // optimise this
 	})
 }
 
-func TestDAGtoASCIIFork(t *testing.T) {
-	t.Run("Case: Multiple forks", func(t *testing.T) {
+func TestDAGtoASCIIEquivocation(t *testing.T) {
+	t.Run("Case: Multiple equivocations", func(t *testing.T) {
 		testDAGtoASCIIschemeOptimisation(t, `
         c00
         ║       ║
@@ -290,7 +290,7 @@ func TestDAGtoASCIIFork(t *testing.T) {
         ║║      ║       ║
         ║╚═════─╫─═════ b01
        ║║       ║       ║
-       ╚ c02═══─╫─══════╣ // fork
+       ╚ c02═══─╫─══════╣ // equivocation
         ║║      ║       ║
         ║╚═════ a02═════╣
         ║       ║       ║
@@ -298,7 +298,7 @@ func TestDAGtoASCIIFork(t *testing.T) {
         ║║      ║       ║
         ║╚═════─╫─═════ b02
        ║║       ║       ║
-       ╚ c04═══─╫─══════╣ // fork
+       ╚ c04═══─╫─══════╣ // equivocation
         ║║      ║       ║
         ║╚═════ a03═════╣
 	`, map[string][]string{
@@ -317,7 +317,7 @@ func TestDAGtoASCIIFork(t *testing.T) {
 		})
 	})
 
-	t.Run("Case: Mixed events with forks.", func(t *testing.T) {
+	t.Run("Case: Mixed events with equivocations.", func(t *testing.T) {
 		testDAGtoASCIIschemeOptimisation(t, `
         b00
         ║       ║
@@ -335,11 +335,11 @@ func TestDAGtoASCIIFork(t *testing.T) {
         ║3      ║       ║
         ║╚═════─╫─═════ a01
         ║      3║       ║
-        ║      ╚ c01════╣ // fork
+        ║      ╚ c01════╣ // equivocation
         ║║      ║       ║
         ║╚══════╬══════ a02
         ║      3║       ║
-        ║      ╚ c03════╣ // fork
+        ║      ╚ c03════╣ // equivocation
         ║       ║       ║
         ╠═══════╬══════ a03
 	`, map[string][]string{
@@ -358,7 +358,7 @@ func TestDAGtoASCIIFork(t *testing.T) {
 		})
 	})
 
-	t.Run("Case: Fork the very first event.", func(t *testing.T) {
+	t.Run("Case: Equivocation the very first event.", func(t *testing.T) {
 		// TODO: Currently we have issue with hash collision and this test case will be failed.
 		// Remove Skip() after merge additional fix from "try-new-event" branch.
 		t.Skip()
@@ -366,7 +366,7 @@ func TestDAGtoASCIIFork(t *testing.T) {
 		testDAGtoASCIIschemeOptimisation(t, `
         a00     b00
         ║       ║   
-       ╚ a10    ╠═════════c00           // fork (a10)
+       ╚ a10    ╠═════════c00           // equivocation (a10)
 	    ║       ║          ║
         ║╚═════─╫─════════─╫─═══════d00
 	   ║║       ║          ║         ║

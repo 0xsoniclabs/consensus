@@ -180,7 +180,7 @@ private:
   t_eventvector join_downset(const t_eventvector &a, const t_eventvector &b);
 
   // Strongly reach predicate with unit stake for processors
-  // assuming that there are no forks.
+  // assuming that there are no equivocations.
   bool strongly_reach(t_event a, t_event b);
 
   /////////////////////////////////////////////////////////////////////////////

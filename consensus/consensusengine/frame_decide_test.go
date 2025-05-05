@@ -84,7 +84,7 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 		parentCount = len(nodes)
 	}
 	r := consensustest.NewIntSeededRandGenerator(uint64(len(nodes) + cheatersCount))
-	consensustest.ForEachRandFork(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
+	consensustest.ForEachRandEquivocation(nodes, nodes[:cheatersCount], eventCount, parentCount, 10, r, consensustest.ForEachEvent{
 		Process: func(e consensus.Event, name string) {
 			input.SetEvent(e)
 			assertar.NoError(
