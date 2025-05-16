@@ -116,3 +116,43 @@ b00
 	filteredList := vi.NoCheaters(&a03, initialList)
 	assertar.Equal(consensus.EventHashes{named["b01"].ID()}, filteredList)
 }
+
+func TestNoCheatersMissingEvent(t *testing.T) {
+	dagAscii := `
+b00
+		║       ║
+		║       c00
+		║       ║
+		b01═════╣
+		║       ║
+		╠══════ c02
+		║       ║
+		b02═════╣
+		║       ║
+		╠══════ c04
+		║       ║       ║
+		║       ║       a00
+		║3      ║       ║
+		║╚═════─╫─═════ a01
+		║      3║       ║
+		║      ╚ c01════╣ // equivocation
+		║║      ║       ║
+		║╚══════╬══════ a02
+		║      3║       ║
+		║      ╚ c03════╣ // equivocation
+		║       ║       ║
+		╠═══════╬══════ a03
+	`
+
+	t.Helper()
+	assertar := assert.New(t)
+
+	vi, named := createScenario(dagAscii)
+
+	a03 := named["a03"].ID()
+	missing := consensus.EventHash([]byte("missingmissingmissingmissingmiss"))
+	initialList := consensus.EventHashes{missing}
+	assertar.Panics(func() {
+		vi.NoCheaters(&a03, initialList)
+	})
+}
