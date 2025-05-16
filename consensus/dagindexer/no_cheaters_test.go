@@ -112,7 +112,7 @@ b00
 	vi, named := createScenario(dagAscii)
 
 	a03 := named["a03"].ID()
-	initialList := consensus.EventHashes{named["c02"].ID(), named["c03"].ID()}
+	initialList := consensus.EventHashes{named["c02"].ID(), named["c03"].ID(), named["b01"].ID()}
 	filteredList := vi.NoCheaters(&a03, initialList)
-	assertar.Equal(consensus.EventHashes{}, filteredList)
+	assertar.Equal(consensus.EventHashes{named["b01"].ID()}, filteredList)
 }
