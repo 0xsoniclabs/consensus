@@ -40,6 +40,7 @@ type ForklessCause interface {
 	// This great property is the reason why this function exists,
 	// providing the base for the BFT algorithm.
 	ForklessCause(aID, bID consensus.EventHash) bool
+	See(aID, bID consensus.EventHash) bool
 }
 
 type VectorClock interface {

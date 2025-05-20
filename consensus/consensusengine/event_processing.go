@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 var (
@@ -90,11 +91,29 @@ func (p *Orderer) checkAndSaveEvent(e consensus.Event) (error, consensus.Frame) 
 
 // calculates Atropos election for the root, calls p.onFrameDecided if election was decided
 func (p *Orderer) handleElection(root consensus.Event) error {
-	decisions, err := p.election.VoteAndAggregate(root.Frame(), root.Creator(), root.ID())
-	if err != nil {
-		return err
+	atroposDecisions := make([]*atroposDecision, 0)
+	for frame := range p.election.voteB {
+		layer := consensus.Layer(len(p.election.voteB[frame]))
+		for ; layer >= 0; layer-- {
+			var bunch []consensusstore.RootDescriptor
+			if layer == 0 {
+				bunch = p.election.getFrameRoots(frame)
+			} else {
+				bunch0 := p.election.GetBunch(frame, layer-1)
+				bunch = make([]consensusstore.RootDescriptor, 0)
+				for _, b := range bunch0 {
+					validatorID := p.Input.GetEvent(b).Creator()
+					bunch = append(bunch, consensusstore.RootDescriptor{ValidatorID: validatorID, RootHash: b})
+				}
+			}
+			if p.forklessCausedByQuorumCustom(root, bunch) {
+				newDecisions, _ := p.election.Vote(frame, layer, root.Creator(), root.ID(), bunch)
+				atroposDecisions = append(atroposDecisions, newDecisions...)
+				break
+			}
+		}
 	}
-	for _, atroposDecision := range decisions {
+	for _, atroposDecision := range atroposDecisions {
 		p.callback.RegisterElectingEvent(root.ID())
 		sealed, err := p.onFrameDecided(atroposDecision.Frame, atroposDecision.AtroposHash)
 		if err != nil {
@@ -147,6 +166,36 @@ func (p *Orderer) forklessCausedByQuorumOn(e consensus.Event, f consensus.Frame)
 	return observedCounter.HasQuorum()
 }
 
+// forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W roots on specified frame
+func (p *Orderer) forklessCausedByQuorumCustom(e consensus.Event, bunch []consensusstore.RootDescriptor) bool {
+	observedCounter := p.store.GetValidators().NewCounter()
+	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
+	for _, it := range bunch {
+		if p.dagIndex.ForklessCause(e.ID(), it.RootHash) {
+			observedCounter.Count(it.ValidatorID)
+		}
+		if observedCounter.HasQuorum() {
+			break
+		}
+	}
+	return observedCounter.HasQuorum()
+}
+
+// forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W roots on specified frame
+func (p *Orderer) seenByQuorum(e consensus.Event, f consensus.Frame) bool {
+	observedCounter := p.store.GetValidators().NewCounter()
+	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
+	for _, it := range p.store.GetFrameRoots(f) {
+		if p.dagIndex.See(e.ID(), it.RootHash) {
+			observedCounter.Count(it.ValidatorID)
+		}
+		if observedCounter.HasQuorum() {
+			break
+		}
+	}
+	return observedCounter.HasQuorum()
+}
+
 // calcFrameIdx is not safe for concurrent use.
 func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consensus.Frame) {
 	if e.SelfParent() == nil {
@@ -158,7 +207,7 @@ func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consen
 		frame = max(frame, p.Input.GetEvent(parent).Frame())
 	}
 
-	if p.forklessCausedByQuorumOn(e, frame) {
+	if p.seenByQuorum(e, frame) {
 		frame++
 	}
 	return selfParentFrame, frame
