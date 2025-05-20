@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 var (
@@ -74,11 +75,29 @@ func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) 
 
 // runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
 func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
-	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash)
-	if err != nil {
-		return false, err
+	leaderCertifications := make([]*leaderCertification, 0)
+	for frame := range p.election.voteB {
+		layer := consensus.Layer(len(p.election.voteB[frame]))
+		for ; layer >= 0; layer-- {
+			var bunch []consensusstore.BaseDescriptor
+			if layer == 0 {
+				bunch = p.election.getFrameRoots(frame)
+			} else {
+				bunch0 := p.election.GetBunch(frame, layer-1)
+				bunch = make([]consensusstore.BaseDescriptor, 0)
+				for _, b := range bunch0 {
+					validatorID := p.Input.GetEvent(b).Creator()
+					bunch = append(bunch, consensusstore.BaseDescriptor{ValidatorID: validatorID, BaseHash: b})
+				}
+			}
+			if p.stronglyReachableByQuorumCustom(baseHash, bunch) {
+				newDecisions, _ := p.election.Vote(frame, layer, validatorID, baseHash, bunch)
+				leaderCertifications = append(leaderCertifications, newDecisions...)
+				break
+			}
+		}
 	}
-	for _, leaderCertification := range certifications {
+	for _, leaderCertification := range leaderCertifications {
 		p.callback.RegisterElectingEvent(baseHash)
 		sealed, err := p.onFrameCertified(leaderCertification.Frame, leaderCertification.LeaderHash)
 		if err != nil {
@@ -136,7 +155,7 @@ func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consen
 		frame = max(frame, p.Input.GetEvent(parent).Frame())
 	}
 
-	if p.stronglyReachableByQuorum(e, frame) {
+	if p.reachableByQuorum(e, frame) {
 		frame++
 	}
 	return selfParentFrame, frame
@@ -147,4 +166,34 @@ func (p *Orderer) getSelfParentFrame(e consensus.Event) consensus.Frame {
 		return 0
 	}
 	return p.Input.GetEvent(*e.SelfParent()).Frame()
+}
+
+// forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W roots on specified frame
+func (p *Orderer) stronglyReachableByQuorumCustom(eventHash consensus.EventHash, bunch []consensusstore.BaseDescriptor) bool {
+	observedCounter := p.store.GetValidators().NewCounter()
+	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
+	for _, it := range bunch {
+		if p.dagIndex.StronglyReach(eventHash, it.BaseHash) {
+			observedCounter.CountVoteByID(it.ValidatorID)
+		}
+		if observedCounter.HasQuorum() {
+			break
+		}
+	}
+	return observedCounter.HasQuorum()
+}
+
+// forklessCausedByQuorumOn returns true if event is forkless caused by 2/3W roots on specified frame
+func (p *Orderer) reachableByQuorum(e consensus.Event, f consensus.Frame) bool {
+	observedCounter := p.store.GetValidators().NewCounter()
+	// check "observing" prev roots only if called by creator, or if creator has marked that event as root
+	for _, it := range p.store.GetFrameBases(f) {
+		if p.dagIndex.Reachable(e.ID(), it.BaseHash) {
+			observedCounter.CountVoteByID(it.ValidatorID)
+		}
+		if observedCounter.HasQuorum() {
+			break
+		}
+	}
+	return observedCounter.HasQuorum()
 }

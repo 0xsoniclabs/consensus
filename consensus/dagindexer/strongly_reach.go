@@ -227,3 +227,39 @@ func maxEvent(a consensus.Seq, b consensus.Seq) consensus.Seq {
 	}
 	return b
 }
+
+func (vi *Index) Reachable(aID, bID consensus.EventHash) bool {
+	// Get events by hash
+	aFull := vi.GetHighestBefore(aID)
+	if aFull == nil {
+		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
+		return false
+	}
+	a := aFull.VSeq
+
+	// check A has a reachable {QUORUM} of non-cheater-validators that have B as reachable
+	b := vi.GetLowestAfter(bID)
+	if b == nil {
+		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
+		return false
+	}
+
+	// calculate forkless causing using the indexes
+	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
+	for branchIDint := range branchIDs {
+		branchID := consensus.ValidatorIndex(branchIDint)
+
+		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which observes B
+		bLowestAfter := b.Get(branchID)   // lowest event from creator on branchID, which observes B
+		aHighestBefore := a.Get(branchID) // highest event from creator, observed by A
+
+		// if lowest event from branchID which observes B <= highest from branchID observed by A
+		// then {highest from branchID observed by A} observes B
+		if bLowestAfter <= aHighestBefore.Seq && bLowestAfter != 0 && !aHighestBefore.IsEquivocationDetected() {
+			// we may count the same creator multiple times (on different branches)!
+			// so not every call increases the counter
+			return true
+		}
+	}
+	return false
+}

@@ -31,6 +31,8 @@ type (
 	// Pack numeration.
 	Pack uint32
 
+	Layer int32
+
 	// ValidatorID numeration.
 	ValidatorID uint32
 

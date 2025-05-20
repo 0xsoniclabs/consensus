@@ -163,9 +163,10 @@ func processLocalEvent(testLachesis *CoreLachesis, event *consensustest.TestEven
 	selfParentFrame := testLachesis.getSelfParentFrame(event)
 	if selfParentFrame != event.Frame() {
 		testLachesis.store.AddBase(event)
-		if _, err := testLachesis.runElectionOnBase(event.Frame(), event.Creator(), event.ID()); err != nil {
-			return fmt.Errorf("error wihile processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
-		}
+		testLachesis.election.RegisterRoot(event.Frame(), event.Creator(), event.ID())
+	}
+	if _, err := testLachesis.runElectionOnBase(event.Frame(), event.Creator(), event.ID()); err != nil {
+		return fmt.Errorf("error wihile processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
 
 	return nil
