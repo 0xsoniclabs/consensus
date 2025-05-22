@@ -80,8 +80,14 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
 	}
 
 	electing := make(map[consensus.EventHash][]consensus.EventHash)
+	totalElectingCreationTimeGap := float64(0)
 	testLachesis.Orderer.callback.RegisterElectingEvent = func(electingHash consensus.EventHash) {
 		electing[electingHash] = make([]consensus.EventHash, 0)
+		if e := eventStore.GetEvent(testLachesis.Orderer.callback.LatestElectingHash); e != nil {
+			lastElectinEvent := e.(*consensustest.TestEvent)
+			electingEvent := eventStore.GetEvent(electingHash).(*consensustest.TestEvent)
+			totalElectingCreationTimeGap += float64(electingEvent.CreationTime - lastElectinEvent.CreationTime)
+		}
 		testLachesis.Orderer.callback.LatestElectingHash = electingHash
 	}
 	testLachesis.Orderer.callback.RegisterElectedEvent = func(electingHash, electedHash consensus.EventHash) {
@@ -105,8 +111,14 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
 		}
 	}
 
-	fmt.Println(totalLatency / float64(len(latencies)))
-
+	fmt.Printf(
+		"--------------------\nEpoch: %d\nNum Leaders: %d\nAvg Events per Leader: %f\nAvg Commit Latency: %f\nAvg Leader to Leader Gap (~Block Time): %f\n",
+		epoch,
+		len(recalculatedLeaders),
+		float64(len(orderedEvents))/float64(len(recalculatedLeaders)),
+		totalLatency/float64(len(latencies)),
+		totalElectingCreationTimeGap/float64(len(electing)-1),
+	)
 	return nil
 }
 
