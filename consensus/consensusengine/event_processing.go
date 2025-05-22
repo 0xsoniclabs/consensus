@@ -51,7 +51,7 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 	if selfParentFrame == e.Frame() {
 		return nil
 	}
-	if _, err := p.runElectionOnBase(e.Frame(), e.Creator(), e.ID()); err != nil {
+	if _, err := p.runElectionOnBase(e.Creator(), e.ID()); err != nil {
 		// election doesn't fail under normal circumstances
 		// storage is in an inconsistent state
 		p.crit(err)
@@ -74,7 +74,7 @@ func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) 
 }
 
 // runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
-func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
+func (p *Orderer) runElectionOnBase(validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
 	leaderCertifications := make([]*leaderCertification, 0)
 	for frame := range p.election.voteB {
 		layer := consensus.Layer(len(p.election.voteB[frame]))
@@ -83,15 +83,10 @@ func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus
 			if layer == 0 {
 				bunch = p.election.getFrameRoots(frame)
 			} else {
-				bunch0 := p.election.GetBunch(frame, layer-1)
-				bunch = make([]consensusstore.BaseDescriptor, 0)
-				for _, b := range bunch0 {
-					validatorID := p.Input.GetEvent(b).Creator()
-					bunch = append(bunch, consensusstore.BaseDescriptor{ValidatorID: validatorID, BaseHash: b})
-				}
+				bunch = p.election.GetBunch(frame, layer-1)
 			}
 			if p.stronglyReachableByQuorumCustom(baseHash, bunch) {
-				newDecisions, _ := p.election.Vote(frame, layer, validatorID, baseHash, bunch)
+				newDecisions, _ := p.election.Vote(frame, layer, validatorID, baseHash)
 				leaderCertifications = append(leaderCertifications, newDecisions...)
 				break
 			}
@@ -117,7 +112,7 @@ func (p *Orderer) bootstrapElection() error {
 			break
 		}
 		for _, base := range frameBases {
-			sealed, err := p.runElectionOnBase(frame, base.ValidatorID, base.BaseHash)
+			sealed, err := p.runElectionOnBase(base.ValidatorID, base.BaseHash)
 			if err != nil {
 				return err
 			}
