@@ -22,47 +22,47 @@ type ()
 type electionB struct {
 	validators *consensus.Validators
 
-	forklessCauses StronglyReachFn
-	getFrameRoots  GetFrameBasesFn
+	stronglyReach StronglyReachFn
+	getFrameBases GetFrameBasesFn
 
-	// To:Frame -> From:Layer -> From:EventHash -> int32[len(validators)]
-	voteB map[consensus.Frame][]map[consensus.ValidatorID]map[consensus.EventHash][]int32
+	// Base:Frame -> Voter:Layer -> Voter:ValidatorID -> Voter:EventHash -> int32[len(validators)]
+	vote map[consensus.Frame][]map[consensus.ValidatorID]map[consensus.EventHash][]int32
 	// Frame x ValidatorIndex -> EventHash
 	bases          map[consensus.Frame][]consensus.EventHash
-	vote           map[consensus.Frame][]map[consensus.EventHash]*baseVoteContext
 	validatorIDMap map[consensus.ValidatorID]consensus.ValidatorIndex
 	validatorCount consensus.Frame
 
-	atroposDeliveryBuffer *leaderHeap
-	frameToDeliver        consensus.Frame
+	leaderDeliveryBuffer *leaderHeap
+	frameToDeliver       consensus.Frame
 }
 
 func NewElectionB(
 	frameToDeliver consensus.Frame,
 	validators *consensus.Validators,
-	forklessCauseFn StronglyReachFn,
-	getFrameRoots GetFrameBasesFn,
+	stronglyReachFn StronglyReachFn,
+	getFrameBases GetFrameBasesFn,
 ) *electionB {
 	election := &electionB{
-		forklessCauses: forklessCauseFn,
-		getFrameRoots:  getFrameRoots,
-		validators:     validators,
+		stronglyReach: stronglyReachFn,
+		getFrameBases: getFrameBases,
+		validators:    validators,
 	}
 	election.ResetEpoch(frameToDeliver, validators)
 	return election
 }
 
 func (el *electionB) ResetEpoch(frameToDeliver consensus.Frame, validators *consensus.Validators) {
-	el.atroposDeliveryBuffer = NewLeaderHeap()
+	el.leaderDeliveryBuffer = NewLeaderHeap()
 	el.frameToDeliver = frameToDeliver
 	el.validators = validators
-	el.voteB = make(map[consensus.Frame][]map[consensus.ValidatorID]map[consensus.EventHash][]int32)
+	el.vote = make(map[consensus.Frame][]map[consensus.ValidatorID]map[consensus.EventHash][]int32)
 	el.bases = make(map[consensus.Frame][]consensus.EventHash)
 	el.validatorCount = consensus.Frame(validators.Len())
 	el.validatorIDMap = validators.Idxs()
 }
 
-func (el *electionB) RegisterRoot(frame consensus.Frame, validatorID consensus.ValidatorID, hash consensus.EventHash) {
+// RegisterBase saves frame x validatorId -> baseHash mapping for all bases that will be voted upon.
+func (el *electionB) RegisterBase(frame consensus.Frame, validatorID consensus.ValidatorID, hash consensus.EventHash) {
 	if el.frameToDeliver > frame {
 		return
 	}
@@ -72,20 +72,47 @@ func (el *electionB) RegisterRoot(frame consensus.Frame, validatorID consensus.V
 	validatorIdx := el.validatorIDMap[validatorID]
 	el.bases[frame][validatorIdx] = hash
 
-	//------------------------------------------------
-	if _, ok := el.voteB[frame]; !ok {
-		el.voteB[frame] = make([]map[consensus.ValidatorID]map[consensus.EventHash][]int32, 0)
+	// prepare the voting structure for base's frame.
+	if _, ok := el.vote[frame]; !ok {
+		el.vote[frame] = make([]map[consensus.ValidatorID]map[consensus.EventHash][]int32, 0)
 	}
 }
 
-func (el *electionB) GetBunch(frame consensus.Frame, layer consensus.Layer) []consensusstore.BaseDescriptor {
-	bunch := make([]consensusstore.BaseDescriptor, 0)
-	for vID, maps := range el.voteB[frame][layer] {
+// GetVoters fetches all voters voting TO a specific _frame_, FROM a specific _layer_.
+// As this method will exclusively be invoked from at least layer+1, all relevant voters are present in the vote structure.
+func (el *electionB) GetVoters(frame consensus.Frame, layer consensus.Layer) []consensusstore.BaseDescriptor {
+	voters := make([]consensusstore.BaseDescriptor, 0)
+	for vID, maps := range el.vote[frame][layer] {
 		for v := range maps {
-			bunch = append(bunch, consensusstore.BaseDescriptor{BaseHash: v, ValidatorID: vID})
+			voters = append(voters, consensusstore.BaseDescriptor{BaseHash: v, ValidatorID: vID})
 		}
 	}
-	return bunch
+	return voters
+}
+
+func (el *electionB) ShouldVote(
+	frame consensus.Frame,
+	layer consensus.Layer,
+	validatorID consensus.ValidatorID,
+	voterHash consensus.EventHash,
+) bool {
+	if el.frameToDeliver > frame {
+		return false
+	}
+	if _, ok := el.vote[frame]; !ok {
+		// Noone voted for the frame yet
+		return true
+	}
+	if len(el.vote[frame]) <= int(layer) {
+		// Noone voted from the layer yet
+		return true
+	}
+	if _, ok := el.vote[frame][layer][validatorID]; !ok {
+		// Noone voted for the frame from the layer in the name of validatorID
+		return true
+	}
+	// Someone already voted by this validator for this layer so stop.
+	return false
 }
 
 func (el *electionB) Vote(
@@ -94,39 +121,39 @@ func (el *electionB) Vote(
 	validatorID consensus.ValidatorID,
 	voterHash consensus.EventHash,
 ) ([]*leaderCertification, error) {
+	if !el.ShouldVote(frame, layer, validatorID, voterHash) {
+		return []*leaderCertification{}, nil
+	}
+	// Round completion property - i.e. fill all the voters gaps for your validator
+	// E.g. A specific validator has voters for frame Y, Layers 1,2,3 and subsequently Frame Y, Layer 6 voter arrives
+	// for the same validator, it will vote from the perspective of Frame Y, Layer 4,5,6 Voter
 	for l := consensus.Layer(0); l < layer; l++ {
-		if len(el.voteB[frame]) <= int(l) {
+		// 1) If no voters ever voted to the frame base from the layer-1
+		if len(el.vote[frame]) <= int(l) {
 			el.Vote(frame, l, validatorID, voterHash)
 			continue
 		}
-		if _, ok := el.voteB[frame][l][validatorID]; !ok {
+		// 2) If your validator never voted to the frame base from the layer-1
+		if _, ok := el.vote[frame][l][validatorID]; !ok {
 			el.Vote(frame, l, validatorID, voterHash)
 		}
 	}
-	if el.frameToDeliver > frame {
-		return []*leaderCertification{}, nil
-	}
-	if len(el.voteB[frame]) <= int(layer) {
-		el.voteB[frame] = append(el.voteB[frame], make(map[consensus.ValidatorID]map[consensus.EventHash][]int32))
+	// If the Voter is first that votes from a specified layer, allocate the layer level structure
+	if len(el.vote[frame]) <= int(layer) {
+		el.vote[frame] = append(el.vote[frame], make(map[consensus.ValidatorID]map[consensus.EventHash][]int32))
 	}
 
-	if _, ok := el.voteB[frame][layer][validatorID]; ok {
-		// Someone already voted by this validator for this layer so stop.
-		// return []*atroposDecision{}, nil
-	} else {
-		// Otherwise prepare to vote
-		el.voteB[frame][layer][validatorID] = make(map[consensus.EventHash][]int32)
-	}
-	el.voteB[frame][layer][validatorID][voterHash] = initInt32WithConst(-1, int(el.validatorCount))
-	voteVec := el.voteB[frame][layer][validatorID][voterHash]
+	el.vote[frame][layer][validatorID] = make(map[consensus.EventHash][]int32)
+	el.vote[frame][layer][validatorID][voterHash] = initInt32WithConst(-1, int(el.validatorCount))
+	voteVec := el.vote[frame][layer][validatorID][voterHash]
 	validatorIdx := el.validatorIDMap[validatorID]
 	//------------------------------------------------
 
 	if layer == 0 {
-		observedRoots := el.observedRoots(voterHash, frame)
-		for _, observedRoot := range observedRoots {
-			rootValidatorIdx := el.validatorIDMap[observedRoot.ValidatorID]
-			voteVec[rootValidatorIdx] = 1
+		observedBases := el.observedBases(voterHash, frame)
+		for _, observedBase := range observedBases {
+			baseValidatorIdx := el.validatorIDMap[observedBase.ValidatorID]
+			voteVec[baseValidatorIdx] = 1
 		}
 		mulInt32VecWithConst(voteVec, voteVec, int32(el.validators.GetWeightByIdx(validatorIdx)))
 		return []*leaderCertification{}, nil
@@ -136,71 +163,28 @@ func (el *electionB) Vote(
 	// layer is not 0
 	// get these from layer-1
 	observedVotersWeight := int32(0)
-	for _, observedVoter := range el.GetBunch(frame, layer-1) {
-		if !el.forklessCauses(voterHash, observedVoter.BaseHash) {
+	for _, observedVoter := range el.GetVoters(frame, layer-1) {
+		if !el.stronglyReach(voterHash, observedVoter.BaseHash) {
 			continue
 		}
 		observedVoterValidatorIdx := el.validatorIDMap[observedVoter.ValidatorID]
 		observedVotersWeight += int32(el.validators.GetWeightByIdx(observedVoterValidatorIdx))
-		addInt32Vecs(voteVec, voteVec, el.voteB[frame][layer-1][observedVoter.ValidatorID][observedVoter.BaseHash])
+		addInt32Vecs(voteVec, voteVec, el.vote[frame][layer-1][observedVoter.ValidatorID][observedVoter.BaseHash])
 	}
-	if el.decideB(frame, voteVec, observedVotersWeight) {
-		atropoi := el.atroposDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
-		el.frameToDeliver += consensus.Frame(len(atropoi))
-		return atropoi, nil
+	if el.certify(frame, voteVec, observedVotersWeight) {
+		leaders := el.leaderDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
+		el.frameToDeliver += consensus.Frame(len(leaders))
+		return leaders, nil
 	}
 	normalizeInt32Vec(voteVec, voteVec)
 	mulInt32VecWithConst(voteVec, voteVec, int32(el.validators.GetWeightByIdx(validatorIdx)))
 	return []*leaderCertification{}, nil
 }
 
-func (el *electionB) VoteAndAggregate(
-	frame consensus.Frame,
-	validatorId consensus.ValidatorID,
-	rootHash consensus.EventHash,
-) ([]*leaderCertification, error) {
-	validatorIdx := el.validatorIDMap[validatorId]
-	el.prepareNewElectorRoot(frame, validatorIdx, rootHash)
-	if frame <= el.frameToDeliver {
-		return []*leaderCertification{}, nil
-	}
-
-	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
-	directVoteVector := initInt32WithConst(-1, int(el.validatorCount))
-
-	observedRoots := el.observedRoots(rootHash, frame-1)
-	observedRootsWeight := int32(0)
-
-	for _, observedRoot := range observedRoots {
-		validatorIdx := el.validatorIDMap[observedRoot.ValidatorID]
-		directVoteVector[validatorIdx] = 1
-		observedRootsWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
-
-		if el.vote[frame-1][validatorIdx] != nil {
-			if rootContext, ok := el.vote[frame-1][validatorIdx][observedRoot.BaseHash]; ok {
-				nonDeliveredFramesOffset := (el.frameToDeliver - rootContext.frameToDeliverOffset) * el.validatorCount
-				addInt32Vecs(aggregationMatrix, aggregationMatrix, rootContext.voteMatrix[nonDeliveredFramesOffset:])
-			}
-		}
-	}
-
-	el.decide(frame, aggregationMatrix, observedRootsWeight)
-
-	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
-	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
-
-	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(validatorIdx)))
-	el.vote[frame][validatorIdx][rootHash].voteMatrix = aggregationMatrix
-
-	atropoi := el.atroposDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
-	el.frameToDeliver += consensus.Frame(len(atropoi))
-	return atropoi, nil
-}
-
-func (el *electionB) decideB(frame consensus.Frame, aggregationMatr []int32, observedRootsWeight int32) bool {
-	// Q = ceil((4*TotalValidatorWeight - 3*observedRootsWeight)/3)
+func (el *electionB) certify(frame consensus.Frame, aggregationMatr []int32, observedBasesWeight int32) bool {
+	// Q = ceil((4*TotalValidatorWeight - 3*observedBasesWeight)/3)
 	// numerator (Q_0) can exceed the int32 limits before division
-	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsWeight)
+	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedBasesWeight)
 	Q := int32((Q_0 + 3 - 1) / 3)
 
 	yesDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
@@ -209,8 +193,8 @@ func (el *electionB) decideB(frame consensus.Frame, aggregationMatr []int32, obs
 		validatorIdx := el.validatorIDMap[candidateValidator]
 		if yesDecisions[validatorIdx] {
 
-			heap.Push(el.atroposDeliveryBuffer, &leaderCertification{frame, el.bases[frame][validatorIdx]})
-			el.cleanupDecidedFrame(frame)
+			heap.Push(el.leaderDeliveryBuffer, &leaderCertification{frame, el.bases[frame][validatorIdx]})
+			el.cleanupCertifiedFrame(frame)
 			return true
 		}
 		if !noDecisions[validatorIdx] {
@@ -220,90 +204,18 @@ func (el *electionB) decideB(frame consensus.Frame, aggregationMatr []int32, obs
 	return false
 }
 
-func (el *electionB) decide(aggregatingFrame consensus.Frame, aggregationMatr []int32, observedRootsWeight int32) {
-	// Q = ceil((4*TotalValidatorWeight - 3*observedRootsWeight)/3)
-	// numerator (Q_0) can exceed the int32 limits before division
-	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(observedRootsWeight)
-	Q := int32((Q_0 + 3 - 1) / 3)
-	yesDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
-	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
-
-	for frame := range el.vote {
-		if frame < el.frameToDeliver || frame >= aggregatingFrame-1 {
-			continue
-		}
-
-		for _, candidateValidator := range el.validators.SortedIDs() {
-			validatorIdx := el.validatorIDMap[candidateValidator]
-			voteMatrixOffset := (frame-el.frameToDeliver)*el.validatorCount + consensus.Frame(validatorIdx)
-
-			if yesDecisions[voteMatrixOffset] {
-				atroposHash := el.elect(frame, candidateValidator)
-				heap.Push(el.atroposDeliveryBuffer, &leaderCertification{frame, atroposHash})
-				el.cleanupDecidedFrame(frame)
-				break
-			}
-
-			if !noDecisions[voteMatrixOffset] {
-				break
-			}
+func (el *electionB) observedBases(base consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {
+	observedBases := make([]consensusstore.BaseDescriptor, 0, el.validators.Len())
+	frameBases := el.getFrameBases(frame)
+	for _, frameBase := range frameBases {
+		if el.stronglyReach(base, frameBase.BaseHash) {
+			observedBases = append(observedBases, frameBase)
 		}
 	}
+	return observedBases
 }
 
-// elect picks the final atropos event once its frame and validator number have been finalized
-// by the "upper frame" root votes'. This is trivial in case of non-forking events as such
-// roots are uniquely identified by (frame, validator).
-// In the case of a fork, a tiebreaker algorithm has to be run.
-func (el *electionB) elect(frame consensus.Frame, validatorCandidate consensus.ValidatorID) consensus.EventHash {
-	validatorIdx := el.validatorIDMap[validatorCandidate]
-	candidateMap := el.vote[frame][validatorIdx]
-	atroposHash := consensus.EventHash{}
-	for hash := range candidateMap {
-		atroposHash = hash
-	}
-	// tiebreaker can simply pick the first encountered root that is forkless caused by any event.
-	// It is easiest to look for any vote (forkless cause) by frame + 1 roots.
-	// Due to forkless cause semantics, only one forkless-caused root can exist with specified frame and validator number.
-	if len(candidateMap) > 1 {
-		judgeRoots := el.getFrameRoots(frame + 1)
-		for atroposCandidateHash := range candidateMap {
-			for _, judge := range judgeRoots {
-				if el.forklessCauses(judge.BaseHash, atroposCandidateHash) {
-					return atroposCandidateHash
-				}
-			}
-		}
-	}
-
-	return atroposHash
-}
-
-func (el *electionB) observedRoots(root consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {
-	observedRoots := make([]consensusstore.BaseDescriptor, 0, el.validators.Len())
-	frameRoots := el.getFrameRoots(frame)
-	for _, frameRoot := range frameRoots {
-		if el.forklessCauses(root, frameRoot.BaseHash) {
-			observedRoots = append(observedRoots, frameRoot)
-		}
-	}
-	return observedRoots
-}
-
-func (el *electionB) prepareNewElectorRoot(frame consensus.Frame, validatorIdx consensus.ValidatorIndex, root consensus.EventHash) {
-	if _, ok := el.vote[frame]; !ok {
-		el.vote[frame] = make([]map[consensus.EventHash]*baseVoteContext, el.validatorCount)
-	}
-
-	if el.vote[frame][validatorIdx] == nil {
-		el.vote[frame][validatorIdx] = make(map[consensus.EventHash]*baseVoteContext)
-	}
-
-	el.vote[frame][validatorIdx][root] = &baseVoteContext{frameToDeliverOffset: el.frameToDeliver}
-}
-
-func (el *electionB) cleanupDecidedFrame(frame consensus.Frame) {
+func (el *electionB) cleanupCertifiedFrame(frame consensus.Frame) {
 	delete(el.vote, frame)
-	delete(el.voteB, frame)
 	delete(el.bases, frame)
 }

@@ -76,18 +76,23 @@ func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) 
 // runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
 func (p *Orderer) runElectionOnBase(validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
 	leaderCertifications := make([]*leaderCertification, 0)
-	for frame := range p.election.voteB {
-		layer := consensus.Layer(len(p.election.voteB[frame]))
+	// Go over all non-elected frames that have available bases
+	for frame := range p.election.vote {
+		layer := consensus.Layer(len(p.election.vote[frame]))
+		// Test if the event belongs to any of the voting layers
+		// This for loop doesn't stop same validatorID events to vote from same layers
+		// Those are filtered through the ShouldVote method in election
 		for ; layer >= 0; layer-- {
-			var bunch []consensusstore.BaseDescriptor
+			var layerBelow []consensusstore.BaseDescriptor
 			if layer == 0 {
-				bunch = p.election.getFrameRoots(frame)
+				// Essentially getting -1 layer (the candidate bases)
+				layerBelow = p.election.getFrameBases(frame)
 			} else {
-				bunch = p.election.GetBunch(frame, layer-1)
+				layerBelow = p.election.GetVoters(frame, layer-1)
 			}
-			if p.stronglyReachableByQuorumCustom(baseHash, bunch) {
-				newDecisions, _ := p.election.Vote(frame, layer, validatorID, baseHash)
-				leaderCertifications = append(leaderCertifications, newDecisions...)
+			if p.stronglyReachableByQuorumCustom(baseHash, layerBelow) {
+				newCertifications, _ := p.election.Vote(frame, layer, validatorID, baseHash)
+				leaderCertifications = append(leaderCertifications, newCertifications...)
 				break
 			}
 		}
