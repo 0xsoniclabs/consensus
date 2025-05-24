@@ -23,6 +23,7 @@ type electionB struct {
 	validators *consensus.Validators
 
 	stronglyReach StronglyReachFn
+	reach         ReachFn
 	getFrameBases GetFrameBasesFn
 
 	// Base:Frame -> Voter:Layer -> Voter:ValidatorID -> Voter:EventHash -> int32[len(validators)]
@@ -40,10 +41,12 @@ func NewElectionB(
 	frameToDeliver consensus.Frame,
 	validators *consensus.Validators,
 	stronglyReachFn StronglyReachFn,
+	reachFn ReachFn,
 	getFrameBases GetFrameBasesFn,
 ) *electionB {
 	election := &electionB{
 		stronglyReach: stronglyReachFn,
+		reach:         reachFn,
 		getFrameBases: getFrameBases,
 		validators:    validators,
 	}
@@ -150,7 +153,7 @@ func (el *electionB) Vote(
 	//------------------------------------------------
 
 	if layer == 0 {
-		observedBases := el.observedBases(voterHash, frame)
+		observedBases := el.reachableBases(voterHash, frame)
 		for _, observedBase := range observedBases {
 			baseValidatorIdx := el.validatorIDMap[observedBase.ValidatorID]
 			voteVec[baseValidatorIdx] = 1
@@ -204,11 +207,11 @@ func (el *electionB) certify(frame consensus.Frame, aggregationMatr []int32, obs
 	return false
 }
 
-func (el *electionB) observedBases(base consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {
+func (el *electionB) reachableBases(base consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {
 	observedBases := make([]consensusstore.BaseDescriptor, 0, el.validators.Len())
 	frameBases := el.getFrameBases(frame)
 	for _, frameBase := range frameBases {
-		if el.stronglyReach(base, frameBase.BaseHash) {
+		if el.reach(base, frameBase.BaseHash) {
 			observedBases = append(observedBases, frameBase)
 		}
 	}

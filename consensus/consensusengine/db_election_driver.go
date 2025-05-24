@@ -189,7 +189,7 @@ func getValidator(conn *sql.DB, epoch consensus.Epoch) ([]consensus.ValidatorID,
 		SELECT ValidatorId, Weight
 		FROM Validator
 		WHERE EpochId = ?
-	`, epoch)
+	`, epoch+1)
 	if err != nil {
 		return nil, nil, err
 	}

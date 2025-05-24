@@ -18,6 +18,7 @@ import (
 )
 
 type (
+	ReachFn         func(a consensus.EventHash, b consensus.EventHash) bool
 	StronglyReachFn func(a consensus.EventHash, b consensus.EventHash) bool
 	GetFrameBasesFn func(f consensus.Frame) []consensusstore.BaseDescriptor
 )
