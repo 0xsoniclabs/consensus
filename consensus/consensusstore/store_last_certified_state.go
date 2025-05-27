@@ -12,7 +12,8 @@ package consensusstore
 
 import "github.com/0xsoniclabs/consensus/consensus"
 
-const dsKey = "d"
+// certified state key ("d" for legacy reasons for "decided")
+const csKey = "d"
 
 // LastCertifiedState is for persistent storing.
 type LastCertifiedState struct {
@@ -25,7 +26,7 @@ type LastCertifiedState struct {
 func (s *Store) SetLastCertifiedState(v *LastCertifiedState) {
 	s.cache.LastCertifiedState = v
 
-	s.set(s.table.LastCertifiedState, []byte(dsKey), v)
+	s.set(s.table.LastCertifiedState, []byte(csKey), v)
 }
 
 // GetLastCertifiedState returns stored LastCertifiedState.
@@ -35,7 +36,7 @@ func (s *Store) GetLastCertifiedState() *LastCertifiedState {
 		return s.cache.LastCertifiedState
 	}
 
-	w, exists := s.get(s.table.LastCertifiedState, []byte(dsKey), &LastCertifiedState{}).(*LastCertifiedState)
+	w, exists := s.get(s.table.LastCertifiedState, []byte(csKey), &LastCertifiedState{}).(*LastCertifiedState)
 	if !exists {
 		s.crit(ErrNoGenesis)
 	}

@@ -25,7 +25,7 @@ func TestGenesis_Sucess(t *testing.T) {
 	if want, got := epochState.Validators.Get(1), validators.Get(1); want != got {
 		t.Fatalf("expected set validator weight: %d, got: %d", want, got)
 	}
-	lastCertifiedState, exists := store.get(store.table.LastCertifiedState, []byte(dsKey), &LastCertifiedState{}).(*LastCertifiedState)
+	lastCertifiedState, exists := store.get(store.table.LastCertifiedState, []byte(csKey), &LastCertifiedState{}).(*LastCertifiedState)
 	if !exists {
 		t.Fatal("last certified state not set")
 	}
@@ -43,7 +43,7 @@ func TestGenesis_Fail(t *testing.T) {
 	}
 	validatorBuilder := consensus.NewValidatorsBuilder()
 	validatorBuilder.Set(1, 10)
-	err := store.table.LastCertifiedState.Put([]byte(dsKey), []byte{})
+	err := store.table.LastCertifiedState.Put([]byte(csKey), []byte{})
 	if err != nil {
 		t.Fatalf("failed to set up prerequisite state (Put LastCertifiedState): %v", err)
 	}

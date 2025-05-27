@@ -23,7 +23,7 @@ type Genesis struct {
 }
 
 func (s *Store) ApplyGenesis(g *Genesis) error {
-	if ok, _ := s.table.LastCertifiedState.Has([]byte(dsKey)); ok {
+	if ok, _ := s.table.LastCertifiedState.Has([]byte(csKey)); ok {
 		return fmt.Errorf("genesis already applied")
 	}
 	return s.SwitchGenesis(g)

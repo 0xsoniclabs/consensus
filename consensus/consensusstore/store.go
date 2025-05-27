@@ -30,7 +30,7 @@ type Store struct {
 
 	MainDB kvdb.Store
 	table  struct {
-		LastCertifiedState kvdb.Store `table:"c"`
+		LastCertifiedState kvdb.Store `table:"d"` // certified state key ("d" for legacy reasons for "decided")
 		EpochState         kvdb.Store `table:"e"`
 	}
 
