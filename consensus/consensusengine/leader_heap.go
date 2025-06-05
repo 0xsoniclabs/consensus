@@ -60,3 +60,12 @@ func (ah *leaderHeap) maxBufferedLeaderFrame() consensus.Frame {
 	}
 	return ah.container[len(ah.container)-1].Frame
 }
+
+func (ah *leaderHeap) containsFrame(frame consensus.Frame) bool {
+	for _, leaderCertification := range ah.container {
+		if leaderCertification.Frame == frame {
+			return true
+		}
+	}
+	return false
+}

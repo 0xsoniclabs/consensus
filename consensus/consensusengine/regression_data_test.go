@@ -22,6 +22,14 @@ func TestRegressionData_FantomNetwork(t *testing.T) {
 	testRegressionData(t, "testdata/events-5577.db")
 }
 
+func TestRegressionData_TST1(t *testing.T) {
+	testRegressionData(t, "testdata/events-1067-1069.db")
+}
+
+func TestRegressionData_TST2(t *testing.T) {
+	testRegressionData(t, "testdata/events-1442.db")
+}
+
 func TestRegressionData_SonicNetwork(t *testing.T) {
 	testRegressionData(t, "testdata/events-8000-partial.db")
 }

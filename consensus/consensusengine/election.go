@@ -12,7 +12,6 @@ package consensusengine
 
 import (
 	"container/heap"
-	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
@@ -76,9 +75,12 @@ func (el *election) VoteAndAggregate(
 	validatorId consensus.ValidatorID,
 	baseHash consensus.EventHash,
 ) ([]*leaderCertification, error) {
+	if el.alreadyCertified(frame) {
+		return []*leaderCertification{}, nil
+	}
 	validatorIdx := el.validatorIDMap[validatorId]
 	el.prepareNewElectorBase(frame, validatorIdx, baseHash)
-	if frame <= el.getFrameToCertify() {
+	if frame <= el.frameToDeliver {
 		return []*leaderCertification{}, nil
 	}
 
@@ -93,22 +95,6 @@ func (el *election) VoteAndAggregate(
 		directVoteVector[validatorIdx] = 1
 		reachableBasesWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
 
-		if len(el.vote[frame-1]) == 0 && validatorIdx == 1 {
-			fmt.Printf("My frame: %d, frameToDeliver: %d\n", frame, el.frameToDeliver)
-		}
-		// 520, 522 certified => frameToCertify == 523 (*)
-		// 520 delivered
-		// 521 was not certified
-		// 523 arrives and tries to aggregate for 522 which is already certified (but not delivered)
-		// because of (*) 523 won't even reach this point (voting for 522 and aggregating for 522)
-
-		// frameToCertify = 523
-		// root frame = 524
-		// root should vote directly for 523, but it's aggregation for the frames below is unecessary
-		// 524 <= 523 + 1
-		// if frame <= el.getFrameToCertify()+1 {
-		// 	continue
-		// }
 		if el.vote[frame-1][validatorIdx] != nil {
 			if baseContext, ok := el.vote[frame-1][validatorIdx][reachableBase.BaseHash]; ok {
 				nonDeliveredFramesOffset := (el.frameToDeliver - baseContext.frameToDeliverOffset) * el.validatorCount
@@ -116,7 +102,6 @@ func (el *election) VoteAndAggregate(
 			}
 		}
 	}
-
 	el.certify(frame, aggregationMatrix, reachableBasesWeight)
 
 	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
@@ -126,8 +111,18 @@ func (el *election) VoteAndAggregate(
 	el.vote[frame][validatorIdx][baseHash].voteMatrix = aggregationMatrix
 
 	leaders := el.leaderDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
-	el.frameToDeliver += consensus.Frame(len(leaders))
+	for _, leaderCertification := range leaders {
+		el.frameToDeliver++
+		el.cleanupCertifiedFrame(leaderCertification.Frame)
+	}
 	return leaders, nil
+}
+
+func (el *election) alreadyCertified(frame consensus.Frame) bool {
+	if frame < el.frameToDeliver {
+		return true
+	}
+	return el.leaderDeliveryBuffer.containsFrame(frame)
 }
 
 func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []int32, reachableBasesWeight int32) {
@@ -139,7 +134,7 @@ func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []
 	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
 
 	for frame := range el.vote {
-		if frame < el.frameToDeliver || frame >= aggregatingFrame-1 {
+		if el.alreadyCertified(frame) || frame >= aggregatingFrame-1 {
 			continue
 		}
 
@@ -150,13 +145,6 @@ func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []
 			if yesDecisions[voteMatrixOffset] {
 				leaderHash := el.elect(frame, candidateValidator)
 				heap.Push(el.leaderDeliveryBuffer, &leaderCertification{frame, leaderHash})
-				if frame == 522 {
-					fmt.Println("Decided 522")
-				}
-				if frame == 521 {
-					fmt.Println("Decided 521")
-				}
-				el.cleanupCertifiedFrame(frame)
 				break
 			}
 
