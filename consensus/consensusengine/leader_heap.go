@@ -53,3 +53,10 @@ func (ah *leaderHeap) getDeliveryReadyLeaders(frameToDeliver consensus.Frame) []
 	}
 	return leaders
 }
+
+func (ah *leaderHeap) maxBufferedLeaderFrame() consensus.Frame {
+	if len(ah.container) == 0 {
+		return 0
+	}
+	return ah.container[len(ah.container)-1].Frame
+}

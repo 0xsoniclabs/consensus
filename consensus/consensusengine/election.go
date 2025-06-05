@@ -12,6 +12,7 @@ package consensusengine
 
 import (
 	"container/heap"
+	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
@@ -77,7 +78,7 @@ func (el *election) VoteAndAggregate(
 ) ([]*leaderCertification, error) {
 	validatorIdx := el.validatorIDMap[validatorId]
 	el.prepareNewElectorBase(frame, validatorIdx, baseHash)
-	if frame <= el.frameToDeliver {
+	if frame <= el.getFrameToCertify() {
 		return []*leaderCertification{}, nil
 	}
 
@@ -92,6 +93,22 @@ func (el *election) VoteAndAggregate(
 		directVoteVector[validatorIdx] = 1
 		reachableBasesWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
 
+		if len(el.vote[frame-1]) == 0 && validatorIdx == 1 {
+			fmt.Printf("My frame: %d, frameToDeliver: %d\n", frame, el.frameToDeliver)
+		}
+		// 520, 522 certified => frameToCertify == 523 (*)
+		// 520 delivered
+		// 521 was not certified
+		// 523 arrives and tries to aggregate for 522 which is already certified (but not delivered)
+		// because of (*) 523 won't even reach this point (voting for 522 and aggregating for 522)
+
+		// frameToCertify = 523
+		// root frame = 524
+		// root should vote directly for 523, but it's aggregation for the frames below is unecessary
+		// 524 <= 523 + 1
+		// if frame <= el.getFrameToCertify()+1 {
+		// 	continue
+		// }
 		if el.vote[frame-1][validatorIdx] != nil {
 			if baseContext, ok := el.vote[frame-1][validatorIdx][reachableBase.BaseHash]; ok {
 				nonDeliveredFramesOffset := (el.frameToDeliver - baseContext.frameToDeliverOffset) * el.validatorCount
@@ -133,6 +150,12 @@ func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []
 			if yesDecisions[voteMatrixOffset] {
 				leaderHash := el.elect(frame, candidateValidator)
 				heap.Push(el.leaderDeliveryBuffer, &leaderCertification{frame, leaderHash})
+				if frame == 522 {
+					fmt.Println("Decided 522")
+				}
+				if frame == 521 {
+					fmt.Println("Decided 521")
+				}
 				el.cleanupCertifiedFrame(frame)
 				break
 			}
@@ -142,6 +165,14 @@ func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []
 			}
 		}
 	}
+}
+
+func (el *election) getFrameToCertify() consensus.Frame {
+	// No buffered: el.frameToDeliver = frameToCertify, buffer.Len() == 0
+	// scenario 1: el.frameToDeliver = 521, buffer.Len() == 522 => frameToCertify == 522
+	// scenario 2: el.frameToDeliver 521, buffer = {523, 524}
+	// frameToDecide = max(el.frameToDeliver, max(buffer) + 1)
+	return max(el.frameToDeliver, el.leaderDeliveryBuffer.maxBufferedLeaderFrame()+1)
 }
 
 // elect picks the final leader event once its frame and validator number have been finalized

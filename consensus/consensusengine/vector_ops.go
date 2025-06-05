@@ -16,7 +16,7 @@ import "github.com/kelindar/simd"
 // src1[i] in [-ValidatorXWeight, ValidatorXWeight] and src2[i] in [-ValidatorYWeight, ValidatorYWeight]
 // => |src1[i] + src2[i]| <= ValidatorXWeight + ValidatorYWeight <= TotalValidatorWeight <= max(int32)
 func addInt32Vecs(dst []int32, src1 []int32, src2 []int32) {
-	if len(src1) == 0 {
+	if len(src1) == 0 || len(src2) == 0 {
 		return
 	}
 	simd.AddInt32s(dst, src1, src2)
