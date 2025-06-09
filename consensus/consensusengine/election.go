@@ -75,6 +75,9 @@ func (el *election) VoteAndAggregate(
 	validatorId consensus.ValidatorID,
 	baseHash consensus.EventHash,
 ) ([]*leaderCertification, error) {
+	if el.isAlreadyCertified(frame) {
+		return []*leaderCertification{}, nil
+	}
 	validatorIdx := el.validatorIDMap[validatorId]
 	el.prepareNewElectorBase(frame, validatorIdx, baseHash)
 	if frame <= el.frameToDeliver {
@@ -100,20 +103,18 @@ func (el *election) VoteAndAggregate(
 		}
 	}
 
-	el.certify(frame, aggregationMatrix, reachableBasesWeight)
+	deliveryReadyLeaders := el.certify(frame, aggregationMatrix, reachableBasesWeight)
 
+	// Prepare matrix for future aggregations
 	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
 	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
-
 	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(validatorIdx)))
 	el.vote[frame][validatorIdx][baseHash].voteMatrix = aggregationMatrix
 
-	leaders := el.leaderDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
-	el.frameToDeliver += consensus.Frame(len(leaders))
-	return leaders, nil
+	return deliveryReadyLeaders, nil
 }
 
-func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []int32, reachableBasesWeight int32) {
+func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []int32, reachableBasesWeight int32) []*leaderCertification {
 	// Q = ceil((4*TotalValidatorWeight - 3*reachableBasesWeight)/3)
 	// numerator (Q_0) can exceed the int32 limits before division
 	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(reachableBasesWeight)
@@ -122,7 +123,7 @@ func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []
 	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
 
 	for frame := range el.vote {
-		if frame < el.frameToDeliver || frame >= aggregatingFrame-1 {
+		if el.isAlreadyCertified(frame) || frame >= aggregatingFrame-1 {
 			continue
 		}
 
@@ -133,7 +134,6 @@ func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []
 			if yesDecisions[voteMatrixOffset] {
 				leaderHash := el.elect(frame, candidateValidator)
 				heap.Push(el.leaderDeliveryBuffer, &leaderCertification{frame, leaderHash})
-				el.cleanupCertifiedFrame(frame)
 				break
 			}
 
@@ -142,6 +142,13 @@ func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []
 			}
 		}
 	}
+
+	deliveryReadyLeaders := el.leaderDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
+	for _, leaderCertification := range deliveryReadyLeaders {
+		el.cleanupCertifiedFrame(leaderCertification.Frame)
+		el.frameToDeliver++
+	}
+	return deliveryReadyLeaders
 }
 
 // elect picks the final leader event once its frame and validator number have been finalized
@@ -193,6 +200,10 @@ func (el *election) prepareNewElectorBase(frame consensus.Frame, validatorIdx co
 	}
 
 	el.vote[frame][validatorIdx][base] = &baseVoteContext{frameToDeliverOffset: el.frameToDeliver}
+}
+
+func (el *election) isAlreadyCertified(frame consensus.Frame) bool {
+	return frame < el.frameToDeliver || el.leaderDeliveryBuffer.isCertificationBuffered(frame)
 }
 
 func (el *election) cleanupCertifiedFrame(frame consensus.Frame) {

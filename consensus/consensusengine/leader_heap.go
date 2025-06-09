@@ -53,3 +53,12 @@ func (ah *leaderHeap) getDeliveryReadyLeaders(frameToDeliver consensus.Frame) []
 	}
 	return leaders
 }
+
+func (ah *leaderHeap) isCertificationBuffered(frame consensus.Frame) bool {
+	for _, certification := range ah.container {
+		if certification.Frame == frame {
+			return true
+		}
+	}
+	return false
+}
