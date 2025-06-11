@@ -22,8 +22,16 @@ func TestRegressionData_FantomNetwork(t *testing.T) {
 	testRegressionData(t, "testdata/events-5577.db")
 }
 
-func TestRegressionData_SonicNetwork(t *testing.T) {
+func TestRegressionData_SonicNetworkStable(t *testing.T) {
 	testRegressionData(t, "testdata/events-8000-partial.db")
+}
+
+func TestRegressionData_SonicNetworkOutOfOrderCertification1(t *testing.T) {
+	testRegressionData(t, "testdata/events-1442.db")
+}
+
+func TestRegressionData_SonicNetworkOutOfOrderCertification2(t *testing.T) {
+	testRegressionData(t, "testdata/events-1068.db")
 }
 
 func BenchmarkElectionFantomNetwork(b *testing.B) {
