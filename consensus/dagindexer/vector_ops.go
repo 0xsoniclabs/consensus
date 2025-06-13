@@ -8,8 +8,8 @@ type CreationTimer interface {
 	CreationTimePortable() Timestamp
 }
 
-func (b *HighestBefore) InitWithEvent(i consensus.ValidatorIndex, e consensus.Event) {
-	b.VSeq.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq()})
+func (b *HighestBefore) InitWithEvent(i consensus.ValidatorIndex, e consensus.Event, uid consensus.Seq) {
+	b.VSeq.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq(), uid: uid})
 	if eCreationTimer, ok := e.(CreationTimer); ok { // Workaround for existing type-unsafe practices.
 		b.VTime.Set(i, eCreationTimer.CreationTimePortable())
 	}
@@ -49,7 +49,7 @@ func (b *HighestBefore) SetEquivocationDetected(i consensus.ValidatorIndex) {
 	b.VSeq.Set(i, equivocationDetectedSeq)
 }
 
-func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.ValidatorIndex) {
+func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.ValidatorIndex, diff []consensus.Seq) {
 	for branchID := consensus.ValidatorIndex(0); branchID < num; branchID++ {
 		hisSeq := other.VSeq.Get(branchID)
 		if hisSeq.Seq == 0 && !hisSeq.IsEquivocationDetected() {
@@ -73,7 +73,11 @@ func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.Validat
 			}
 			if mySeq.Seq < hisSeq.Seq {
 				// take hisSeq.Seq
+				if diff != nil {
+					diff[branchID] += hisSeq.Seq - mySeq.Seq
+				}
 				mySeq.Seq = hisSeq.Seq
+				mySeq.uid = hisSeq.uid
 				hb.VSeq.Set(branchID, mySeq)
 				hb.VTime.Set(branchID, other.VTime.Get(branchID))
 			}

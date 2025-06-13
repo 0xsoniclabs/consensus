@@ -60,6 +60,7 @@ type Index struct {
 		BranchesInfo      kvdb.Store `table:"B"`
 		HighestBeforeSeq  kvdb.Store `table:"S"`
 		LowestAfterSeq    kvdb.Store `table:"s"`
+		EventUidTable     kvdb.Store `table:"l"`
 	}
 
 	cache struct {
@@ -232,13 +233,19 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 		}
 	}
 
+	uid := vi.addEventUId(e.ID())
 	// reachable by himself
 	myVecs.after.InitWithEvent(meBranchID, e)
-	myVecs.before.InitWithEvent(meBranchID, e)
+	myVecs.before.InitWithEvent(meBranchID, e, uid)
 
-	for _, pVec := range parentsVecs {
+	newEvents := make([]consensus.Seq, len(vi.branchesInfo.BranchIDCreatorIdxs)) // branchID -> number of new events
+	for i, pVec := range parentsVecs {
+		diff := newEvents
+		if i == 0 && e.SelfParent() != nil {
+			diff = nil
+		}
 		// calculate HighestBefore  Detect equivocations for a case when parent reaches an equivocation
-		myVecs.before.CollectFrom(pVec, consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDCreatorIdxs)))
+		myVecs.before.CollectFrom(pVec, consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDCreatorIdxs)), diff)
 	}
 	// Detect equivocations, which were not reachable by parents
 	if vi.AtLeastOneEquivocation() {
@@ -280,22 +287,33 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 		}
 	}
 
-	// graph traversal starting from e, but excluding e
-	onWalk := func(walk consensus.EventHash) (godeeper bool) {
-		wLowestAfterSeq := vi.GetLowestAfter(walk)
-
-		// update LowestAfter vector of the old event, because newly-connected event reaches it
-		if wLowestAfterSeq.Visit(meBranchID, e) {
-			vi.SetLowestAfter(walk, wLowestAfterSeq)
-			return true
+	// for each branch where new events were inserted, start at the highest
+	// ancestor of e on that branch and go down, from self-parent to self-parent,
+	// updating each one's lowest descendants, until all new events have been
+	// processed.
+	for branchID, newEvents := range newEvents {
+		if newEvents == 0 || myVecs.before.IsEquivocationDetected(consensus.ValidatorIndex(branchID)) {
+			continue
 		}
-		return false
+		// if b is the highest ancestor of e on this branch, then blid is its
+		// key in the EventLookup, and bh is its hash
+		blid := myVecs.before.VSeq.LookupKey(consensus.ValidatorIndex(branchID))
+		bh := vi.getEventByUId(blid)
+		for remaining := newEvents; remaining > 0; remaining-- {
+			fmt.Println(bh)
+			wLowestAfterSeq := vi.GetLowestAfter(bh)
+			// update LowestAfter vector of the old event, because newly-connected event observes it
+			if wLowestAfterSeq.Visit(meBranchID, e) {
+				vi.SetLowestAfter(bh, wLowestAfterSeq)
+				le := vi.getEvent(bh)
+				if sp := le.SelfParent(); sp != nil {
+					bh = *sp
+					continue
+				}
+			}
+			break
+		}
 	}
-	err = vi.DfsSubgraph(e, onWalk)
-	if err != nil {
-		vi.crit(err)
-	}
-
 	// store calculated vectors
 	vi.SetHighestBefore(e.ID(), myVecs.before)
 	vi.SetLowestAfter(e.ID(), myVecs.after)

@@ -78,6 +78,11 @@ func BytesToEpoch(b []byte) Epoch {
 	return Epoch(byteutils.BigEndianToUint32(b))
 }
 
+// BytesToEpoch converts bytes to epoch index.
+func BytesToSeq(b []byte) Seq {
+	return Seq(byteutils.BigEndianToUint32(b))
+}
+
 // BytesToBlock converts bytes to block index.
 func BytesToBlock(b []byte) BlockID {
 	return BlockID(byteutils.BigEndianToUint64(b))
