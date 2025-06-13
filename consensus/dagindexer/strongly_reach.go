@@ -42,7 +42,7 @@ func (vi *Index) StronglyReach(aID, bID consensus.EventHash) bool {
 	vi.InitBranchesInfo()
 	res := vi.stronglyReaches(aID, bID)
 
-	vi.cache.StronglyReach.Add(kv{aID, bID}, res, 1)
+	vi.cache.StronglyReach.Add(kv{aID, bID}, res)
 	return res
 }
 

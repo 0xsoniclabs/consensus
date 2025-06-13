@@ -13,7 +13,7 @@ module github.com/0xsoniclabs/consensus
 go 1.24.0
 
 require (
-	github.com/0xsoniclabs/cacheutils v0.0.0-20250320134355-5a9aa4df3861
+	github.com/0xsoniclabs/cacheutils v0.0.0-20250613191108-1116adc94796
 	github.com/0xsoniclabs/kvdb v0.0.0-20250224113306-fe6d2ca29563
 	github.com/ethereum/go-ethereum v1.15.0
 	github.com/kelindar/simd v1.1.2

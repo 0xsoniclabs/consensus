@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/0xsoniclabs/cacheutils/simplelru"
 	"github.com/0xsoniclabs/cacheutils/wlru"
 	"github.com/0xsoniclabs/consensus/consensus/vecflushable"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -65,7 +66,7 @@ type Index struct {
 
 	cache struct {
 		HighestBeforeTime *wlru.Cache
-		StronglyReach     *simplewlru.Cache
+		StronglyReach     *simplelru.Cache
 		HighestBeforeSeq  *simplewlru.Cache
 		LowestAfterSeq    *simplewlru.Cache
 	}
@@ -80,7 +81,7 @@ func DefaultConfig(scale cachescale.Func) IndexConfig {
 			HighestBeforeTimeSize: scale.U(160 * 1024),
 			DBCache:               scale.I(10 * opt.MiB),
 			StronglyReachPairs:    scale.I(20000),
-			HighestBeforeSeqSize:  scale.U(160 * 1024),
+			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
 	}
@@ -93,7 +94,7 @@ func LiteConfig() IndexConfig {
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: 4 * 1024,
 			StronglyReachPairs:    scale.I(20000),
-			HighestBeforeSeqSize:  scale.U(160 * 1024),
+			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
 	}
@@ -130,7 +131,7 @@ func (vi *Index) Flush() {
 
 func (vi *Index) initCaches() {
 	vi.cache.HighestBeforeTime, _ = wlru.New(vi.cfg.Caches.HighestBeforeTimeSize, int(vi.cfg.Caches.HighestBeforeTimeSize))
-	vi.cache.StronglyReach, _ = simplewlru.New(uint(vi.cfg.Caches.StronglyReachPairs), vi.cfg.Caches.StronglyReachPairs)
+	vi.cache.StronglyReach, _ = simplelru.New(vi.cfg.Caches.StronglyReachPairs)
 	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
 	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
 }
@@ -300,7 +301,6 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 		blid := myVecs.before.VSeq.LookupKey(consensus.ValidatorIndex(branchID))
 		bh := vi.getEventByUId(blid)
 		for remaining := newEvents; remaining > 0; remaining-- {
-			fmt.Println(bh)
 			wLowestAfterSeq := vi.GetLowestAfter(bh)
 			// update LowestAfter vector of the old event, because newly-connected event observes it
 			if wLowestAfterSeq.Visit(meBranchID, e) {
