@@ -55,8 +55,23 @@ func (w *backedMap) get(key []byte) ([]byte, error) {
 }
 
 func (w *backedMap) close() error {
+	batch := w.backup.NewBatch()
+	defer batch.Reset()
+
+	for key, val := range w.cache {
+		err := batch.Put([]byte(key), val)
+		if err != nil {
+			return err
+		}
+	}
+	err := batch.Write()
+	if err != nil {
+		return err
+	}
+
 	w.cache = nil
-	return w.backup.Close()
+	// backing kvdb.Store not closed here intentionally (is a table)
+	return nil
 }
 
 func (w *backedMap) add(key string, val []byte) {
