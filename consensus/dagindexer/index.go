@@ -80,7 +80,7 @@ func DefaultConfig(scale cachescale.Func) IndexConfig {
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: scale.U(160 * 1024),
 			DBCache:               scale.I(10 * opt.MiB),
-			StronglyReachPairs:    scale.I(20000),
+			StronglyReachPairs:    scale.I(30000),
 			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
@@ -93,7 +93,7 @@ func LiteConfig() IndexConfig {
 	return IndexConfig{
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: 4 * 1024,
-			StronglyReachPairs:    scale.I(20000),
+			StronglyReachPairs:    scale.I(30000),
 			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
 		},
