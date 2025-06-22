@@ -79,7 +79,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 	assertar := assert.New(t)
 
 	const (
-		COUNT     = 3 // 3 abft instances
+		COUNT     = 3 // 3 consensus instances
 		GENERATOR = 0 // event generator
 		EXPECTED  = 1 // sample
 		RESTORED  = 2 // compare with sample
@@ -133,7 +133,7 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 			},
 			Build: func(e consensus.MutableEvent, name string) error {
 				if epoch != lchs[GENERATOR].store.GetEpoch() {
-					return errors.New("epoch already sealed, skip")
+					return errors.New("Epoch already sealed, skip")
 				}
 				e.SetEpoch(epoch)
 				return lchs[GENERATOR].Build(e)
@@ -215,6 +215,232 @@ func testRestartAndReset(t *testing.T, weights []consensus.Weight, mutateWeights
 
 	compareStates(assertar, lchs[GENERATOR], lchs[RESTORED])
 	compareBlocks(assertar, lchs[EXPECTED], lchs[RESTORED])
+}
+func TestRestart_KVDBKeyMismatch_EpochState(t *testing.T) {
+	testKVDBKeyMismatch(t, corruptEpochStateKey)
+}
+
+func TestRestart_KVDBKeyMismatch_CertifiedState(t *testing.T) {
+	testKVDBKeyMismatch(t, corruptCertifiedStateKey)
+}
+
+type keyCorruptorFunc func(kvdb.Store) error
+
+func testKVDBKeyMismatch(t *testing.T, corruptor keyCorruptorFunc) {
+	t.Helper()
+	assertar := assert.New(t)
+
+	nodes := consensustest.GenNodes(3)
+	weights := []consensus.Weight{1, 1, 1}
+
+	// step 1: run consensus for multiple epochs using multi-node setup
+	const (
+		COUNT     = 3 // 3 consensus instances
+		GENERATOR = 0 // event generator
+		EXPECTED  = 1 // sample
+		RESTORED  = 2 // compare with sample
+	)
+
+	lchs := make([]*CoreLachesis, 0, COUNT)
+	inputs := make([]*consensustest.TestEventSource, 0, COUNT)
+	for i := 0; i < COUNT; i++ {
+		lch, _, input, _ := NewBootstrappedCoreConsensus(nodes, weights)
+		lchs = append(lchs, lch)
+		inputs = append(inputs, input)
+	}
+
+	eventCount := TestMaxEpochEvents
+	const epochs = 5
+	var maxEpochBlocks = eventCount / 4
+
+	// seal epoch on certified frame == maxEpochBlocks
+	for _, _lch := range lchs {
+		lch := _lch // capture
+		lch.applyBlock = func(block *consensus.Block) *consensus.Validators {
+			if lch.store.GetLastCertifiedFrame()+1 == consensus.Frame(maxEpochBlocks) {
+				// seal epoch
+				return lch.store.GetValidators()
+			}
+			return nil
+		}
+	}
+
+	var ordered consensus.Events
+	parentCount := 5
+	if parentCount > len(nodes) {
+		parentCount = len(nodes)
+	}
+	epochStates := map[consensus.Epoch]*consensusstore.EpochState{}
+	r := consensustest.NewIntSeededRandGenerator(uint64(len(nodes)))
+	for epoch := consensus.Epoch(1); epoch <= consensus.Epoch(epochs); epoch++ {
+		consensustest.ForEachRandEquivocation(nodes, nil, eventCount, parentCount, 10, r, consensustest.ForEachEvent{
+			Process: func(e consensus.Event, name string) {
+				inputs[GENERATOR].SetEvent(e)
+				assertar.NoError(lchs[GENERATOR].Process(e))
+				ordered = append(ordered, e)
+				epochStates[lchs[GENERATOR].store.GetEpoch()] = lchs[GENERATOR].store.GetEpochState()
+			},
+			Build: func(e consensus.MutableEvent, name string) error {
+				if epoch != lchs[GENERATOR].store.GetEpoch() {
+					return errors.New("Epoch already sealed, skip")
+				}
+				e.SetEpoch(epoch)
+				return lchs[GENERATOR].Build(e)
+			},
+		})
+	}
+	if !assertar.Equal(maxEpochBlocks*epochs, len(lchs[GENERATOR].blocks)) {
+		return
+	}
+
+	// use pre-ordered events to feed other consensus instances to reach consensus
+	// this is essential for frame certification and confirmed event generation
+	for _, e := range ordered {
+		if !assertar.Equal(e.Epoch(), lchs[EXPECTED].store.GetEpoch()) {
+			break
+		}
+		inputs[EXPECTED].SetEvent(e)
+		assertar.NoError(lchs[EXPECTED].Process(e))
+
+		inputs[RESTORED].SetEvent(e)
+		assertar.NoError(lchs[RESTORED].Process(e))
+
+		// compare states to ensure consensus is working
+		compareStates(assertar, lchs[EXPECTED], lchs[RESTORED])
+		if t.Failed() {
+			return
+		}
+	}
+
+	// use the GENERATOR instance as originalLch for state extraction
+	originalLch := lchs[GENERATOR]
+
+	// step 2: save the consensus state to a database (simulate persistence)
+	// ensure we have populated key-value pairs before copying
+	assertar.True(originalLch.store.GetEpoch() >= consensus.Epoch(epochs), "Should have processed multiple epochs")
+
+	savedMainDB := memorydb.New()
+	{
+		it := originalLch.store.MainDB.NewIterator(nil, nil)
+		for it.Next() {
+			assertar.NoError(savedMainDB.Put(it.Key(), it.Value()))
+		}
+		it.Release()
+	}
+
+	savedEpochDB := memorydb.New()
+	{
+		it := originalLch.store.EpochDB.NewIterator(nil, nil)
+		for it.Next() {
+			assertar.NoError(savedEpochDB.Put(it.Key(), it.Value()))
+		}
+		it.Release()
+	}
+
+	savedEpoch := originalLch.store.GetEpoch()
+
+	// step 3: resume from saved state (verify clean restart works)
+	getEpochDB := func(epoch consensus.Epoch) kvdb.Store {
+		if epoch == savedEpoch {
+			return savedEpochDB
+		}
+		return memorydb.New()
+	}
+
+	cleanStore := consensusstore.NewStore(savedMainDB, getEpochDB, func(err error) { panic(err) }, consensusstore.LiteStoreConfig())
+	cleanRestart := NewIndexedLachesis(cleanStore, originalLch.Input, dagindexer.NewIndex(originalLch.crit, dagindexer.LiteConfig()), originalLch.crit, originalLch.config)
+	err := cleanRestart.Bootstrap(originalLch.callback)
+	assertar.NoError(err, "Clean restart from saved state should succeed")
+
+	// verify the restored state has same epoch and validators
+	assertar.Equal(originalLch.store.GetEpoch(), cleanRestart.store.GetEpoch(), "Epochs should match after clean restart")
+	assertar.Equal(originalLch.store.GetEpochState().String(), cleanRestart.store.GetEpochState().String(), "Epoch states should match after clean restart")
+
+	// step 4: corrupt MainDB keys
+	corruptedMainDB := memorydb.New()
+	{
+		it := savedMainDB.NewIterator(nil, nil)
+		for it.Next() {
+			assertar.NoError(corruptedMainDB.Put(it.Key(), it.Value()))
+		}
+		it.Release()
+	}
+
+	corruptedEpochDB := memorydb.New()
+	{
+		it := savedEpochDB.NewIterator(nil, nil)
+		for it.Next() {
+			assertar.NoError(corruptedEpochDB.Put(it.Key(), it.Value()))
+		}
+		it.Release()
+	}
+
+	// apply corruption to MainDB keys (epoch state and certified state)
+	err = corruptor(corruptedMainDB)
+	assertar.NoError(err, "Corruption function must succeed - MainDB keys must exist for this test")
+
+	// step 5: try to resume from corrupted database and verify it fails at the right time
+	getCorruptedEpochDB := func(epoch consensus.Epoch) kvdb.Store {
+		if epoch == savedEpoch {
+			return corruptedEpochDB
+		}
+		return memorydb.New()
+	}
+
+	critFunc := func(err error) {
+		panic(err)
+	}
+	corruptedStore := consensusstore.NewStore(corruptedMainDB, getCorruptedEpochDB, critFunc, consensusstore.LiteStoreConfig())
+
+	// attempt to restart from corrupted state - MUST fail
+	var bootstrapPanic interface{}
+	var bootstrapErr error
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				bootstrapPanic = r
+			}
+		}()
+
+		corruptedRestart := NewIndexedLachesis(corruptedStore, originalLch.Input, dagindexer.NewIndex(originalLch.crit, dagindexer.LiteConfig()), originalLch.crit, originalLch.config)
+		bootstrapErr = corruptedRestart.Bootstrap(originalLch.callback)
+	}()
+
+	assertar.True(bootstrapPanic != nil || bootstrapErr != nil, "Critical key corruption MUST cause bootstrap failure")
+}
+
+func corruptEpochStateKey(db kvdb.Store) error {
+	// corrupt the epoch state key using the actual table-prefixed store
+	// the key "e" is stored in table with prefix "e", so raw DB key is "ee"
+	val, err := db.Get([]byte("ee")) // table "e" + key "e" = "ee"
+	if err != nil {
+		return err
+	}
+	if val == nil {
+		return errors.New("Epoch state key not found in database - cannot test corruption")
+	}
+	// delete correct key and add corrupted key
+	if err := db.Delete([]byte("ee")); err != nil {
+		return err
+	}
+	return db.Put([]byte("XX"), val)
+}
+
+func corruptCertifiedStateKey(db kvdb.Store) error {
+	// corrupt the certified state key ["d" for decided] using the actual table-prefixed store
+	// the key "d" is stored in table with prefix "d", so raw DB key is "dd"
+	val, err := db.Get([]byte("dd")) // table "d" + key "d" = "dd"
+	if err != nil {
+		return err
+	}
+	if val == nil {
+		return errors.New("Certified state key not found in database - cannot test corruption")
+	}
+	// delete correct key and add corrupted key
+	if err := db.Delete([]byte("dd")); err != nil {
+		return err
+	}
+	return db.Put([]byte("XX"), val)
 }
 
 func compareStates(assertar *assert.Assertions, expected, restored *CoreLachesis) {
