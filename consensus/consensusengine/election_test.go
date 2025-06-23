@@ -285,7 +285,13 @@ func testVoteAndAggregate(
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		leaders, err := election.VoteAndAggregate(baseSlot.frame, baseSlot.validatorID, baseHash)
+		srVector := make(map[consensus.ValidatorID]bool, validators.Len())
+		for _, frameBase := range getFrameBasesFn(baseSlot.frame - 1) {
+			if stronglyReachFn(baseHash, frameBase.BaseHash) {
+				srVector[frameBase.ValidatorID] = true
+			}
+		}
+		leaders, err := election.VoteAndAggregate(baseSlot.frame, baseSlot.validatorID, baseHash, srVector)
 		if err != nil {
 			t.Fatal(err)
 		}

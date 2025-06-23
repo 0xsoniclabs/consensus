@@ -74,6 +74,7 @@ func (el *election) VoteAndAggregate(
 	frame consensus.Frame,
 	validatorId consensus.ValidatorID,
 	baseHash consensus.EventHash,
+	srVector map[consensus.ValidatorID]bool,
 ) ([]*leaderCertification, error) {
 	if el.isAlreadyCertified(frame) {
 		return []*leaderCertification{}, nil
@@ -87,10 +88,12 @@ func (el *election) VoteAndAggregate(
 	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
 	directVoteVector := initInt32WithConst(-1, int(el.validatorCount))
 
-	reachableBases := el.reachableBases(baseHash, frame-1)
 	reachableBasesWeight := int32(0)
 
-	for _, reachableBase := range reachableBases {
+	for _, reachableBase := range el.getFrameBases(frame - 1) {
+		if !srVector[reachableBase.ValidatorID] {
+			continue
+		}
 		validatorIdx := el.validatorIDMap[reachableBase.ValidatorID]
 		directVoteVector[validatorIdx] = 1
 		reachableBasesWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
@@ -177,17 +180,6 @@ func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.Va
 	}
 
 	return leaderHash
-}
-
-func (el *election) reachableBases(base consensus.EventHash, frame consensus.Frame) []consensusstore.BaseDescriptor {
-	reachableBases := make([]consensusstore.BaseDescriptor, 0, el.validators.Len())
-	frameBases := el.getFrameBases(frame)
-	for _, frameBase := range frameBases {
-		if el.stronglyReaches(base, frameBase.BaseHash) {
-			reachableBases = append(reachableBases, frameBase)
-		}
-	}
-	return reachableBases
 }
 
 func (el *election) prepareNewElectorBase(frame consensus.Frame, validatorIdx consensus.ValidatorIndex, base consensus.EventHash) {

@@ -31,7 +31,7 @@ func (p *Orderer) Build(e consensus.MutableEvent) error {
 		p.crit(errors.New("event wasn't created by an existing validator"))
 	}
 
-	_, frame := p.calcFrameIdx(e)
+	_, frame, _ := p.calcFrameIdx(e)
 	e.SetFrame(frame)
 
 	return nil
@@ -42,7 +42,7 @@ func (p *Orderer) Build(e consensus.MutableEvent) error {
 // All the event checkers must be launched.
 // Process is not safe for concurrent use.
 func (p *Orderer) Process(e consensus.Event) (err error) {
-	selfParentFrame, err := p.checkAndSaveEvent(e)
+	selfParentFrame, srVector, err := p.checkAndSaveEvent(e)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,10 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 	if selfParentFrame == e.Frame() {
 		return nil
 	}
-	if _, err := p.runElectionOnBase(e.Frame(), e.Creator(), e.ID()); err != nil {
+	if srVector == nil {
+		srVector = p.srVector(e.ID(), e.Frame()-1)
+	}
+	if _, err := p.runElectionOnBase(e.Frame(), e.Creator(), e.ID(), srVector); err != nil {
 		// election doesn't fail under normal circumstances
 		// storage is in an inconsistent state
 		p.crit(err)
@@ -59,22 +62,22 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 }
 
 // checkAndSaveEvent checks consensus-related fields: Frame, IsBase
-func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, error) {
+func (p *Orderer) checkAndSaveEvent(e consensus.Event) (consensus.Frame, map[consensus.ValidatorID]bool, error) {
 	// check frame & isBase
-	selfParentFrame, frameIdx := p.calcFrameIdx(e)
+	selfParentFrame, frameIdx, srVector := p.calcFrameIdx(e)
 	if !p.config.SuppressFramePanic && e.Frame() != frameIdx {
-		return 0, ErrWrongFrame
+		return 0, nil, ErrWrongFrame
 	}
 
 	if selfParentFrame != frameIdx {
 		p.store.AddBase(e)
 	}
-	return selfParentFrame, nil
+	return selfParentFrame, srVector, nil
 }
 
 // runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
-func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
-	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash)
+func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash, srVector map[consensus.ValidatorID]bool) (bool, error) {
+	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash, srVector)
 	if err != nil {
 		return false, err
 	}
@@ -97,7 +100,8 @@ func (p *Orderer) bootstrapElection() error {
 			break
 		}
 		for _, base := range frameBases {
-			sealed, err := p.runElectionOnBase(frame, base.ValidatorID, base.BaseHash)
+			srVector := p.srVector(base.BaseHash, frame-1)
+			sealed, err := p.runElectionOnBase(frame, base.ValidatorID, base.BaseHash, srVector)
 			if err != nil {
 				return err
 			}
@@ -124,10 +128,37 @@ func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame
 	return reachableCounter.HasQuorum()
 }
 
+// stronglyReachableByQuorum returns true if event is strongly reachable by 2/3W bases on specified frame
+func (p *Orderer) stronglyReachableByQuorumVec(e consensus.Event, f consensus.Frame) (bool, map[consensus.ValidatorID]bool) {
+	validators := p.store.GetValidators()
+	reachableCounter := validators.NewCounter()
+	srVector := make(map[consensus.ValidatorID]bool, validators.Len())
+	// check "observing" prev bases only if called by creator, or if creator has marked that event as base
+	for _, it := range p.store.GetFrameBases(f) {
+		if p.dagIndex.StronglyReach(e.ID(), it.BaseHash) {
+			reachableCounter.CountVoteByID(it.ValidatorID)
+			srVector[it.ValidatorID] = true
+		}
+	}
+	return reachableCounter.HasQuorum(), srVector
+}
+
+// stronglyReachableByQuorum returns true if event is strongly reachable by 2/3W bases on specified frame
+func (p *Orderer) srVector(e consensus.EventHash, f consensus.Frame) map[consensus.ValidatorID]bool {
+	srVector := make(map[consensus.ValidatorID]bool, p.store.GetValidators().Len())
+	// check "observing" prev bases only if called by creator, or if creator has marked that event as base
+	for _, it := range p.store.GetFrameBases(f) {
+		if p.dagIndex.StronglyReach(e, it.BaseHash) {
+			srVector[it.ValidatorID] = true
+		}
+	}
+	return srVector
+}
+
 // calcFrameIdx is not safe for concurrent use.
-func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consensus.Frame) {
+func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consensus.Frame, srVector map[consensus.ValidatorID]bool) {
 	if e.SelfParent() == nil {
-		return 0, 1
+		return 0, 1, map[consensus.ValidatorID]bool{}
 	}
 	selfParentFrame = p.Input.GetEvent(*e.SelfParent()).Frame()
 	frame = selfParentFrame
@@ -135,10 +166,17 @@ func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consen
 		frame = max(frame, p.Input.GetEvent(parent).Frame())
 	}
 
-	if p.stronglyReachableByQuorum(e, frame) {
+	reachable := false
+	if e.Frame() == frame {
+		reachable = p.stronglyReachableByQuorum(e, frame)
+		srVector = nil
+	} else {
+		reachable, srVector = p.stronglyReachableByQuorumVec(e, frame)
+	}
+	if reachable {
 		frame++
 	}
-	return selfParentFrame, frame
+	return selfParentFrame, frame, srVector
 }
 
 func (p *Orderer) getSelfParentFrame(e consensus.Event) consensus.Frame {
