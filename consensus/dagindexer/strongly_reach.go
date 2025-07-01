@@ -35,18 +35,7 @@ type kv struct {
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
 func (vi *Index) StronglyReach(aID, bID consensus.EventHash) bool {
-	if res, ok := vi.cache.StronglyReach.Get(kv{aID, bID}); ok {
-		return res.(bool)
-	}
-
 	vi.InitBranchesInfo()
-	res := vi.stronglyReaches(aID, bID)
-
-	vi.cache.StronglyReach.Add(kv{aID, bID}, res, 1)
-	return res
-}
-
-func (vi *Index) stronglyReaches(aID, bID consensus.EventHash) bool {
 	// Get events by hash
 	aFull := vi.GetHighestBefore(aID)
 	if aFull == nil {
