@@ -782,7 +782,6 @@ func TestRandomEquivocations(t *testing.T) {
 					assertar.NoError(vi.Add(a))
 				}
 
-				vi.cache.StronglyReach.Purge() // disable cache
 				for _, a := range processedArr {
 					for _, b := range processedArr {
 						pair := kv{
