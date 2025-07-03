@@ -51,7 +51,7 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 		return nil
 	}
 	p.store.AddBase(e)
-	// Gather strongly reachable bases if they havn't been memoized by the frame construction
+	// Gather strongly reachable bases if they haven't been memoized by the frame construction
 	if stronglyReachableBases == nil {
 		stronglyReachableBases = p.stronglyReachableBases(e.ID(), e.Frame()-1)
 	}
