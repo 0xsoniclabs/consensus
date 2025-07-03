@@ -65,7 +65,6 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 
 // runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
 func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash, stronglyReachableBases []*consensusstore.BaseDescriptor) (bool, error) {
-	// func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash) (bool, error) {
 	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash, stronglyReachableBases)
 	if err != nil {
 		return false, err
@@ -115,8 +114,8 @@ func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame
 	return reachableCounter.HasQuorum()
 }
 
-// stronglyReachableByQuorumMemoize extends the standard stronglyReachableByQuorum by memoizing the strongly reachable bases
-// performs worse than its vanilla counterpart as it iterates over all the bases even when quorum is reached mid-iteration.
+// stronglyReachableByQuorumMemoize extends the standard stronglyReachableByQuorum by memoizing the strongly reachable bases.
+// It performs worse than its vanilla counterpart as it checks the SR relation for all the bases - even when quorum is reached mid-iteration.
 func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensus.Frame) (bool, []*consensusstore.BaseDescriptor) {
 	reachableCounter := p.store.GetValidators().NewCounter()
 	frameBases := p.store.GetFrameBases(f)
@@ -155,13 +154,13 @@ func (p *Orderer) constructEventFrame(e consensus.Event) (selfParentFrame, frame
 	// Memoize the strongly reachable calculations only if they can be reused by the election algorithm:
 	// The event comes in with an already assigned frame by its creator, where providing an incorrect frame invalidates the event.
 	// To this end, the algorithm utilizes the provided frame to predict whether the SR should be memoized and can be
-	// reused by the upcoming election algorithm. The calculations can only be reused if the events frame ends up being greater
-	// max frame of its parents.
-	if e.Frame() == frame {
+	// reused by the upcoming election algorithm. The calculations can only be reused if the events frame ends up being one
+	// above the maximum frame of its parents.
+	if e.Frame() == frame+1 {
+		reachable, memoizedDescriptors = p.stronglyReachableByQuorumMemoize(e, frame)
+	} else {
 		reachable = p.stronglyReachableByQuorum(e, frame)
 		memoizedDescriptors = nil
-	} else {
-		reachable, memoizedDescriptors = p.stronglyReachableByQuorumMemoize(e, frame)
 	}
 	if reachable {
 		frame++
