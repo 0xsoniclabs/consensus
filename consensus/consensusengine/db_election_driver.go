@@ -122,6 +122,7 @@ func GetEpochRange(conn *sql.DB) (consensus.Epoch, consensus.Epoch, error) {
 
 func ingestEvent(testLachesis *CoreLachesis, eventStore *consensustest.TestEventSource, event *dbEvent) error {
 	testEvent := &consensustest.TestEvent{}
+	testEvent.SetFrame(event.frame)
 	testEvent.SetSeq(event.seq)
 	testEvent.SetCreator(event.validatorId)
 	testEvent.SetParents(event.parents)
@@ -130,28 +131,18 @@ func ingestEvent(testLachesis *CoreLachesis, eventStore *consensustest.TestEvent
 	testEvent.SetID([24]byte(event.hash[8:]))
 	eventStore.SetEvent(testEvent)
 
-	return processLocalEvent(testLachesis, testEvent, event.frame)
+	return processLocalEvent(testLachesis, testEvent)
 }
 
 // processLocalEvent simulates a flattened (without redudantant indexing and frame (re)calculations)
 // event lifecycle in local computation intensive consensus components - DAG indexing, frame calculation, election
 // Conditions and order in which the components are invoked are identical to production Consensus behaviour
-func processLocalEvent(testLachesis *CoreLachesis, event *consensustest.TestEvent, targetFrame consensus.Frame) error {
+func processLocalEvent(testLachesis *CoreLachesis, event *consensustest.TestEvent) error {
 	if err := testLachesis.DagIndexer.Add(event); err != nil {
 		return fmt.Errorf("error wihile indexing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
-	if err := testLachesis.Lachesis.Build(event); err != nil {
-		return fmt.Errorf("error wihile building event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
-	}
-	if targetFrame != event.Frame() {
-		return fmt.Errorf("incorrect frame recalculated for event: [validator: %d, seq: %d], expected: %d, got: %d", event.Creator(), event.Seq(), targetFrame, event.Frame())
-	}
-	selfParentFrame := testLachesis.getSelfParentFrame(event)
-	if selfParentFrame != event.Frame() {
-		testLachesis.store.AddBase(event)
-		if _, err := testLachesis.runElectionOnBase(event.Frame(), event.Creator(), event.ID()); err != nil {
-			return fmt.Errorf("error wihile processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
-		}
+	if err := testLachesis.Lachesis.Process(event); err != nil {
+		return fmt.Errorf("error while processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
 	}
 
 	return nil
