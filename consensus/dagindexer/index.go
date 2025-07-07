@@ -13,7 +13,9 @@ package dagindexer
 import (
 	"errors"
 	"fmt"
+	"math"
 
+	"github.com/0xsoniclabs/cacheutils/simplelru"
 	"github.com/0xsoniclabs/cacheutils/wlru"
 	"github.com/0xsoniclabs/consensus/consensus/vecflushable"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -29,6 +31,8 @@ import (
 // UNIX nanoseconds timestamp
 type Timestamp = uint64
 
+const NilLastEventUid = consensus.Seq(math.MaxUint32)
+
 // IndexCacheConfig - config for cache sizes of Engine
 type IndexCacheConfig struct {
 	HighestBeforeTimeSize uint
@@ -36,6 +40,7 @@ type IndexCacheConfig struct {
 	StronglyReachPairs    int
 	HighestBeforeSeqSize  uint
 	LowestAfterSeqSize    uint
+	EventIdSize           uint
 }
 
 // IndexConfig - Engine config (cache sizes)
@@ -67,6 +72,8 @@ type Index struct {
 		HighestBeforeTime *wlru.Cache
 		HighestBeforeSeq  *simplewlru.Cache
 		LowestAfterSeq    *simplewlru.Cache
+		EventId           *simplelru.Cache
+		LastEventId       consensus.Seq
 	}
 
 	cfg IndexConfig
@@ -80,6 +87,7 @@ func DefaultConfig(scale cachescale.Func) IndexConfig {
 			DBCache:               scale.I(10 * opt.MiB),
 			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
+			EventIdSize:           scale.U(600),
 		},
 	}
 }
@@ -92,6 +100,7 @@ func LiteConfig() IndexConfig {
 			HighestBeforeTimeSize: 4 * 1024,
 			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
+			EventIdSize:           scale.U(600),
 		},
 	}
 }
@@ -129,6 +138,8 @@ func (vi *Index) initCaches() {
 	vi.cache.HighestBeforeTime, _ = wlru.New(vi.cfg.Caches.HighestBeforeTimeSize, int(vi.cfg.Caches.HighestBeforeTimeSize))
 	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
 	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
+	vi.cache.EventId, _ = simplelru.New(int(vi.cfg.Caches.EventIdSize))
+	vi.cache.LastEventId = NilLastEventUid
 }
 
 // DropNotFlushed not connected clocks. Call it if event has failed.
@@ -153,6 +164,7 @@ func (vi *Index) Reset(validators *consensus.Validators, db kvdb.FlushableKVStor
 	vi.DropNotFlushed()
 	table.MigrateTables(&vi.table, vi.vecDb)
 	vi.OnDropNotFlushed()
+	// vi.setLastUId(0)
 }
 
 func (vi *Index) Close() error {

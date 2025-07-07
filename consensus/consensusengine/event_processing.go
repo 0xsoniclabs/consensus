@@ -11,9 +11,12 @@
 package consensusengine
 
 import (
+	"slices"
+
 	"github.com/pkg/errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 var (
@@ -115,11 +118,22 @@ func (p *Orderer) bootstrapElection() error {
 
 // stronglyReachableByQuorum returns true if event is strongly reachable by 2/3W bases on specified frame
 func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame) bool {
-	reachableCounter := p.store.GetValidators().NewCounter()
+	validators := p.store.GetValidators()
+	reachableCounter := validators.NewCounter()
 	// check "observing" prev bases only if called by creator, or if creator has marked that event as base
-	for _, it := range p.store.GetFrameBases(f) {
+	frameBases := p.store.GetFrameBases(f)
+	slices.SortFunc(frameBases, func(a, b consensusstore.BaseDescriptor) int {
+		return int(validators.GetWeightByIdx(validators.GetIdx(b.ValidatorID))) - int(validators.GetWeightByIdx(validators.GetIdx(a.ValidatorID)))
+	})
+
+	for _, it := range frameBases {
 		if p.dagIndex.StronglyReach(e.ID(), it.BaseHash) {
 			reachableCounter.CountVoteByID(it.ValidatorID)
+		} else {
+			reachableCounter.CountAntiVoteByID(it.ValidatorID)
+		}
+		if reachableCounter.HasAntiQuorum() {
+			break
 		}
 		if reachableCounter.HasQuorum() {
 			break
@@ -177,11 +191,4 @@ func (p *Orderer) calcFrameIdx(e consensus.Event) (selfParentFrame, frame consen
 		frame++
 	}
 	return selfParentFrame, frame, srVector
-}
-
-func (p *Orderer) getSelfParentFrame(e consensus.Event) consensus.Frame {
-	if e.SelfParent() == nil {
-		return 0
-	}
-	return p.Input.GetEvent(*e.SelfParent()).Frame()
 }

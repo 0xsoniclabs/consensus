@@ -24,8 +24,10 @@ type (
 		validators   Validators
 		alreadyVoted []bool // ValidatorIdx -> bool
 
-		quorum Weight
-		sum    Weight
+		quorum     Weight
+		antiQuorum Weight
+		sum        Weight
+		antiSum    Weight
 	}
 )
 
@@ -38,8 +40,10 @@ func newWeightCounter(vv Validators) *WeightCounter {
 	return &WeightCounter{
 		validators:   vv,
 		quorum:       vv.Quorum(),
+		antiQuorum:   vv.TotalWeight() - vv.Quorum(),
 		alreadyVoted: make([]bool, vv.Len()),
 		sum:          0,
+		antiSum:      0,
 	}
 }
 
@@ -47,6 +51,12 @@ func newWeightCounter(vv Validators) *WeightCounter {
 func (s *WeightCounter) CountVoteByID(v ValidatorID) bool {
 	validatorIdx := s.validators.GetIdx(v)
 	return s.CountVoteByIndex(validatorIdx)
+}
+
+// CountVoteByID validator and return true if it hadn't counted before.
+func (s *WeightCounter) CountAntiVoteByID(v ValidatorID) bool {
+	validatorIdx := s.validators.GetIdx(v)
+	return s.CountAntiVoteByIndex(validatorIdx)
 }
 
 // CountVoteByIndex validator and return true if it hadn't counted before.
@@ -60,9 +70,25 @@ func (s *WeightCounter) CountVoteByIndex(validatorIdx ValidatorIndex) bool {
 	return true
 }
 
+// CountVoteByIndex validator and return true if it hadn't counted before.
+func (s *WeightCounter) CountAntiVoteByIndex(validatorIdx ValidatorIndex) bool {
+	if s.alreadyVoted[validatorIdx] {
+		return false
+	}
+	s.alreadyVoted[validatorIdx] = true
+
+	s.antiSum += s.validators.GetWeightByIdx(validatorIdx)
+	return true
+}
+
 // HasQuorum achieved.
 func (s *WeightCounter) HasQuorum() bool {
 	return s.sum >= s.quorum
+}
+
+// HasQuorum achieved.
+func (s *WeightCounter) HasAntiQuorum() bool {
+	return s.antiSum > s.antiQuorum
 }
 
 // Sum of counted weights.
