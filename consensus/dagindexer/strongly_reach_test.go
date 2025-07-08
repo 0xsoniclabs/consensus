@@ -862,9 +862,9 @@ func TestStronglyReachProgressCheater(t *testing.T) {
 
 	chosenRes, candidatesRes := vi.StronglyReachProgress(named["a03"].ID(), named["c02"].ID(), candidates, chosen)
 
-	assertar.False(chosenRes.HasQuorum())
+	assertar.False(chosenRes.QuorumReached())
 	for _, c := range candidatesRes {
-		assertar.False(c.HasQuorum())
+		assertar.False(c.QuorumReached())
 	}
 }
 
@@ -906,10 +906,10 @@ func TestStronglyReachProgressOnlyGloballySeenEquivocation(t *testing.T) {
 
 	chosenRes, candidatesRes := vi.StronglyReachProgress(named["a01"].ID(), named["c00"].ID(),
 		[]consensus.EventHash{named["c12"].ID()}, []consensus.EventHash{named["a00"].ID(), named["b01"].ID()})
-	assertar.True(chosenRes.HasQuorum())
+	assertar.True(chosenRes.QuorumReached())
 	// NOTE!!! if the logic supported equivocation seen only globally, this would be false!
 	// This is not a concern at the moment, since it does not impede the method's use case.
-	assertar.True(candidatesRes[0].HasQuorum())
+	assertar.True(candidatesRes[0].QuorumReached())
 }
 
 // Checks panic on missing events.

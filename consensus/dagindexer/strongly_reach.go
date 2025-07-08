@@ -77,7 +77,7 @@ func (vi *Index) StronglyReach(aID, bID consensus.EventHash) bool {
 			yes.CountVoteByIndex(creatorIdx)
 		}
 	}
-	return yes.HasQuorum()
+	return yes.QuorumReached()
 }
 
 func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidateParents, chosenParents consensus.EventHashes) (*consensus.WeightCounter, []*consensus.WeightCounter) {

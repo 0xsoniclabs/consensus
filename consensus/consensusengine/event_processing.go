@@ -11,6 +11,8 @@
 package consensusengine
 
 import (
+	"slices"
+
 	"github.com/pkg/errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -102,16 +104,24 @@ func (p *Orderer) bootstrapElection() error {
 
 // stronglyReachableByQuorum returns true if event is strongly reachable by 2/3W bases on specified frame
 func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame) bool {
-	reachableCounter := p.store.GetValidators().NewCounter()
-	for _, baseDescriptor := range p.store.GetFrameBases(f) {
+	validators := p.store.GetValidators()
+	reachableCounter := validators.NewCounter()
+	frameBases := p.store.GetFrameBases(f)
+	// Traverse the frame bases in a descending stake of their respective validators to reach the quorum/AntiQuorum with the least amount of StronglyReach calls
+	slices.SortFunc(frameBases, func(a, b consensusstore.BaseDescriptor) int {
+		return int(validators.GetWeightByIdx(validators.GetIdx(b.ValidatorID))) - int(validators.GetWeightByIdx(validators.GetIdx(a.ValidatorID)))
+	})
+	for _, baseDescriptor := range frameBases {
 		if p.dagIndex.StronglyReach(e.ID(), baseDescriptor.BaseHash) {
 			reachableCounter.CountVoteByID(baseDescriptor.ValidatorID)
+		} else {
+			reachableCounter.CountAntiVoteByID(baseDescriptor.ValidatorID)
 		}
-		if reachableCounter.HasQuorum() {
+		if reachableCounter.AntiQuorumReached() || reachableCounter.QuorumReached() {
 			break
 		}
 	}
-	return reachableCounter.HasQuorum()
+	return reachableCounter.QuorumReached()
 }
 
 // stronglyReachableByQuorumMemoize extends the standard stronglyReachableByQuorum by memoizing the strongly reachable bases.
@@ -126,7 +136,7 @@ func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensu
 			memoizedDescriptors = append(memoizedDescriptors, &frameBases[idx])
 		}
 	}
-	return reachableCounter.HasQuorum(), memoizedDescriptors
+	return reachableCounter.QuorumReached(), memoizedDescriptors
 }
 
 func (p *Orderer) stronglyReachableBases(eventHash consensus.EventHash, f consensus.Frame) []*consensusstore.BaseDescriptor {
