@@ -107,7 +107,7 @@ func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame
 	validators := p.store.GetValidators()
 	reachableCounter := validators.NewCounter()
 	frameBases := p.store.GetFrameBases(f)
-	// Traverse the frame bases in a descending stake of their respective validators to reach the quorum/AntiQuorum with the least amount of StronglyReach calls
+	// Traverse the frame bases in a descending order of their respective validator stake to reach the quorum/AntiQuorum with the least amount of StronglyReach calls
 	slices.SortFunc(frameBases, func(a, b consensusstore.BaseDescriptor) int {
 		return int(validators.GetWeightByIdx(validators.GetIdx(b.ValidatorID))) - int(validators.GetWeightByIdx(validators.GetIdx(a.ValidatorID)))
 	})
