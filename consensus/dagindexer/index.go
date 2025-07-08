@@ -40,7 +40,7 @@ type IndexCacheConfig struct {
 	StronglyReachPairs    int
 	HighestBeforeSeqSize  uint
 	LowestAfterSeqSize    uint
-	EventIdSize           uint
+	EventUIdSize          uint
 }
 
 // IndexConfig - Engine config (cache sizes)
@@ -87,20 +87,20 @@ func DefaultConfig(scale cachescale.Func) IndexConfig {
 			DBCache:               scale.I(10 * opt.MiB),
 			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
-			EventIdSize:           scale.U(600),
+			EventUIdSize:          scale.U(100),
 		},
 	}
 }
 
 // LiteConfig returns default index config for tests
 func LiteConfig() IndexConfig {
-	scale := cachescale.Ratio{Base: 100, Target: 1}
+	scale := cachescale.Ratio{Base: 6, Target: 10}
 	return IndexConfig{
 		Caches: IndexCacheConfig{
 			HighestBeforeTimeSize: 4 * 1024,
 			HighestBeforeSeqSize:  scale.U(320 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),
-			EventIdSize:           scale.U(600),
+			EventUIdSize:          scale.U(100),
 		},
 	}
 }
@@ -138,7 +138,7 @@ func (vi *Index) initCaches() {
 	vi.cache.HighestBeforeTime, _ = wlru.New(vi.cfg.Caches.HighestBeforeTimeSize, int(vi.cfg.Caches.HighestBeforeTimeSize))
 	vi.cache.HighestBeforeSeq, _ = simplewlru.New(vi.cfg.Caches.HighestBeforeSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
 	vi.cache.LowestAfterSeq, _ = simplewlru.New(vi.cfg.Caches.LowestAfterSeqSize, int(vi.cfg.Caches.HighestBeforeSeqSize))
-	vi.cache.EventId, _ = simplelru.New(int(vi.cfg.Caches.EventIdSize))
+	vi.cache.EventId, _ = simplelru.New(int(vi.cfg.Caches.EventUIdSize))
 	vi.cache.LastEventId = NilLastEventUid
 }
 
