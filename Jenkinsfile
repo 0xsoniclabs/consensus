@@ -37,6 +37,11 @@ pipeline {
             }
         }
 
+        stage('Run linters') {
+            steps {
+                sh 'golangci-lint run ./...'
+            }
+        }
         stage('Run tests') {
             steps {
                 sh 'make test'
