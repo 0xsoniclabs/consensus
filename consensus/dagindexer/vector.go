@@ -31,7 +31,6 @@ type (
 	BranchSeq struct {
 		Seq    consensus.Seq
 		MinSeq consensus.Seq
-		uid    consensus.Seq
 	}
 )
 
@@ -55,7 +54,7 @@ type (
 
 // NewHighestBefore creates new HighestBefore vector.
 func NewHighestBefore(size consensus.ValidatorIndex) *HighestBefore {
-	vSeq := make(HighestBeforeSeq, size*12)
+	vSeq := make(HighestBeforeSeq, size*8)
 	vTime := make(HighestBeforeTime, size*8)
 	return &HighestBefore{
 		VSeq:  &vSeq,
@@ -93,7 +92,7 @@ func (b *LowestAfterSeq) Set(i consensus.ValidatorIndex, seq consensus.Seq) {
 
 // Size of the vector clock
 func (b HighestBeforeSeq) Size() int {
-	return len(b) / 12
+	return len(b) / 8
 }
 
 // Get i's position in the byte-encoded vector clock
@@ -101,31 +100,23 @@ func (b HighestBeforeSeq) Get(i consensus.ValidatorIndex) BranchSeq {
 	for int(i) >= b.Size() {
 		return BranchSeq{}
 	}
-	seq1 := binary.LittleEndian.Uint32(b[i*12 : i*12+4])
-	seq2 := binary.LittleEndian.Uint32(b[i*12+4 : i*12+8])
-	uid := binary.LittleEndian.Uint32(b[i*12+8 : i*12+12])
+	seq1 := binary.LittleEndian.Uint32(b[i*8 : i*8+4])
+	seq2 := binary.LittleEndian.Uint32(b[i*8+4 : i*8+8])
 
 	return BranchSeq{
 		Seq:    consensus.Seq(seq1),
 		MinSeq: consensus.Seq(seq2),
-		uid:    consensus.Seq(uid),
 	}
-}
-
-func (b *HighestBeforeSeq) LookupKey(i consensus.ValidatorIndex) consensus.Seq {
-	val := b.Get(i)
-	return val.uid
 }
 
 // Set i's position in the byte-encoded vector clock
 func (b *HighestBeforeSeq) Set(i consensus.ValidatorIndex, seq BranchSeq) {
 	for int(i) >= b.Size() {
 		// append zeros if exceeds size
-		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
+		*b = append(*b, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
 	}
-	binary.LittleEndian.PutUint32((*b)[i*12:i*12+4], uint32(seq.Seq))
-	binary.LittleEndian.PutUint32((*b)[i*12+4:i*12+8], uint32(seq.MinSeq))
-	binary.LittleEndian.PutUint32((*b)[i*12+8:i*12+12], uint32(seq.uid))
+	binary.LittleEndian.PutUint32((*b)[i*8:i*8+4], uint32(seq.Seq))
+	binary.LittleEndian.PutUint32((*b)[i*8+4:i*8+8], uint32(seq.MinSeq))
 }
 
 var (

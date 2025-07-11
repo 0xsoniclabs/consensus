@@ -8,8 +8,8 @@ type CreationTimer interface {
 	CreationTimePortable() Timestamp
 }
 
-func (b *HighestBefore) InitWithEvent(i consensus.ValidatorIndex, e consensus.Event, uid consensus.Seq) {
-	b.VSeq.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq(), uid: uid})
+func (b *HighestBefore) InitWithEvent(i consensus.ValidatorIndex, e consensus.Event) {
+	b.VSeq.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq()})
 	if eCreationTimer, ok := e.(CreationTimer); ok { // Workaround for existing type-unsafe practices.
 		b.VTime.Set(i, eCreationTimer.CreationTimePortable())
 	}
@@ -77,7 +77,6 @@ func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.Validat
 					diff[branchID] += hisSeq.Seq - mySeq.Seq
 				}
 				mySeq.Seq = hisSeq.Seq
-				mySeq.uid = hisSeq.uid
 				hb.VSeq.Set(branchID, mySeq)
 				hb.VTime.Set(branchID, other.VTime.Get(branchID))
 			}

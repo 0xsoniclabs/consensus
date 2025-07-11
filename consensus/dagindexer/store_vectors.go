@@ -89,5 +89,4 @@ func (vi *Index) OnDropNotFlushed() {
 	vi.cache.LowestAfterSeq.Purge()
 	vi.cache.HighestBeforeTime.Purge()
 	vi.cache.EventId.Purge()
-	vi.cache.LastEventId = NilLastEventUid
 }

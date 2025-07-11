@@ -2,21 +2,29 @@ package dagindexer
 
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/utils/byteutils"
 )
 
-func (vi *Index) addEventUId(id consensus.EventHash) consensus.Seq {
-	lastKey := vi.getLastUId()
-	newKey := lastKey + 1
-	err := vi.table.EventUidTable.Put(newKey.Bytes(), id.Bytes())
+type key uint64
+
+func keyFromPair(branchID consensus.ValidatorIndex, seq consensus.Seq) key {
+	return key(seq) | (key(branchID) << 32)
+}
+
+func (k key) Bytes() []byte {
+	return byteutils.Uint64ToBigEndian(uint64(k))
+}
+
+func (vi *Index) addEventUId(k key, eventHash consensus.EventHash) consensus.Seq {
+	err := vi.table.EventUidTable.Put(k.Bytes(), eventHash.Bytes())
 	if err != nil {
 		vi.crit(err)
 	}
-	vi.cache.EventId.Add(newKey, id)
-	vi.setLastUId(newKey)
-	return newKey
+	vi.cache.EventId.Add(k, eventHash)
+	return 0
 }
 
-func (vi *Index) getEventByUId(key consensus.Seq) consensus.EventHash {
+func (vi *Index) getEventByUId(key key) consensus.EventHash {
 	if value, ok := vi.cache.EventId.Get(key); ok {
 		return value.(consensus.EventHash)
 	}
@@ -27,31 +35,4 @@ func (vi *Index) getEventByUId(key consensus.Seq) consensus.EventHash {
 	eventHash := consensus.BytesToEvent(b)
 	vi.cache.EventId.Add(key, eventHash)
 	return eventHash
-}
-
-func (vi *Index) setLastUId(key consensus.Seq) {
-	k := []byte("ll")
-	err := vi.table.EventUidTable.Put(k, key.Bytes())
-	if err != nil {
-		vi.crit(err)
-	}
-	vi.cache.LastEventId = key
-}
-
-func (vi *Index) getLastUId() consensus.Seq {
-	if vi.cache.LastEventId != NilLastEventUid {
-		return vi.cache.LastEventId
-	}
-	k := []byte("ll")
-	w, err := vi.table.EventUidTable.Get(k)
-	if err != nil {
-		vi.crit(err)
-	}
-	if w == nil {
-		vi.cache.LastEventId = consensus.Seq(0)
-		return consensus.Seq(0)
-	}
-	seq := consensus.BytesToSeq(w)
-	vi.cache.LastEventId = seq
-	return seq
 }

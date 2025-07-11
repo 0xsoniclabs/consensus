@@ -240,10 +240,10 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 		}
 	}
 
-	uid := vi.addEventUId(e.ID())
+	vi.addEventUId(keyFromPair(meBranchID, e.Seq()), e.ID())
 	// reachable by himself
 	myVecs.after.InitWithEvent(meBranchID, e)
-	myVecs.before.InitWithEvent(meBranchID, e, uid)
+	myVecs.before.InitWithEvent(meBranchID, e)
 
 	newEvents := make([]consensus.Seq, len(vi.branchesInfo.BranchIDCreatorIdxs)) // branchID -> number of new events
 	for i, pVec := range parentsVecs {
@@ -304,8 +304,8 @@ func (vi *Index) fillEventVectors(e consensus.Event) (allVecs, error) {
 		}
 		// if b is the highest ancestor of e on this branch, then blid is its
 		// key in the EventLookup, and bh is its hash
-		blid := myVecs.before.VSeq.LookupKey(consensus.ValidatorIndex(branchID))
-		bh := vi.getEventByUId(blid)
+		seq := myVecs.before.VSeq.Get(consensus.ValidatorIndex(branchID)).Seq
+		bh := vi.getEventByUId(keyFromPair(consensus.ValidatorIndex(branchID), seq))
 		for remaining := newEvents; remaining > 0; remaining-- {
 			wLowestAfterSeq := vi.GetLowestAfter(bh)
 			// update LowestAfter vector of the old event, because newly-connected event observes it
