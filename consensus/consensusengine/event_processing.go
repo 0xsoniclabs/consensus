@@ -11,9 +11,12 @@
 package consensusengine
 
 import (
+	"slices"
+
 	"github.com/pkg/errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 var (
@@ -145,18 +148,51 @@ func (p *Orderer) processKnownBases() (*ElectionRes, error) {
 }
 
 // stronglyReachableByQuorum returns true if event is strongly reachable by
-// 2/3W bases on specified frame.
+// 2/3W bases on specified frame. Bases are sorted by descending validator
+// stake (with validator ID as tiebreaker) so that all bases of the same
+// validator are adjacent. This lets us process one validator at a time and
+// exit early once quorum or anti-quorum is reached. The anti-quorum check
+// avoids scanning all bases on frames where quorum is unachievable.
 func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame) bool {
-	observedCounter := p.store.GetValidators().NewCounter()
-	for _, baseDescriptor := range p.store.GetFrameBases(f) {
-		if p.dagIndex.StronglyReach(e.ID(), baseDescriptor.BaseHash) {
-			observedCounter.CountVoteByID(baseDescriptor.ValidatorID)
+	validators := p.store.GetValidators()
+	voteCounter := validators.NewCounter()
+	// Copy to avoid mutating the cached slice returned by GetFrameBases.
+	frameBases := append([]consensusstore.BaseDescriptor{}, p.store.GetFrameBases(f)...)
+	slices.SortFunc(frameBases, func(a, b consensusstore.BaseDescriptor) int {
+		wa := validators.GetWeightByIdx(validators.GetIdx(a.ValidatorID))
+		wb := validators.GetWeightByIdx(validators.GetIdx(b.ValidatorID))
+		if wa != wb {
+			return int(wb) - int(wa) // descending by weight
 		}
-		if observedCounter.QuorumReached() {
-			break
+		return int(a.ValidatorID) - int(b.ValidatorID) // group by validator
+	})
+	antiQuorum := validators.TotalWeight() - validators.Quorum()
+	antiWeight := consensus.Weight(0)
+	i := 0
+	for i < len(frameBases) {
+		vid := frameBases[i].ValidatorID
+		voted := false
+		// Check bases belonging to this validator until one strongly-reaches.
+		for i < len(frameBases) && frameBases[i].ValidatorID == vid {
+			if !voted {
+				if p.dagIndex.StronglyReach(e.ID(), frameBases[i].BaseHash) {
+					voteCounter.CountVoteByID(vid)
+					voted = true
+				}
+			}
+			i++
+		}
+		if voteCounter.QuorumReached() {
+			return true
+		}
+		if !voted {
+			antiWeight += validators.GetWeightByIdx(validators.GetIdx(vid))
+			if antiWeight > antiQuorum {
+				return false
+			}
 		}
 	}
-	return observedCounter.QuorumReached()
+	return voteCounter.QuorumReached()
 }
 
 // constructEventFrame calculates the frame for an event. It starts from
