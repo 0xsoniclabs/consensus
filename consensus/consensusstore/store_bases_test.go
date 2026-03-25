@@ -34,7 +34,7 @@ func testStoreBases_ConsistentPersistingAndRetrieval(t *testing.T, numFrames int
 	// randomize frame retrieval order
 	frameRetrievalOrder := rand.Perm(numFrames)
 	for _, f := range frameRetrievalOrder {
-		frame := consensus.Frame(f)
+		frame := consensus.Frame(f + 1)
 		basesRetrieved := simplifyAndSortBases(store.GetFrameBases(frame))
 		if !slices.Equal(basesExpected[frame], basesRetrieved) {
 			t.Fatalf("unexpected bases retrieved for frame %d, expected: %v, got: %d", frame, basesExpected[frame], basesRetrieved)
@@ -59,7 +59,7 @@ func populateWithBases(t *testing.T, store *Store, numFrames int, meanBasesPerFr
 	basesExpected := make(map[consensus.Frame][]consensus.ValidatorID)
 	for i := range meanBasesPerFrame * numFrames {
 		// randomize frame insertion order
-		frame, validatorID := consensus.Frame(rand.IntN(numFrames)), consensus.ValidatorID(i)
+		frame, validatorID := consensus.Frame(rand.IntN(numFrames)+1), consensus.ValidatorID(i)
 		persistBase(store, frame, validatorID)
 		basesExpected[frame] = append(basesExpected[frame], validatorID)
 	}
