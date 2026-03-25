@@ -81,5 +81,5 @@ func persistBase(store *Store, frame consensus.Frame, validatorID consensus.Vali
 	base.SetFrame(frame)
 	// identify bases by ValidatorId (convenient as it's part of BaseDescriptor)
 	base.SetCreator(validatorID)
-	store.AddBase(base)
+	store.AddBase(frame-1, base)
 }

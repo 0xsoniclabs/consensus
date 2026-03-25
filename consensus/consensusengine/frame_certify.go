@@ -33,6 +33,7 @@ func (p *Orderer) onFrameCertified(frame consensus.Frame, leader consensus.Event
 		p.election.ResetEpoch(consensus.FirstFrame, newValidators)
 	} else {
 		lastCertifiedState.LastCertifiedFrame = frame
+		p.election.Reset(p.store.GetValidators(), frame+1)
 	}
 	p.store.SetLastCertifiedState(&lastCertifiedState)
 	return newValidators != nil, nil

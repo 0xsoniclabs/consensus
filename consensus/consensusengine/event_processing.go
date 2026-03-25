@@ -11,12 +11,9 @@
 package consensusengine
 
 import (
-	"slices"
-
 	"github.com/pkg/errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 var (
@@ -33,7 +30,7 @@ func (p *Orderer) Build(e consensus.MutableEvent) error {
 	if !p.store.GetValidators().Exists(e.Creator()) {
 		p.crit(errors.New("event wasn't created by an existing validator"))
 	}
-	_, frame, _ := p.constructEventFrame(e)
+	_, frame := p.constructEventFrame(e)
 	e.SetFrame(frame)
 
 	return nil
@@ -44,35 +41,70 @@ func (p *Orderer) Build(e consensus.MutableEvent) error {
 // All the event checkers must be launched.
 // Process is not safe for concurrent use.
 func (p *Orderer) Process(e consensus.Event) (err error) {
-	// Verify event's frame and proceed with election if it is a base
-	selfParentFrame, frameIdx, stronglyReachableBases := p.constructEventFrame(e)
+	selfParentFrame, frameIdx := p.constructEventFrame(e)
 	if !p.config.SuppressFramePanic && e.Frame() != frameIdx {
 		return ErrWrongFrame
 	}
 	if selfParentFrame == e.Frame() {
 		return nil
 	}
-	p.store.AddBase(e)
-	// Gather strongly reachable bases if they haven't been memoized by the frame construction
-	if stronglyReachableBases == nil {
-		stronglyReachableBases = p.stronglyReachableBases(e.ID(), e.Frame()-1)
-	}
-	if _, err := p.runElectionOnBase(e.Frame(), e.Creator(), e.ID(), stronglyReachableBases); err != nil {
-		// election doesn't fail under normal circumstances
-		// storage is in an inconsistent state
+	p.store.AddBase(selfParentFrame, e)
+
+	err = p.handleElection(selfParentFrame, e)
+	if err != nil {
 		p.crit(err)
 	}
 	return err
 }
 
-// runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
-func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash, stronglyReachableBases []*consensusstore.BaseDescriptor) (bool, error) {
-	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash, stronglyReachableBases)
-	if err != nil {
-		return false, err
+// handleElection iterates frames from selfParentFrame+1 to base.Frame(),
+// calling ProcessBase for each. This matches lachesis-base's handleElection.
+func (p *Orderer) handleElection(selfParentFrame consensus.Frame, base consensus.Event) error {
+	for f := selfParentFrame + 1; f <= base.Frame(); f++ {
+		decided, err := p.election.ProcessBase(BaseAndSlot{
+			ID: base.ID(),
+			Slot: Slot{
+				Frame:     f,
+				Validator: base.Creator(),
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if decided == nil {
+			continue
+		}
+
+		sealed, err := p.onFrameCertified(decided.Frame, decided.Leader)
+		if err != nil {
+			return err
+		}
+		if sealed {
+			break
+		}
+		sealed, err = p.bootstrapElection()
+		if err != nil {
+			return err
+		}
+		if sealed {
+			break
+		}
 	}
-	for _, leaderCertification := range certifications {
-		sealed, err := p.onFrameCertified(leaderCertification.Frame, leaderCertification.LeaderHash)
+	return nil
+}
+
+// bootstrapElection calls processKnownBases until it returns nil.
+func (p *Orderer) bootstrapElection() (bool, error) {
+	for {
+		decided, err := p.processKnownBases()
+		if err != nil {
+			return false, err
+		}
+		if decided == nil {
+			break
+		}
+
+		sealed, err := p.onFrameCertified(decided.Frame, decided.Leader)
 		if err != nil {
 			return false, err
 		}
@@ -83,97 +115,61 @@ func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus
 	return false, nil
 }
 
-func (p *Orderer) bootstrapElection() error {
-	for frame := p.store.GetLastCertifiedFrame() + 1; ; frame++ {
-		frameBases := p.store.GetFrameBases(frame)
+// processKnownBases re-processes all stored bases from LastCertifiedFrame+1
+// upwards, calling ProcessBase for each. Used after node startup and after
+// each decided frame.
+func (p *Orderer) processKnownBases() (*ElectionRes, error) {
+	lastCertifiedFrame := p.store.GetLastCertifiedFrame()
+	for f := lastCertifiedFrame + 1; ; f++ {
+		frameBases := p.store.GetFrameBases(f)
 		if len(frameBases) == 0 {
 			break
 		}
 		for _, base := range frameBases {
-			sealed, err := p.runElectionOnBase(frame, base.ValidatorID, base.BaseHash, p.stronglyReachableBases(base.BaseHash, frame-1))
+			decided, err := p.election.ProcessBase(BaseAndSlot{
+				ID: base.BaseHash,
+				Slot: Slot{
+					Frame:     f,
+					Validator: base.ValidatorID,
+				},
+			})
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if sealed {
-				return nil
+			if decided != nil {
+				return decided, nil
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-// stronglyReachableByQuorum returns true if event is strongly reachable by 2/3W bases on specified frame
+// stronglyReachableByQuorum returns true if event is strongly reachable by
+// 2/3W bases on specified frame.
 func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame) bool {
-	validators := p.store.GetValidators()
-	reachableCounter := validators.NewCounter()
-	frameBases := p.store.GetFrameBases(f)
-	// Traverse the frame bases in a descending order of their respective validator stake to reach the quorum/AntiQuorum with the least amount of StronglyReach calls
-	slices.SortFunc(frameBases, func(a, b consensusstore.BaseDescriptor) int {
-		return int(validators.GetWeightByIdx(validators.GetIdx(b.ValidatorID))) - int(validators.GetWeightByIdx(validators.GetIdx(a.ValidatorID)))
-	})
-	for _, baseDescriptor := range frameBases {
+	observedCounter := p.store.GetValidators().NewCounter()
+	for _, baseDescriptor := range p.store.GetFrameBases(f) {
 		if p.dagIndex.StronglyReach(e.ID(), baseDescriptor.BaseHash) {
-			reachableCounter.CountVoteByID(baseDescriptor.ValidatorID)
-		} else {
-			reachableCounter.CountAntiVoteByID(baseDescriptor.ValidatorID)
+			observedCounter.CountVoteByID(baseDescriptor.ValidatorID)
 		}
-		if reachableCounter.AntiQuorumReached() || reachableCounter.QuorumReached() {
+		if observedCounter.QuorumReached() {
 			break
 		}
 	}
-	return reachableCounter.QuorumReached()
+	return observedCounter.QuorumReached()
 }
 
-// stronglyReachableByQuorumMemoize extends the standard stronglyReachableByQuorum by memoizing the strongly reachable bases.
-// It performs worse than its vanilla counterpart as it checks the SR relation for all the bases - even when quorum is reached mid-iteration.
-func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensus.Frame) (bool, []*consensusstore.BaseDescriptor) {
-	reachableCounter := p.store.GetValidators().NewCounter()
-	frameBases := p.store.GetFrameBases(f)
-	memoizedDescriptors := make([]*consensusstore.BaseDescriptor, 0)
-	for idx, baseDescriptor := range frameBases {
-		if p.dagIndex.StronglyReach(e.ID(), baseDescriptor.BaseHash) {
-			reachableCounter.CountVoteByID(baseDescriptor.ValidatorID)
-			memoizedDescriptors = append(memoizedDescriptors, &frameBases[idx])
-		}
-	}
-	return reachableCounter.QuorumReached(), memoizedDescriptors
-}
-
-func (p *Orderer) stronglyReachableBases(eventHash consensus.EventHash, f consensus.Frame) []*consensusstore.BaseDescriptor {
-	frameBases := p.store.GetFrameBases(f)
-	memoizedDescriptors := make([]*consensusstore.BaseDescriptor, 0)
-	for idx, baseDescriptor := range p.store.GetFrameBases(f) {
-		if p.dagIndex.StronglyReach(eventHash, baseDescriptor.BaseHash) {
-			memoizedDescriptors = append(memoizedDescriptors, &frameBases[idx])
-		}
-	}
-	return memoizedDescriptors
-}
-
-// calcFrameIdx is not safe for concurrent use.
-func (p *Orderer) constructEventFrame(e consensus.Event) (selfParentFrame, frame consensus.Frame, memoizedDescriptors []*consensusstore.BaseDescriptor) {
+// constructEventFrame calculates the frame for an event. It starts from
+// selfParentFrame and loops, incrementing frame as long as the event is
+// strongly-reachable by a quorum of bases on that frame.
+func (p *Orderer) constructEventFrame(e consensus.Event) (selfParentFrame, frame consensus.Frame) {
 	if e.SelfParent() == nil {
-		return 0, 1, []*consensusstore.BaseDescriptor{}
+		return 0, 1
 	}
 	selfParentFrame = p.Input.GetEvent(*e.SelfParent()).Frame()
 	frame = selfParentFrame
-	for _, parent := range e.Parents() {
-		frame = max(frame, p.Input.GetEvent(parent).Frame())
-	}
-	var reachable bool
-	// Memoize the strongly reachable calculations only if they can be reused by the election algorithm:
-	// The event comes in with an already assigned frame by its creator, where providing an incorrect frame invalidates the event.
-	// To this end, the algorithm utilizes the provided frame to predict whether the SR should be memoized and can be
-	// reused by the upcoming election algorithm. The calculations can only be reused if the events frame ends up being one
-	// above the maximum frame of its parents.
-	if e.Frame() == frame+1 {
-		reachable, memoizedDescriptors = p.stronglyReachableByQuorumMemoize(e, frame)
-	} else {
-		reachable = p.stronglyReachableByQuorum(e, frame)
-		memoizedDescriptors = nil
-	}
-	if reachable {
+	for p.stronglyReachableByQuorum(e, frame) {
 		frame++
 	}
-	return selfParentFrame, frame, memoizedDescriptors
+	return selfParentFrame, frame
 }

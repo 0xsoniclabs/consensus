@@ -11,7 +11,8 @@
 package consensusengine
 
 import (
-	"container/heap"
+	"errors"
+	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
@@ -22,179 +23,218 @@ type (
 	GetFrameBasesFn func(f consensus.Frame) []consensusstore.BaseDescriptor
 )
 
-type leaderCertification struct {
-	Frame      consensus.Frame
-	LeaderHash consensus.EventHash
+// Slot identifies a frame+validator position in the DAG.
+type Slot struct {
+	Frame     consensus.Frame
+	Validator consensus.ValidatorID
 }
 
-type baseVoteContext struct {
-	frameToDeliverOffset consensus.Frame
-	voteMatrix           []int32
+// BaseAndSlot pairs an event hash with its frame/validator slot.
+type BaseAndSlot struct {
+	ID   consensus.EventHash
+	Slot Slot
+}
+
+// ElectionRes is the outcome of a decided election: the certified frame
+// and the leader event hash.
+type ElectionRes struct {
+	Frame  consensus.Frame
+	Leader consensus.EventHash
+}
+
+type voteID struct {
+	fromBase     BaseAndSlot
+	forValidator consensus.ValidatorID
+}
+
+type voteValue struct {
+	decided      bool
+	yes          bool
+	observedBase consensus.EventHash
 }
 
 type election struct {
-	validators *consensus.Validators
-
-	stronglyReaches StronglyReachFn
-	getFrameBases   GetFrameBasesFn
-
-	vote           map[consensus.Frame][]map[consensus.EventHash]*baseVoteContext
-	validatorIDMap map[consensus.ValidatorID]consensus.ValidatorIndex
-	validatorCount consensus.Frame
-
-	leaderDeliveryBuffer *leaderHeap
-	frameToDeliver       consensus.Frame
+	frameToCertify consensus.Frame
+	validators     *consensus.Validators
+	decidedBases   map[consensus.ValidatorID]voteValue
+	votes          map[voteID]voteValue
+	observe        StronglyReachFn
+	getFrameBases  GetFrameBasesFn
 }
 
 func NewElection(
-	frameToDeliver consensus.Frame,
+	frameToCertify consensus.Frame,
 	validators *consensus.Validators,
 	stronglyReachFn StronglyReachFn,
 	getFrameBases GetFrameBasesFn,
 ) *election {
-	election := &election{
-		stronglyReaches: stronglyReachFn,
-		getFrameBases:   getFrameBases,
-		validators:      validators,
+	el := &election{
+		observe:       stronglyReachFn,
+		getFrameBases: getFrameBases,
 	}
-	election.ResetEpoch(frameToDeliver, validators)
-	return election
+	el.Reset(validators, frameToCertify)
+	return el
 }
 
-func (el *election) ResetEpoch(frameToDeliver consensus.Frame, validators *consensus.Validators) {
-	el.leaderDeliveryBuffer = NewLeaderHeap()
-	el.frameToDeliver = frameToDeliver
+func (el *election) Reset(validators *consensus.Validators, frameToCertify consensus.Frame) {
 	el.validators = validators
-	el.vote = make(map[consensus.Frame][]map[consensus.EventHash]*baseVoteContext)
-	el.validatorCount = consensus.Frame(validators.Len())
-	el.validatorIDMap = validators.Idxs()
+	el.frameToCertify = frameToCertify
+	el.votes = make(map[voteID]voteValue)
+	el.decidedBases = make(map[consensus.ValidatorID]voteValue)
 }
 
-func (el *election) VoteAndAggregate(
-	frame consensus.Frame,
-	validatorId consensus.ValidatorID,
-	baseHash consensus.EventHash,
-	stronglyReachableBases []*consensusstore.BaseDescriptor,
-) ([]*leaderCertification, error) {
-	if el.isAlreadyCertified(frame) {
-		return []*leaderCertification{}, nil
-	}
-	validatorIdx := el.validatorIDMap[validatorId]
-	el.prepareNewElectorBase(frame, validatorIdx, baseHash)
-	if frame <= el.frameToDeliver {
-		return []*leaderCertification{}, nil
-	}
-
-	aggregationMatrix := make([]int32, (frame-el.frameToDeliver-1)*el.validatorCount, (frame-el.frameToDeliver)*el.validatorCount)
-	directVoteVector := initInt32WithConst(-1, int(el.validatorCount))
-
-	reachableBasesWeight := int32(0)
-
-	for _, reachableBase := range stronglyReachableBases {
-		validatorIdx := el.validatorIDMap[reachableBase.ValidatorID]
-		directVoteVector[validatorIdx] = 1
-		reachableBasesWeight += int32(el.validators.GetWeightByIdx(validatorIdx))
-
-		if el.vote[frame-1][validatorIdx] != nil {
-			if baseContext, ok := el.vote[frame-1][validatorIdx][reachableBase.BaseHash]; ok {
-				nonDeliveredFramesOffset := (el.frameToDeliver - baseContext.frameToDeliverOffset) * el.validatorCount
-				addInt32Vecs(aggregationMatrix, aggregationMatrix, baseContext.voteMatrix[nonDeliveredFramesOffset:])
-			}
-		}
-	}
-
-	deliveryReadyLeaders := el.certify(frame, aggregationMatrix, reachableBasesWeight)
-
-	// Prepare matrix for future aggregations
-	normalizeInt32Vec(aggregationMatrix, aggregationMatrix)
-	aggregationMatrix = append(aggregationMatrix, directVoteVector...)
-	mulInt32VecWithConst(aggregationMatrix, aggregationMatrix, int32(el.validators.GetWeightByIdx(validatorIdx)))
-	el.vote[frame][validatorIdx][baseHash].voteMatrix = aggregationMatrix
-
-	return deliveryReadyLeaders, nil
+func (el *election) ResetEpoch(frameToCertify consensus.Frame, validators *consensus.Validators) {
+	el.Reset(validators, frameToCertify)
 }
 
-func (el *election) certify(aggregatingFrame consensus.Frame, aggregationMatr []int32, reachableBasesWeight int32) []*leaderCertification {
-	// Q = ceil((4*TotalValidatorWeight - 3*reachableBasesWeight)/3)
-	// numerator (Q_0) can exceed the int32 limits before division
-	Q_0 := 4*int64(el.validators.TotalWeight()) - 3*int64(reachableBasesWeight)
-	Q := int32((Q_0 + 3 - 1) / 3)
-	yesDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x >= Q })
-	noDecisions := boolMaskInt32Vec(aggregationMatr, func(x int32) bool { return x <= -Q })
+func (el *election) ProcessBase(newBase BaseAndSlot) (*ElectionRes, error) {
+	res, err := el.chooseLeader()
+	if err != nil || res != nil {
+		return res, err
+	}
 
-	for frame := range el.vote {
-		if el.isAlreadyCertified(frame) || frame >= aggregatingFrame-1 {
-			continue
-		}
+	if newBase.Slot.Frame <= el.frameToCertify {
+		return nil, nil
+	}
+	round := newBase.Slot.Frame - el.frameToCertify
+	if round == 0 {
+		return nil, nil
+	}
 
-		for _, candidateValidator := range el.validators.SortedIDs() {
-			validatorIdx := el.validatorIDMap[candidateValidator]
-			voteMatrixOffset := (frame-el.frameToDeliver)*el.validatorCount + consensus.Frame(validatorIdx)
+	notDecided := el.notDecidedBases()
 
-			if yesDecisions[voteMatrixOffset] {
-				leaderHash := el.elect(frame, candidateValidator)
-				heap.Push(el.leaderDeliveryBuffer, &leaderCertification{frame, leaderHash})
-				break
+	var observedBases []BaseAndSlot
+	var observedBasesMap map[consensus.ValidatorID]BaseAndSlot
+	if round == 1 {
+		observedBasesMap = el.observedBasesMap(newBase.ID, newBase.Slot.Frame-1)
+	} else {
+		observedBases = el.observedBasesList(newBase.ID, newBase.Slot.Frame-1)
+	}
+
+	for _, validatorSubject := range notDecided {
+		vote := voteValue{}
+
+		if round == 1 {
+			observed, ok := observedBasesMap[validatorSubject]
+			vote.yes = ok
+			vote.decided = false
+			if ok {
+				vote.observedBase = observed.ID
 			}
+		} else {
+			yesVotes := el.validators.NewCounter()
+			noVotes := el.validators.NewCounter()
+			allVotes := el.validators.NewCounter()
 
-			if !noDecisions[voteMatrixOffset] {
-				break
-			}
-		}
-	}
+			var subjectHash *consensus.EventHash
+			for _, observed := range observedBases {
+				vid := voteID{
+					fromBase:     observed,
+					forValidator: validatorSubject,
+				}
 
-	deliveryReadyLeaders := el.leaderDeliveryBuffer.getDeliveryReadyLeaders(el.frameToDeliver)
-	for _, leaderCertification := range deliveryReadyLeaders {
-		el.cleanupCertifiedFrame(leaderCertification.Frame)
-		el.frameToDeliver++
-	}
-	return deliveryReadyLeaders
-}
+				if v, ok := el.votes[vid]; ok {
+					if v.yes && subjectHash != nil && *subjectHash != v.observedBase {
+						return nil, fmt.Errorf(
+							"strongly-reached by 2 fork bases => more than 1/3W are Byzantine (%s != %s, election frame=%d, validator=%d)",
+							subjectHash.String(), v.observedBase.String(), el.frameToCertify, validatorSubject)
+					}
 
-// elect picks the final leader event once its frame and validator number have been finalized
-// by the "upper frame" base votes'. This is trivial in case of non-equivocating events as such
-// bases are uniquely identified by (frame, validator).
-// In the case of an equivocation, a tiebreaker algorithm has to be run.
-func (el *election) elect(frame consensus.Frame, validatorCandidate consensus.ValidatorID) consensus.EventHash {
-	validatorIdx := el.validatorIDMap[validatorCandidate]
-	candidateMap := el.vote[frame][validatorIdx]
-	leaderHash := consensus.EventHash{}
-	for hash := range candidateMap {
-		leaderHash = hash
-	}
-	// tiebreaker can simply pick the first encountered base that is strongly reachable by any event.
-	// It is easiest to look for any vote (strongly reach) by frame + 1 bases.
-	// Due to strongly reach semantics, only one strongly-reachable base can exist with specified frame and validator number.
-	if len(candidateMap) > 1 {
-		judgeBases := el.getFrameBases(frame + 1)
-		for leaderCandidateHash := range candidateMap {
-			for _, judge := range judgeBases {
-				if el.stronglyReaches(judge.BaseHash, leaderCandidateHash) {
-					return leaderCandidateHash
+					if v.yes {
+						subjectHash = &v.observedBase
+						yesVotes.CountVoteByID(observed.Slot.Validator)
+					} else {
+						noVotes.CountVoteByID(observed.Slot.Validator)
+					}
+					if !allVotes.CountVoteByID(observed.Slot.Validator) {
+						return nil, fmt.Errorf(
+							"strongly-reached by 2 fork bases => more than 1/3W are Byzantine (election frame=%d, validator=%d)",
+							el.frameToCertify, validatorSubject)
+					}
+				} else {
+					return nil, errors.New("every base must vote for every not decided subject. possibly bases are processed out of order")
 				}
 			}
+			if !allVotes.QuorumReached() {
+				return nil, errors.New("base must be strongly-reached by at least 2/3W of prev bases. possibly bases are processed out of order")
+			}
+
+			vote.yes = yesVotes.Sum() >= noVotes.Sum()
+			if vote.yes && subjectHash != nil {
+				vote.observedBase = *subjectHash
+			}
+
+			vote.decided = yesVotes.QuorumReached() || noVotes.QuorumReached()
+			if vote.decided {
+				el.decidedBases[validatorSubject] = vote
+			}
+		}
+		vid := voteID{
+			fromBase:     newBase,
+			forValidator: validatorSubject,
+		}
+		el.votes[vid] = vote
+	}
+
+	return el.chooseLeader()
+}
+
+func (el *election) chooseLeader() (*ElectionRes, error) {
+	for _, validator := range el.validators.SortedIDs() {
+		vote, ok := el.decidedBases[validator]
+		if !ok {
+			return nil, nil
+		}
+		if vote.yes {
+			return &ElectionRes{
+				Frame:  el.frameToCertify,
+				Leader: vote.observedBase,
+			}, nil
 		}
 	}
-
-	return leaderHash
+	return nil, errors.New("all bases decided as 'no', which is possible only if more than 1/3W are Byzantine")
 }
 
-func (el *election) prepareNewElectorBase(frame consensus.Frame, validatorIdx consensus.ValidatorIndex, base consensus.EventHash) {
-	if _, ok := el.vote[frame]; !ok {
-		el.vote[frame] = make([]map[consensus.EventHash]*baseVoteContext, el.validatorCount)
+func (el *election) notDecidedBases() []consensus.ValidatorID {
+	result := make([]consensus.ValidatorID, 0, el.validators.Len())
+	for _, validator := range el.validators.IDs() {
+		if _, ok := el.decidedBases[validator]; !ok {
+			result = append(result, validator)
+		}
 	}
+	return result
+}
 
-	if el.vote[frame][validatorIdx] == nil {
-		el.vote[frame][validatorIdx] = make(map[consensus.EventHash]*baseVoteContext)
+func (el *election) observedBasesMap(base consensus.EventHash, frame consensus.Frame) map[consensus.ValidatorID]BaseAndSlot {
+	result := make(map[consensus.ValidatorID]BaseAndSlot, el.validators.Len())
+	frameBases := el.getFrameBases(frame)
+	for _, fb := range frameBases {
+		if el.observe(base, fb.BaseHash) {
+			result[fb.ValidatorID] = BaseAndSlot{
+				ID: fb.BaseHash,
+				Slot: Slot{
+					Frame:     frame,
+					Validator: fb.ValidatorID,
+				},
+			}
+		}
 	}
-
-	el.vote[frame][validatorIdx][base] = &baseVoteContext{frameToDeliverOffset: el.frameToDeliver}
+	return result
 }
 
-func (el *election) isAlreadyCertified(frame consensus.Frame) bool {
-	return frame < el.frameToDeliver || el.leaderDeliveryBuffer.isCertificationBuffered(frame)
-}
-
-func (el *election) cleanupCertifiedFrame(frame consensus.Frame) {
-	delete(el.vote, frame)
+func (el *election) observedBasesList(base consensus.EventHash, frame consensus.Frame) []BaseAndSlot {
+	result := make([]BaseAndSlot, 0, el.validators.Len())
+	frameBases := el.getFrameBases(frame)
+	for _, fb := range frameBases {
+		if el.observe(base, fb.BaseHash) {
+			result = append(result, BaseAndSlot{
+				ID: fb.BaseHash,
+				Slot: Slot{
+					Frame:     frame,
+					Validator: fb.ValidatorID,
+				},
+			})
+		}
+	}
+	return result
 }

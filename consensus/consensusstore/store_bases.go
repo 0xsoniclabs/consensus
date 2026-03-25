@@ -37,10 +37,13 @@ func baseRecordKey(frame consensus.Frame, base *BaseDescriptor) []byte {
 	return key.Bytes()
 }
 
-// AddBase stores the new base
+// AddBase stores the new base at every frame from selfParentFrame+1 to
+// base.Frame(), matching lachesis-base's AddRoot behaviour.
 // Not safe for concurrent use due to the complex mutable cache!
-func (s *Store) AddBase(base consensus.Event) {
-	s.addBase(base, base.Frame())
+func (s *Store) AddBase(selfParentFrame consensus.Frame, base consensus.Event) {
+	for f := selfParentFrame + 1; f <= base.Frame(); f++ {
+		s.addBase(base, f)
+	}
 }
 
 func (s *Store) addBase(base consensus.Event, frame consensus.Frame) {

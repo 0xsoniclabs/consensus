@@ -38,7 +38,7 @@ func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 	p.election = NewElection(p.store.GetLastCertifiedFrame()+1, p.store.GetValidators(), p.dagIndex.StronglyReach, p.store.GetFrameBases)
 
 	// events reprocessing
-	err = p.bootstrapElection()
+	_, err = p.bootstrapElection()
 	return err
 }
 
