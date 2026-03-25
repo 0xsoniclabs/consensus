@@ -65,7 +65,7 @@ func testBootstrap_ReprocessBases(t *testing.T, lastCertifiedFrame, sealingFrame
 	for i := 1; i < len(bases); i++ {
 		bases[i] = prepareTestBase(t, engine, eventSource, i, nodes[0], consensus.EventHashes{bases[i-1].ID()})
 	}
-	if err := engine.bootstrapElection(); err != nil {
+	if _, err := engine.bootstrapElection(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -107,6 +107,6 @@ func prepareTestBase(
 	if err := lachesis.DagIndexer.Add(base); err != nil {
 		t.Fatal(err)
 	}
-	lachesis.store.AddBase(base)
+	lachesis.store.AddBase(base.Frame()-1, base)
 	return base
 }

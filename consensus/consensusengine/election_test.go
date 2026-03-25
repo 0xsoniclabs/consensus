@@ -285,14 +285,13 @@ func testVoteAndAggregate(
 		if !ok {
 			t.Fatal("inconsistent vertices")
 		}
-		frameBases := election.getFrameBases(baseSlot.frame - 1)
-		stronglyReachableBases := make([]*consensusstore.BaseDescriptor, 0, len(frameBases)/2)
-		for idx, reachableBase := range frameBases {
-			if stronglyReachFn(baseHash, reachableBase.BaseHash) {
-				stronglyReachableBases = append(stronglyReachableBases, &frameBases[idx])
-			}
-		}
-		leaders, err := election.VoteAndAggregate(baseSlot.frame, baseSlot.validatorID, baseHash, stronglyReachableBases)
+		result, err := election.ProcessBase(BaseAndSlot{
+			ID: baseHash,
+			Slot: Slot{
+				Frame:     baseSlot.frame,
+				Validator: baseSlot.validatorID,
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -300,13 +299,12 @@ func testVoteAndAggregate(
 		// checking:
 		certifying := expected != nil && expected.CertifyingBases[base.ID().String()]
 		if certifying {
-			assertar.NotNil(leaders)
-			assertar.NotEmpty(leaders)
-			assertar.Equal(expected.CertifiedFrame, leaders[0].Frame)
-			assertar.Equal(expected.CertifiedLeader, leaders[0].LeaderHash.String())
+			assertar.NotNil(result)
+			assertar.Equal(expected.CertifiedFrame, result.Frame)
+			assertar.Equal(expected.CertifiedLeader, result.Leader.String())
 			return
 		} else {
-			assertar.Empty(leaders)
+			assertar.Nil(result)
 		}
 	}
 }
