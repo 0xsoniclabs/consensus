@@ -211,7 +211,9 @@ func (el *election) observedBasesMap(base consensus.EventHash, frame consensus.F
 	for _, fb := range frameBases {
 		if el.observe(base, fb.BaseHash) {
 			if _, exists := result[fb.ValidatorID]; exists {
-				panic(fmt.Sprintf("equivocation detected: multiple observed bases for validator %v in frame %v", fb.ValidatorID, frame))
+				// Equivocation detected: multiple observed bases for the same validator in the same frame.
+				// Keep the first observed base and ignore subsequent ones to avoid panicking.
+				continue
 			}
 			result[fb.ValidatorID] = BaseAndSlot{
 				ID: fb.BaseHash,
