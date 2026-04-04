@@ -27,7 +27,7 @@ import (
 // Compile-time check that dagstore.Store satisfies dagbranch.BranchStore.
 var _ dagbranch.BranchStore = (*dagstore.Store)(nil)
 
-// Type aliases re-exported from subpackagessubpackages for backward compatibility.
+// Type aliases re-exported from subpackages for backward compatibility.
 type (
 	Timestamp         = dagvec.Timestamp
 	LowestAfterSeq    = dagvec.LowestAfterSeq
