@@ -96,7 +96,7 @@ func TestDAGtoASCIIschemeRand(t *testing.T) {
 	}
 
 	for _, e0 := range src {
-		n := e0.ID().String()
+		n := GetEventName(e0.ID())
 		e1 := names[n]
 
 		parents0 := edges2text(e0)
@@ -145,19 +145,19 @@ a02══╬═════╣
 
 	t.Run("Regression", func(t *testing.T) {
 		testDAGtoASCIIschemeOptimisation(t, `
-c00    
-║       ║      
-║       a00    
-║       ║       ║      
-║       ║       b00    
-║       ║       ║      
-║       a01═════╣      
-║       ║       ║      
-c01═════╣       ║      
-║║      ║       ║      
-║╚═════─╫─══════b01    
-║║      ║       ║      
-║╚══════a02═════╣      
+c00
+║       ║
+║       a00
+║       ║       ║
+║       ║       b00
+║       ║       ║
+║       a01═════╣
+║       ║       ║
+c01═════╣       ║
+║║      ║       ║
+║╚═════─╫─══════b01
+║║      ║       ║
+║╚══════a02═════╣
 ║      3║       ║ // optimise this
 c02════╩╫─══════╣
 `, map[string][]string{
@@ -174,19 +174,19 @@ c02════╩╫─══════╣
 
 	t.Run("SwapParents", func(t *testing.T) {
 		testDAGtoASCIIschemeOptimisation(t, `
-a00    
-║       ║      
-║       b00    
-║       ║      
-a01═════╣      
-║       ║       ║      
-║       ║       c00    
-║       ║       ║      
-║       b01═════╣      
-║       ║       ║      
-a02═════╬═══════╣      
-║║      ║       ║      
-║╚═════─╫─══════c01    
+a00
+║       ║
+║       b00
+║       ║
+a01═════╣
+║       ║       ║
+║       ║       c00
+║       ║       ║
+║       b01═════╣
+║       ║       ║
+a02═════╬═══════╣
+║║      ║       ║
+║╚═════─╫─══════c01
 ║3      ║       ║   // optimise this
 ║╚══════╬═══════c02
 `, map[string][]string{
@@ -203,50 +203,50 @@ a02═════╬═══════╣
 
 	t.Run("LostRefs", func(t *testing.T) {
 		testDAGtoASCIIschemeOptimisation(t, `
-a000                            
-║     ║                         
-║     b000                      
-║     ║     ║                   
-║     ╠════ c000                
-║     ║     ║                   
-a001══╬═════╣                   
-║║    ║     ║     ║             
-║╚═══─╫─═══─╫─═══ d000          
-║     ║     ║     ║             
-║     b001══╬═════╣             
-║║    ║║    ║     ║     ║       
-║╚═══─╫╩═══─╫─═══─╫─═══ e000    
-║     ║     ║     ║     ║       
-╠════─╫─═══ c001═─╫─════╣       
-║     ║     ║     ║     ║       
-╠════─╫─═══─╫─═══ d001══╣       
-║     ║     ║     ║     ║       
-a002═─╫─════╬═════╣     ║       
-║     ║     ║     ║     ║       
-║     b002══╬═════╣     ║       
-║     ║║    ║     ║     ║       
-║     ║╚════╬════─╫─═══ e001    
-║     ║     ║     ║     ║       
-╠════─╫─═══ c002═─╫─════╣       
-║     ║     ║     ║     ║       
-a003══╬═════╣     ║     ║       
-║     ║     ║     ║     ║       
-║     ║     ╠════ d002══╣       
-║     ║     ║     ║     ║       
-║     b003══╬═════╣     ║       
-║     ║     ║     ║     ║       
-╠═════╬════ c003  ║     ║       
-║     ║     ║     ║     ║       
-║     ╠═════╬════ d003  ║       
-║     ║     ║     ║     ║       
-╠════ b004═─╫─════╣     ║       
-║     ║     ║     ║     ║       
-╠═════╬════ c004  ║     ║       
-║     ║     ║     ║     ║       
+a000
+║     ║
+║     b000
+║     ║     ║
+║     ╠════ c000
+║     ║     ║
+a001══╬═════╣
+║║    ║     ║     ║
+║╚═══─╫─═══─╫─═══ d000
+║     ║     ║     ║
+║     b001══╬═════╣
+║║    ║║    ║     ║     ║
+║╚═══─╫╩═══─╫─═══─╫─═══ e000
+║     ║     ║     ║     ║
+╠════─╫─═══ c001═─╫─════╣
+║     ║     ║     ║     ║
+╠════─╫─═══─╫─═══ d001══╣
+║     ║     ║     ║     ║
+a002═─╫─════╬═════╣     ║
+║     ║     ║     ║     ║
+║     b002══╬═════╣     ║
+║     ║║    ║     ║     ║
+║     ║╚════╬════─╫─═══ e001
+║     ║     ║     ║     ║
+╠════─╫─═══ c002═─╫─════╣
+║     ║     ║     ║     ║
+a003══╬═════╣     ║     ║
+║     ║     ║     ║     ║
+║     ║     ╠════ d002══╣
+║     ║     ║     ║     ║
+║     b003══╬═════╣     ║
+║     ║     ║     ║     ║
+╠═════╬════ c003  ║     ║
+║     ║     ║     ║     ║
+║     ╠═════╬════ d003  ║
+║     ║     ║     ║     ║
+╠════ b004═─╫─════╣     ║
+║     ║     ║     ║     ║
+╠═════╬════ c004  ║     ║
+║     ║     ║     ║     ║
 a004══╬═════╣     ║     ║     // optimise this
-║3    ║     ║     ║3    ║       
-║╚═══─╫─═══─╫─═══─╫╩═══ e002    
-       
+║3    ║     ║     ║3    ║
+║╚═══─╫─═══─╫─═══─╫╩═══ e002
+
 
 `, map[string][]string{
 			"a000": {},
@@ -365,7 +365,7 @@ func TestDAGtoASCIIEquivocation(t *testing.T) {
 
 		testDAGtoASCIIschemeOptimisation(t, `
         a00     b00
-        ║       ║   
+        ║       ║
        ╚ a10    ╠═════════c00           // equivocation (a10)
 	    ║       ║          ║
         ║╚═════─╫─════════─╫─═══════d00
@@ -374,8 +374,8 @@ func TestDAGtoASCIIEquivocation(t *testing.T) {
 	    ║       ║          ║         ║
         ║╚═════─╫─════════─╫─═══════d01
         ║       ║          ║         ║
-        ║       ║          ║         ║ 
-        ║       ║          ║         ║ 
+        ║       ║          ║         ║
+        ║       ║          ║         ║
         a02════─╫─════════─╫─════════╣
 	`, map[string][]string{
 			"a00": {},
@@ -422,7 +422,7 @@ func checkParents(t *testing.T, named map[string]consensus.Event, expected map[s
 
 		parents1 := make(map[string]struct{}, len(e1.Parents()))
 		for _, s := range e1.Parents() {
-			parents1[s.String()] = struct{}{}
+			parents1[GetEventName(s)] = struct{}{}
 		}
 
 		if !assertar.Equal(parents0, parents1, "at event "+n) {
@@ -434,7 +434,7 @@ func checkParents(t *testing.T, named map[string]consensus.Event, expected map[s
 func edges2text(e consensus.Event) map[string]struct{} {
 	res := make(map[string]struct{}, len(e.Parents()))
 	for _, p := range e.Parents() {
-		res[p.String()] = struct{}{}
+		res[GetEventName(p)] = struct{}{}
 	}
 	return res
 }

@@ -2,6 +2,8 @@ package consensustest
 
 import "github.com/0xsoniclabs/consensus/consensus"
 
+var _ consensus.EventSource = (*TestEventSource)(nil)
+
 // TestEventSource is a abft event storage for test purpose.
 // It implements EventSource interface.
 type TestEventSource struct {

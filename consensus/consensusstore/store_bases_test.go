@@ -66,7 +66,7 @@ func populateWithBases(t *testing.T, store *Store, numFrames int, meanBasesPerFr
 	return basesExpected
 }
 
-func simplifyAndSortBases(baseDescriptors []BaseDescriptor) []consensus.ValidatorID {
+func simplifyAndSortBases(baseDescriptors []consensus.BaseDescriptor) []consensus.ValidatorID {
 	bases := make([]consensus.ValidatorID, 0, len(baseDescriptors))
 	for _, descriptor := range baseDescriptors {
 		bases = append(bases, descriptor.ValidatorID)

@@ -29,7 +29,7 @@ type Lachesis struct {
 }
 
 // NewLachesis creates Lachesis instance.
-func NewLachesis(store *consensusstore.Store, input EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Lachesis {
+func NewLachesis(store *consensusstore.Store, input consensus.EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Lachesis {
 	p := &Lachesis{
 		Orderer:  NewOrderer(store, input, dagIndex, crit, config),
 		dagIndex: dagIndex,

@@ -18,7 +18,7 @@ import (
 func (s *Store) SetEventConfirmedOn(e consensus.EventHash, on consensus.Frame) {
 	key := e.Bytes()
 
-	if err := s.EpochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
+	if err := s.epochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
 		s.crit(err)
 	}
 }
@@ -27,7 +27,7 @@ func (s *Store) SetEventConfirmedOn(e consensus.EventHash, on consensus.Frame) {
 func (s *Store) GetEventConfirmedOn(e consensus.EventHash) consensus.Frame {
 	key := e.Bytes()
 
-	buf, err := s.EpochTable.ConfirmedEvent.Get(key)
+	buf, err := s.epochTable.ConfirmedEvent.Get(key)
 	if err != nil {
 		s.crit(err)
 	}

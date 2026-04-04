@@ -105,9 +105,6 @@ func (h EventHash) FullID() string {
 
 // ShortID returns human readable ID representation, suitable for API calls.
 func (h EventHash) ShortID(precision int) string {
-	if name := GetEventName(h); len(name) > 0 {
-		return name
-	}
 	// last bytes, because first are occupied by epoch and lamport
 	return fmt.Sprintf("%d:%d:%s", h.Epoch(), h.Lamport(), common.Bytes2Hex(h[8:8+precision]))
 }

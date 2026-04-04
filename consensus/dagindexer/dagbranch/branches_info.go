@@ -1,5 +1,3 @@
-// Copyright (c) 2025 Fantom Foundation
-//
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
 //
@@ -8,7 +6,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package dagindexer
+package dagbranch
 
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -21,25 +19,13 @@ type BranchesInfo struct {
 	BranchIDByCreators  [][]consensus.ValidatorIndex // validator idx -> list of branch IDs
 }
 
-// InitBranchesInfo loads BranchesInfo from store
-func (vi *Index) InitBranchesInfo() {
-	if vi.branchesInfo == nil {
-		// if not cached
-		vi.branchesInfo = vi.getBranchesInfo()
-		if vi.branchesInfo == nil {
-			// first run
-			vi.branchesInfo = newInitialBranchesInfo(vi.validators)
-		}
-	}
-}
-
-func newInitialBranchesInfo(validators *consensus.Validators) *BranchesInfo {
+// NewInitialBranchesInfo creates the initial BranchesInfo for a validator set.
+func NewInitialBranchesInfo(validators *consensus.Validators) *BranchesInfo {
 	branchIDCreators := validators.SortedIDs()
 	branchIDCreatorIdxs := make([]consensus.ValidatorIndex, len(branchIDCreators))
 	for i := range branchIDCreators {
 		branchIDCreatorIdxs[i] = consensus.ValidatorIndex(i)
 	}
-
 	branchIDLastSeq := make([]consensus.Seq, len(branchIDCreatorIdxs))
 	branchIDByCreators := make([][]consensus.ValidatorIndex, validators.Len())
 	for i := range branchIDByCreators {
@@ -53,10 +39,7 @@ func newInitialBranchesInfo(validators *consensus.Validators) *BranchesInfo {
 	}
 }
 
-func (vi *Index) AtLeastOneEquivocation() bool {
-	return consensus.ValidatorIndex(len(vi.branchesInfo.BranchIDCreatorIdxs)) > vi.validators.Len()
-}
-
-func (vi *Index) BranchesInfo() *BranchesInfo {
-	return vi.branchesInfo
+// AtLeastOneEquivocation returns true if any equivocation has been detected.
+func (b *BranchesInfo) AtLeastOneEquivocation(validatorCount consensus.ValidatorIndex) bool {
+	return consensus.ValidatorIndex(len(b.BranchIDCreatorIdxs)) > validatorCount
 }

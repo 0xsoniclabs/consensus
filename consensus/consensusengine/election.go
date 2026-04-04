@@ -14,12 +14,11 @@ import (
 	"container/heap"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 type (
 	StronglyReachFn func(a consensus.EventHash, b consensus.EventHash) bool
-	GetFrameBasesFn func(f consensus.Frame) []consensusstore.BaseDescriptor
+	GetFrameBasesFn func(f consensus.Frame) []consensus.BaseDescriptor
 )
 
 type leaderCertification struct {
@@ -74,7 +73,7 @@ func (el *election) VoteAndAggregate(
 	frame consensus.Frame,
 	validatorId consensus.ValidatorID,
 	baseHash consensus.EventHash,
-	stronglyReachableBases []*consensusstore.BaseDescriptor,
+	stronglyReachableBases []*consensus.BaseDescriptor,
 ) ([]*leaderCertification, error) {
 	if el.isAlreadyCertified(frame) {
 		return []*leaderCertification{}, nil

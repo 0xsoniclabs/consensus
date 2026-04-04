@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package consensusengine
+package main
 
 import (
 	"database/sql"
@@ -51,7 +51,7 @@ func testRegressionData(t *testing.T, dbPath string) {
 	}()
 
 	for epoch := epochMin; epoch <= epochMax; epoch++ {
-		if err := CheckEpochAgainstDB(conn, epoch); err != nil {
+		if err := checkEpochAgainstDB(conn, epoch); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -69,13 +69,24 @@ func benchmarkElection(b *testing.B, dbPath string) {
 	for range b.N {
 		for epoch := epochMin; epoch <= epochMax; epoch++ {
 			b.StopTimer()
-			testLachesis, eventStore, _, orderedEvents, err := setupElection(conn, epoch)
+			validators, weights, err := getValidator(conn, epoch)
+			if err != nil {
+				b.Fatal(err)
+			}
+			engine, store, eventStore := newConsensusEngine(validators, weights)
+			if err := engine.Bootstrap(consensus.ConsensusCallbacks{}); err != nil {
+				b.Fatal(err)
+			}
+			if err := engine.Reset(epoch, store.GetValidators()); err != nil {
+				b.Fatal(err)
+			}
+			orderedEvents, _, err := getEvents(conn, epoch)
 			if err != nil {
 				b.Fatal(err)
 			}
 
 			b.StartTimer()
-			if err := executeElection(testLachesis, eventStore, orderedEvents); err != nil {
+			if err := executeElection(engine, store, eventStore, orderedEvents); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -88,7 +99,7 @@ func prepareConnection(b testing.TB, dbPath string) (*sql.DB, consensus.Epoch, c
 		b.Fatal(err)
 	}
 
-	epochMin, epochMax, err := GetEpochRange(conn)
+	epochMin, epochMax, err := getEpochRange(conn)
 	if err != nil {
 		b.Fatal(err)
 	}

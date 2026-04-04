@@ -19,7 +19,7 @@ func TestStore_Close(t *testing.T) {
 	if store.table.LastCertifiedState != nil {
 		t.Fatalf("expected LastCertifiedState table to be nil")
 	}
-	if store.EpochTable.Bases != nil {
+	if store.epochTable.Bases != nil {
 		t.Fatalf("expected Bases table to be nil")
 	}
 }

@@ -98,8 +98,8 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 	})
 
 	// unconfirm all events
-	it := lch.store.EpochTable.ConfirmedEvent.NewIterator(nil, nil)
-	batch := lch.store.EpochTable.ConfirmedEvent.NewBatch()
+	it := lch.store.GetConfirmedEventDB().NewIterator(nil, nil)
+	batch := lch.store.GetConfirmedEventDB().NewBatch()
 	for it.Next() {
 		assertar.NoError(batch.Delete(it.Key()))
 	}

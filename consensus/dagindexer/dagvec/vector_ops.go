@@ -1,4 +1,12 @@
-package dagindexer
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at fantom.foundation/bsl11.
+//
+// Change Date: 2028-4-16
+//
+// On the date above, in accordance with the Business Source License, use of
+// this software will be governed by the GNU Lesser General Public License v3.
+
+package dagvec
 
 import (
 	"github.com/0xsoniclabs/consensus/consensus"
@@ -23,7 +31,6 @@ func (b *LowestAfter) Visit(i consensus.ValidatorIndex, e consensus.Event) bool 
 	if b.Get(i) != 0 {
 		return false
 	}
-
 	b.Set(i, e.Seq())
 	return true
 }
@@ -46,7 +53,7 @@ func (b *HighestBefore) MinSeq(i consensus.ValidatorIndex) consensus.Seq {
 }
 
 func (b *HighestBefore) SetEquivocationDetected(i consensus.ValidatorIndex) {
-	b.VSeq.Set(i, equivocationDetectedSeq)
+	b.VSeq.Set(i, EquivocationDetectedSeq)
 }
 
 func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.ValidatorIndex) {
@@ -57,7 +64,6 @@ func (hb *HighestBefore) CollectFrom(other *HighestBefore, num consensus.Validat
 			continue
 		}
 		mySeq := hb.VSeq.Get(branchID)
-
 		if mySeq.IsEquivocationDetected() {
 			// mySeq reaches the maximum already
 			continue

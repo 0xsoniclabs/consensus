@@ -29,7 +29,7 @@ func TestGenNodes_CreateSpecifiedNodeCount(t *testing.T) {
 		if count > 0 {
 			for i, node := range nodes {
 				expectedName := "node" + string('A'+rune(i))
-				actualName := consensus.GetNodeName(node)
+				actualName := GetNodeName(node)
 				assert.Equal(t, expectedName, actualName, "Node names should be set correctly")
 			}
 		}
@@ -179,7 +179,7 @@ func TestForEachRandEquivocation_CheaterCreatesNilParentEquivocation(t *testing.
 		// We are looking for a subsequent event that resets Seq to 1,
 		// indicating its parent was set to nil during equivocation creation.
 		if i > 0 && ev.Seq() == 1 && len(ev.Parents()) == 0 {
-			fmt.Printf("Found nil-parent equivocation event: %s (Index %d)\n", consensus.GetEventName(ev.ID()), i)
+			fmt.Printf("Found nil-parent equivocation event: %s (Index %d)\n", GetEventName(ev.ID()), i)
 			foundNilParentEquivocation = true
 			break
 		}

@@ -41,11 +41,21 @@ type Store struct {
 	}
 
 	EpochDB    kvdb.Store
-	EpochTable struct {
+	epochTable struct {
 		Bases          kvdb.Store `table:"r"`
 		VectorIndex    kvdb.Store `table:"v"`
 		ConfirmedEvent kvdb.Store `table:"C"`
 	}
+}
+
+// GetVectorIndexDB returns the underlying KV store for the vector index.
+func (s *Store) GetVectorIndexDB() kvdb.Store {
+	return s.epochTable.VectorIndex
+}
+
+// GetConfirmedEventDB returns the underlying KV store for confirmed events.
+func (s *Store) GetConfirmedEventDB() kvdb.Store {
+	return s.epochTable.ConfirmedEvent
 }
 
 var (
@@ -95,7 +105,7 @@ func (s *Store) Close() error {
 
 	table.MigrateTables(&s.table, nil)
 	table.MigrateCaches(&s.cache, setnil)
-	table.MigrateTables(&s.EpochTable, nil)
+	table.MigrateTables(&s.epochTable, nil)
 	err := s.MainDB.Close()
 	if err != nil {
 		return err
@@ -129,7 +139,7 @@ func (s *Store) OpenEpochDB(n consensus.Epoch) error {
 	s.cache.FrameBases.Purge()
 
 	s.EpochDB = s.GetEpochDB(n)
-	table.MigrateTables(&s.EpochTable, s.EpochDB)
+	table.MigrateTables(&s.epochTable, s.EpochDB)
 	return nil
 }
 

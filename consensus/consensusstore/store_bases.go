@@ -23,13 +23,7 @@ const (
 	eventIDSize     = 32
 )
 
-// BaseDescriptor wraps the base context retrieved from the ConsensusStore
-type BaseDescriptor struct {
-	ValidatorID consensus.ValidatorID
-	BaseHash    consensus.EventHash
-}
-
-func baseRecordKey(frame consensus.Frame, base *BaseDescriptor) []byte {
+func baseRecordKey(frame consensus.Frame, base *consensus.BaseDescriptor) []byte {
 	key := bytes.Buffer{}
 	key.Write(frame.Bytes())
 	key.Write(base.ValidatorID.Bytes())
@@ -44,18 +38,18 @@ func (s *Store) AddBase(base consensus.Event) {
 }
 
 func (s *Store) addBase(base consensus.Event, frame consensus.Frame) {
-	baseDescriptor := BaseDescriptor{
+	baseDescriptor := consensus.BaseDescriptor{
 		ValidatorID: base.Creator(),
 		BaseHash:    base.ID(),
 	}
 
-	if err := s.EpochTable.Bases.Put(baseRecordKey(frame, &baseDescriptor), []byte{}); err != nil {
+	if err := s.epochTable.Bases.Put(baseRecordKey(frame, &baseDescriptor), []byte{}); err != nil {
 		s.crit(err)
 	}
 
 	// Add to cache.
 	if c, ok := s.cache.FrameBases.Get(frame); ok {
-		baseDescriptors := c.([]BaseDescriptor)
+		baseDescriptors := c.([]consensus.BaseDescriptor)
 		baseDescriptors = append(baseDescriptors, baseDescriptor)
 		s.cache.FrameBases.Add(frame, baseDescriptors, uint(len(baseDescriptors)))
 	}
@@ -63,12 +57,12 @@ func (s *Store) addBase(base consensus.Event, frame consensus.Frame) {
 
 // GetFrameBases returns all the bases in the specified frame
 // Not safe for concurrent use due to the complex mutable cache!
-func (s *Store) GetFrameBases(frame consensus.Frame) []BaseDescriptor {
+func (s *Store) GetFrameBases(frame consensus.Frame) []consensus.BaseDescriptor {
 	if rr, ok := s.cache.FrameBases.Get(frame); ok {
-		return rr.([]BaseDescriptor)
+		return rr.([]consensus.BaseDescriptor)
 	}
-	bases := make([]BaseDescriptor, 0, 100)
-	it := s.EpochTable.Bases.NewIterator(frame.Bytes(), nil)
+	bases := make([]consensus.BaseDescriptor, 0, 100)
+	it := s.epochTable.Bases.NewIterator(frame.Bytes(), nil)
 	defer it.Release()
 	for it.Next() {
 		key := it.Key()
@@ -76,7 +70,7 @@ func (s *Store) GetFrameBases(frame consensus.Frame) []BaseDescriptor {
 			s.crit(fmt.Errorf("bases table: incorrect key len=%d", len(key)))
 		}
 
-		r := BaseDescriptor{
+		r := consensus.BaseDescriptor{
 			BaseHash:    consensus.BytesToEvent(key[frameSize+validatorIDSize:]),
 			ValidatorID: consensus.BytesToValidatorID(key[frameSize : frameSize+validatorIDSize]),
 		}

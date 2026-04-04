@@ -33,7 +33,7 @@ type IndexedLachesis struct {
 }
 
 // NewIndexedLachesis creates IndexedLachesis instance.
-func NewIndexedLachesis(store *consensusstore.Store, input EventSource, dagIndexer *dagindexer.Index, crit func(error), config Config) *IndexedLachesis {
+func NewIndexedLachesis(store *consensusstore.Store, input consensus.EventSource, dagIndexer *dagindexer.Index, crit func(error), config Config) *IndexedLachesis {
 	p := &IndexedLachesis{
 		Lachesis:      NewLachesis(store, input, dagIndexer, crit, config),
 		DagIndexer:    dagIndexer,
@@ -84,7 +84,7 @@ func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error
 			if base.EpochDBLoaded != nil {
 				base.EpochDBLoaded(epoch)
 			}
-			flushable := p.DagIndexer.WrapWithFlushable(p.store.EpochTable.VectorIndex)
+			flushable := p.DagIndexer.WrapWithFlushable(p.store.GetVectorIndexDB())
 			p.DagIndexer.Reset(p.store.GetValidators(), flushable, p.Input.GetEvent)
 		},
 	}
