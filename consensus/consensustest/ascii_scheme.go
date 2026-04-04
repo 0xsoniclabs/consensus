@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -407,10 +407,7 @@ func (rr *rows) Optimize() {
 
 			// find prev event for swap
 			prev := curr - 1
-			for {
-				if rr.rows[prev].Self == iRef {
-					break
-				}
+			for rr.rows[prev].Self != iRef {
 				// if the same parents
 				if rr.rows[curr].Self == rr.rows[prev].Self {
 					continue REFS
@@ -475,11 +472,7 @@ func (rr *rows) Optimize() {
 			}
 
 			// for fill empty space after swap (for graph)
-			for {
-				if len(rr.rows[prev].Refs) == len(rr.rows[curr].Refs) {
-					break
-				}
-
+			for len(rr.rows[prev].Refs) != len(rr.rows[curr].Refs) {
 				rr.rows[prev].Refs = append(rr.rows[prev].Refs, 0)
 			}
 

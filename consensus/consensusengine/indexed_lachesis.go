@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -77,7 +77,7 @@ func (p *IndexedLachesis) Process(e consensus.Event) (err error) {
 }
 
 func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error {
-	base := p.Lachesis.OrdererCallbacks()
+	base := p.OrdererCallbacks()
 	ordererCallbacks := OrdererCallbacks{
 		ApplyLeader: base.ApplyLeader,
 		EpochDBLoaded: func(epoch consensus.Epoch) {
@@ -88,7 +88,7 @@ func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error
 			p.DagIndexer.Reset(p.store.GetValidators(), flushable, p.Input.GetEvent)
 		},
 	}
-	return p.Lachesis.BootstrapWithOrderer(callback, ordererCallbacks)
+	return p.BootstrapWithOrderer(callback, ordererCallbacks)
 }
 
 type uniqueID struct {

@@ -58,31 +58,18 @@ clean :
 	rm -f ./cmd/conf_tester/test/*.g
 	
 # Linting
-
-.PHONY: vet
-vet: 
-	go vet ./...
-
-STATICCHECK_VERSION = 2025.1
-.PHONY: staticcheck
-staticcheck: 
-	@go install honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VERSION)
-	staticcheck ./...
-
-ERRCHECK_VERSION = v1.9.0
-.PHONY: errcheck
-errorcheck:
-	@go install github.com/kisielk/errcheck@$(ERRCHECK_VERSION)
-	errcheck ./...
-
-DEADCODE_VERSION = v0.31.0
-.PHONY: deadcode
-deadcode:
-	@go install golang.org/x/tools/cmd/deadcode@$(DEADCODE_VERSION)
-	deadcode -test ./...
-
 .PHONY: lint
-lint: vet staticcheck errorcheck deadcode
+lint: 
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+	@golangci-lint run ./...
+
+.PHONY: license-check
+license-check:
+	go run ./scripts/license/add_license_header.go --check -dir ./
+
+.PHONY: license-add
+license-add:
+	go run ./scripts/license/add_license_header.go -dir ./
 
 # Git Hooks
 
