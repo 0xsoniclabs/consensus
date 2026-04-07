@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -8,7 +8,15 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package dagindexer
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at fantom.foundation/bsl11.
+//
+// Change Date: 2028-4-16
+//
+// On the date above, in accordance with the Business Source License, use of
+// this software will be governed by the GNU Lesser General Public License v3.
+
+package dagvec
 
 import (
 	"encoding/binary"
@@ -17,13 +25,16 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 )
 
+// UNIX nanoseconds timestamp
+type Timestamp = uint64
+
 /*
  * Use binary form for optimization, to avoid serialization. As a result, DB cache works as elements cache.
  */
-
 type (
 	// LowestAfterSeq is a vector of lowest events (their Seq) from which the source event is reachable
 	LowestAfterSeq []byte
+
 	// HighestBeforeSeq is a vector of highest events (their Seq + IsEquivocationDetected) which are reachable by source event
 	HighestBeforeSeq []byte
 
@@ -62,9 +73,10 @@ func NewHighestBefore(size consensus.ValidatorIndex) *HighestBefore {
 	}
 }
 
-type allVecs struct {
-	after  *LowestAfter
-	before *HighestBefore
+// AllVecs groups the LowestAfter and HighestBefore vectors for an event.
+type AllVecs struct {
+	After  *LowestAfter
+	Before *HighestBefore
 }
 
 // Get i's position in the byte-encoded vector clock
@@ -86,7 +98,6 @@ func (b *LowestAfterSeq) Set(i consensus.ValidatorIndex, seq consensus.Seq) {
 		// append zeros if exceeds size
 		*b = append(*b, []byte{0, 0, 0, 0}...)
 	}
-
 	binary.LittleEndian.PutUint32((*b)[i*4:(i+1)*4], uint32(seq))
 }
 
@@ -102,7 +113,6 @@ func (b HighestBeforeSeq) Get(i consensus.ValidatorIndex) BranchSeq {
 	}
 	seq1 := binary.LittleEndian.Uint32(b[i*8 : i*8+4])
 	seq2 := binary.LittleEndian.Uint32(b[i*8+4 : i*8+8])
-
 	return BranchSeq{
 		Seq:    consensus.Seq(seq1),
 		MinSeq: consensus.Seq(seq2),
@@ -120,8 +130,8 @@ func (b *HighestBeforeSeq) Set(i consensus.ValidatorIndex, seq BranchSeq) {
 }
 
 var (
-	// equivocationDetectedSeq is a special marker of reachable equivocation by a creator
-	equivocationDetectedSeq = BranchSeq{
+	// EquivocationDetectedSeq is a special marker of reachable equivocation by a creator
+	EquivocationDetectedSeq = BranchSeq{
 		Seq:    0,
 		MinSeq: consensus.Seq(math.MaxInt32),
 	}
@@ -129,7 +139,7 @@ var (
 
 // IsEquivocationDetected returns true if reachable equivocation by a creator (in combination of branches)
 func (seq BranchSeq) IsEquivocationDetected() bool {
-	return seq == equivocationDetectedSeq
+	return seq == EquivocationDetectedSeq
 }
 
 // Get i's position in the byte-encoded vector clock

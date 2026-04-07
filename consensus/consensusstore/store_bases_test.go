@@ -1,3 +1,13 @@
+// Copyright (c) 2026 Sonic Operations Ltd
+//
+// Use of this software is governed by the Business Source License included
+// in the LICENSE file and at fantom.foundation/bsl11.
+//
+// Change Date: 2028-4-16
+//
+// On the date above, in accordance with the Business Source License, use of
+// this software will be governed by the GNU Lesser General Public License v3.
+
 package consensusstore
 
 import (
@@ -66,7 +76,7 @@ func populateWithBases(t *testing.T, store *Store, numFrames int, meanBasesPerFr
 	return basesExpected
 }
 
-func simplifyAndSortBases(baseDescriptors []BaseDescriptor) []consensus.ValidatorID {
+func simplifyAndSortBases(baseDescriptors []consensus.BaseDescriptor) []consensus.ValidatorID {
 	bases := make([]consensus.ValidatorID, 0, len(baseDescriptors))
 	for _, descriptor := range baseDescriptors {
 		bases = append(bases, descriptor.ValidatorID)

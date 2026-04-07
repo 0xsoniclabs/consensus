@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -29,7 +29,7 @@ type Lachesis struct {
 }
 
 // NewLachesis creates Lachesis instance.
-func NewLachesis(store *consensusstore.Store, input EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Lachesis {
+func NewLachesis(store *consensusstore.Store, input consensus.EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Lachesis {
 	p := &Lachesis{
 		Orderer:  NewOrderer(store, input, dagIndex, crit, config),
 		dagIndex: dagIndex,

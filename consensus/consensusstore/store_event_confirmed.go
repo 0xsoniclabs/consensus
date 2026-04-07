@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -18,7 +18,7 @@ import (
 func (s *Store) SetEventConfirmedOn(e consensus.EventHash, on consensus.Frame) {
 	key := e.Bytes()
 
-	if err := s.EpochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
+	if err := s.epochTable.ConfirmedEvent.Put(key, on.Bytes()); err != nil {
 		s.crit(err)
 	}
 }
@@ -27,7 +27,7 @@ func (s *Store) SetEventConfirmedOn(e consensus.EventHash, on consensus.Frame) {
 func (s *Store) GetEventConfirmedOn(e consensus.EventHash) consensus.Frame {
 	key := e.Bytes()
 
-	buf, err := s.EpochTable.ConfirmedEvent.Get(key)
+	buf, err := s.epochTable.ConfirmedEvent.Get(key)
 	if err != nil {
 		s.crit(err)
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -98,8 +98,8 @@ func testConfirmBlocks(t *testing.T, weights []consensus.Weight, cheatersCount i
 	})
 
 	// unconfirm all events
-	it := lch.store.EpochTable.ConfirmedEvent.NewIterator(nil, nil)
-	batch := lch.store.EpochTable.ConfirmedEvent.NewBatch()
+	it := lch.store.GetConfirmedEventDB().NewIterator(nil, nil)
+	batch := lch.store.GetConfirmedEventDB().NewBatch()
 	for it.Next() {
 		assertar.NoError(batch.Delete(it.Key()))
 	}

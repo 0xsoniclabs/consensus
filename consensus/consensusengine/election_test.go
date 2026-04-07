@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
@@ -213,7 +212,7 @@ type slot struct {
 
 type testState struct {
 	ordered    consensustest.TestEvents
-	frameBases map[consensus.Frame][]consensusstore.BaseDescriptor
+	frameBases map[consensus.Frame][]consensus.BaseDescriptor
 	vertices   map[consensus.EventHash]slot
 	edges      map[fakeEdge]bool
 }
@@ -230,7 +229,7 @@ func testVoteAndAggregate(
 
 	state := testState{
 		ordered:    make(consensustest.TestEvents, 0),
-		frameBases: make(map[consensus.Frame][]consensusstore.BaseDescriptor),
+		frameBases: make(map[consensus.Frame][]consensus.BaseDescriptor),
 		vertices:   make(map[consensus.EventHash]slot),
 		edges:      make(map[fakeEdge]bool),
 	}
@@ -265,7 +264,7 @@ func testVoteAndAggregate(
 		}
 		return state.edges[edge]
 	}
-	getFrameBasesFn := func(f consensus.Frame) []consensusstore.BaseDescriptor {
+	getFrameBasesFn := func(f consensus.Frame) []consensus.BaseDescriptor {
 		return state.frameBases[f]
 	}
 
@@ -286,7 +285,7 @@ func testVoteAndAggregate(
 			t.Fatal("inconsistent vertices")
 		}
 		frameBases := election.getFrameBases(baseSlot.frame - 1)
-		stronglyReachableBases := make([]*consensusstore.BaseDescriptor, 0, len(frameBases)/2)
+		stronglyReachableBases := make([]*consensus.BaseDescriptor, 0, len(frameBases)/2)
 		for idx, reachableBase := range frameBases {
 			if stronglyReachFn(baseHash, reachableBase.BaseHash) {
 				stronglyReachableBases = append(stronglyReachableBases, &frameBases[idx])
@@ -298,12 +297,12 @@ func testVoteAndAggregate(
 		}
 
 		// checking:
-		certifying := expected != nil && expected.CertifyingBases[base.ID().String()]
+		certifying := expected != nil && expected.CertifyingBases[consensus.GetEventName(base.ID())]
 		if certifying {
 			assertar.NotNil(leaders)
 			assertar.NotEmpty(leaders)
 			assertar.Equal(expected.CertifiedFrame, leaders[0].Frame)
-			assertar.Equal(expected.CertifiedLeader, leaders[0].LeaderHash.String())
+			assertar.Equal(expected.CertifiedLeader, consensus.GetEventName(leaders[0].LeaderHash))
 			return
 		} else {
 			assertar.Empty(leaders)
@@ -330,7 +329,7 @@ func indexTestEvent(state *testState, base *consensustest.TestEvent, isEquivocat
 	hsh := base.ID()
 	state.frameBases[frameOf(base.Name)] = append(
 		state.frameBases[frameOf(base.Name)],
-		consensusstore.BaseDescriptor{
+		consensus.BaseDescriptor{
 			BaseHash:    hsh,
 			ValidatorID: slt.validatorID,
 		},

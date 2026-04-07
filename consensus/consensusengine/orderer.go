@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -28,7 +28,7 @@ type Orderer struct {
 	config Config
 	crit   func(error)
 	store  *consensusstore.Store
-	Input  EventSource
+	Input  consensus.EventSource
 
 	election *election
 	dagIndex *dagindexer.Index
@@ -39,7 +39,7 @@ type Orderer struct {
 // NewOrderer creates Orderer instance.
 // Unlike Lachesis, Orderer doesn't updates DAG indexes for events, and doesn't detect cheaters
 // It has only one purpose - reaching consensus on events order.
-func NewOrderer(store *consensusstore.Store, input EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Orderer {
+func NewOrderer(store *consensusstore.Store, input consensus.EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Orderer {
 	p := &Orderer{
 		config:   config,
 		store:    store,

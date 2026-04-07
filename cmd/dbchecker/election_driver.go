@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -8,7 +8,7 @@
 // On the date above, in accordance with the Business Source License, use of
 // this software will be governed by the GNU Lesser General Public License v3.
 
-package consensusengine
+package main
 
 import (
 	"database/sql"
@@ -17,7 +17,9 @@ import (
 	"fmt"
 
 	"github.com/0xsoniclabs/consensus/consensus"
+	"github.com/0xsoniclabs/consensus/consensus/consensusengine"
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
+	"github.com/0xsoniclabs/consensus/consensus/dagindexer"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
 )
 
@@ -34,52 +36,76 @@ func (e *dbEvent) String() string {
 	return fmt.Sprintf("{Epoch:%d Validator:%d Frame:%d Seq:%d Lamport:%d}", e.hash.Epoch(), e.validatorId, e.frame, e.seq, e.lamportTs)
 }
 
-func setupElection(conn *sql.DB, epoch consensus.Epoch) (*CoreLachesis, *consensustest.TestEventSource, map[consensus.EventHash]*dbEvent, []*dbEvent, error) {
+func newConsensusEngine(validators []consensus.ValidatorID, weights []consensus.Weight) (*consensusengine.IndexedLachesis, *consensusstore.Store, *consensustest.TestEventSource) {
+	validatorsMap := make(consensus.ValidatorsBuilder, len(validators))
+	for i, v := range validators {
+		if weights == nil {
+			validatorsMap[v] = 1
+		} else {
+			validatorsMap[v] = weights[i]
+		}
+	}
+	store := consensusstore.NewMemStore()
+	if err := store.ApplyGenesis(&consensusstore.Genesis{
+		Validators: validatorsMap.Build(),
+		Epoch:      consensus.FirstEpoch,
+	}); err != nil {
+		panic(err)
+	}
+	input := consensustest.NewTestEventSource()
+	crit := func(err error) { panic(err) }
+	dagIdx := dagindexer.NewIndex(crit, dagindexer.LiteConfig())
+	engine := consensusengine.NewIndexedLachesis(store, input, dagIdx, crit, consensusengine.DefaultConfig())
+	return engine, store, input
+}
+
+
+
+func executeElection(engine *consensusengine.IndexedLachesis, store *consensusstore.Store, eventStore *consensustest.TestEventSource, eventsOrdered []*dbEvent) error {
+	for _, event := range eventsOrdered {
+		if err := ingestEvent(engine, store, eventStore, event); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
 	validators, weights, err := getValidator(conn, epoch)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return err
 	}
 	if len(validators) == 0 {
-		return nil, nil, nil, nil, nil
+		return nil
 	}
 
-	testLachesis, _, eventStore, _ := NewBootstrappedCoreConsensus(validators, weights)
-	if err := testLachesis.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: testLachesis.store.GetValidators()}); err != nil {
-		return nil, nil, nil, nil, err
+	engine, store, eventStore := newConsensusEngine(validators, weights)
+
+	recalculatedLeaders := make([]consensus.EventHash, 0)
+
+	if err := engine.Bootstrap(consensus.ConsensusCallbacks{
+		BeginBlock: func(block *consensus.Block) consensus.BlockCallbacks {
+			return consensus.BlockCallbacks{
+				EndBlock: func() (sealEpoch *consensus.Validators) {
+					recalculatedLeaders = append(recalculatedLeaders, block.Leader)
+					return nil
+				},
+			}
+		},
+	}); err != nil {
+		return err
+	}
+
+	if err := engine.Reset(epoch, store.GetValidators()); err != nil {
+		return err
 	}
 
 	eventsOrdered, eventMap, err := getEvents(conn, epoch)
 	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	return testLachesis, eventStore, eventMap, eventsOrdered, nil
-}
-
-func executeElection(testLachesis *CoreLachesis, eventStore *consensustest.TestEventSource, eventsOrdered []*dbEvent) error {
-	for _, event := range eventsOrdered {
-		if err := ingestEvent(testLachesis, eventStore, event); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func CheckEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
-	testLachesis, eventStore, eventMap, orderedEvents, err := setupElection(conn, epoch)
-	if err != nil {
 		return err
 	}
 
-	recalculatedLeaders := make([]consensus.EventHash, 0)
-	// Capture the elected leaders by planting the `applyBlock` callback (nil by default)
-	testLachesis.applyBlock = func(block *consensus.Block) *consensus.Validators {
-		recalculatedLeaders = append(recalculatedLeaders, block.Leader)
-		return nil
-	}
-
-	if err := executeElection(testLachesis, eventStore, orderedEvents); err != nil {
+	if err := executeElection(engine, store, eventStore, eventsOrdered); err != nil {
 		return err
 	}
 
@@ -98,7 +124,7 @@ func CheckEpochAgainstDB(conn *sql.DB, epoch consensus.Epoch) error {
 	return nil
 }
 
-func GetEpochRange(conn *sql.DB) (consensus.Epoch, consensus.Epoch, error) {
+func getEpochRange(conn *sql.DB) (consensus.Epoch, consensus.Epoch, error) {
 	// Query the `Event` table as `Validator` table may include future (empty) epochs
 	rows, err := conn.Query(`
 		SELECT MIN(e.EpochId), MAX(e.EpochId)
@@ -120,31 +146,26 @@ func GetEpochRange(conn *sql.DB) (consensus.Epoch, consensus.Epoch, error) {
 	return epochMin, epochMax, nil
 }
 
-func ingestEvent(testLachesis *CoreLachesis, eventStore *consensustest.TestEventSource, event *dbEvent) error {
+func ingestEvent(engine *consensusengine.IndexedLachesis, store *consensusstore.Store, eventStore *consensustest.TestEventSource, event *dbEvent) error {
 	testEvent := &consensustest.TestEvent{}
 	testEvent.SetFrame(event.frame)
 	testEvent.SetSeq(event.seq)
 	testEvent.SetCreator(event.validatorId)
 	testEvent.SetParents(event.parents)
 	testEvent.SetLamport(event.lamportTs)
-	testEvent.SetEpoch(testLachesis.store.GetEpoch())
+	testEvent.SetEpoch(store.GetEpoch())
 	testEvent.SetID([24]byte(event.hash[8:]))
 	eventStore.SetEvent(testEvent)
 
-	return processLocalEvent(testLachesis, testEvent)
-}
-
-// processLocalEvent simulates a flattened (without redudantant indexing and frame (re)calculations)
-// event lifecycle in local computation intensive consensus components - DAG indexing, frame calculation, election
-// Conditions and order in which the components are invoked are identical to production Consensus behaviour
-func processLocalEvent(testLachesis *CoreLachesis, event *consensustest.TestEvent) error {
-	if err := testLachesis.DagIndexer.Add(event); err != nil {
-		return fmt.Errorf("error wihile indexing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
+	// Simulates a flattened (without redundant indexing and frame recalculations)
+	// event lifecycle. DagIndexer.Add + Lachesis.Process are invoked separately
+	// to skip the frame recalculation that IndexedLachesis.Process would do.
+	if err := engine.DagIndexer.Add(testEvent); err != nil {
+		return fmt.Errorf("error while indexing event: [validator: %d, seq: %d], err: %v", event.validatorId, event.seq, err)
 	}
-	if err := testLachesis.Lachesis.Process(event); err != nil {
-		return fmt.Errorf("error while processing event: [validator: %d, seq: %d], err: %v", event.Creator(), event.Seq(), err)
+	if err := engine.Lachesis.Process(testEvent); err != nil {
+		return fmt.Errorf("error while processing event: [validator: %d, seq: %d], err: %v", event.validatorId, event.seq, err)
 	}
-
 	return nil
 }
 

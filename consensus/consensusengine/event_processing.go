@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
 var (
@@ -66,7 +65,7 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 }
 
 // runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
-func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash, stronglyReachableBases []*consensusstore.BaseDescriptor) (bool, error) {
+func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash, stronglyReachableBases []*consensus.BaseDescriptor) (bool, error) {
 	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash, stronglyReachableBases)
 	if err != nil {
 		return false, err
@@ -108,7 +107,7 @@ func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame
 	reachableCounter := validators.NewCounter()
 	frameBases := p.store.GetFrameBases(f)
 	// Traverse the frame bases in a descending order of their respective validator stake to reach the quorum/AntiQuorum with the least amount of StronglyReach calls
-	slices.SortFunc(frameBases, func(a, b consensusstore.BaseDescriptor) int {
+	slices.SortFunc(frameBases, func(a, b consensus.BaseDescriptor) int {
 		return int(validators.GetWeightByIdx(validators.GetIdx(b.ValidatorID))) - int(validators.GetWeightByIdx(validators.GetIdx(a.ValidatorID)))
 	})
 	for _, baseDescriptor := range frameBases {
@@ -126,10 +125,10 @@ func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame
 
 // stronglyReachableByQuorumMemoize extends the standard stronglyReachableByQuorum by memoizing the strongly reachable bases.
 // It performs worse than its vanilla counterpart as it checks the SR relation for all the bases - even when quorum is reached mid-iteration.
-func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensus.Frame) (bool, []*consensusstore.BaseDescriptor) {
+func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensus.Frame) (bool, []*consensus.BaseDescriptor) {
 	reachableCounter := p.store.GetValidators().NewCounter()
 	frameBases := p.store.GetFrameBases(f)
-	memoizedDescriptors := make([]*consensusstore.BaseDescriptor, 0)
+	memoizedDescriptors := make([]*consensus.BaseDescriptor, 0)
 	for idx, baseDescriptor := range frameBases {
 		if p.dagIndex.StronglyReach(e.ID(), baseDescriptor.BaseHash) {
 			reachableCounter.CountVoteByID(baseDescriptor.ValidatorID)
@@ -139,9 +138,9 @@ func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensu
 	return reachableCounter.QuorumReached(), memoizedDescriptors
 }
 
-func (p *Orderer) stronglyReachableBases(eventHash consensus.EventHash, f consensus.Frame) []*consensusstore.BaseDescriptor {
+func (p *Orderer) stronglyReachableBases(eventHash consensus.EventHash, f consensus.Frame) []*consensus.BaseDescriptor {
 	frameBases := p.store.GetFrameBases(f)
-	memoizedDescriptors := make([]*consensusstore.BaseDescriptor, 0)
+	memoizedDescriptors := make([]*consensus.BaseDescriptor, 0)
 	for idx, baseDescriptor := range p.store.GetFrameBases(f) {
 		if p.dagIndex.StronglyReach(eventHash, baseDescriptor.BaseHash) {
 			memoizedDescriptors = append(memoizedDescriptors, &frameBases[idx])
@@ -151,9 +150,9 @@ func (p *Orderer) stronglyReachableBases(eventHash consensus.EventHash, f consen
 }
 
 // calcFrameIdx is not safe for concurrent use.
-func (p *Orderer) constructEventFrame(e consensus.Event) (selfParentFrame, frame consensus.Frame, memoizedDescriptors []*consensusstore.BaseDescriptor) {
+func (p *Orderer) constructEventFrame(e consensus.Event) (selfParentFrame, frame consensus.Frame, memoizedDescriptors []*consensus.BaseDescriptor) {
 	if e.SelfParent() == nil {
-		return 0, 1, []*consensusstore.BaseDescriptor{}
+		return 0, 1, []*consensus.BaseDescriptor{}
 	}
 	selfParentFrame = p.Input.GetEvent(*e.SelfParent()).Frame()
 	frame = selfParentFrame

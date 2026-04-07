@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -16,7 +16,6 @@ import (
 	"os"
 
 	"github.com/0xsoniclabs/consensus/consensus"
-	"github.com/0xsoniclabs/consensus/consensus/consensusengine"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli/v2"
 )
@@ -66,7 +65,7 @@ func run(ctx *cli.Context) error {
 		return err
 	}
 
-	epochMin, epochMax, err := consensusengine.GetEpochRange(conn)
+	epochMin, epochMax, err := getEpochRange(conn)
 	if err != nil {
 		return err
 	}
@@ -81,7 +80,7 @@ func run(ctx *cli.Context) error {
 	}
 
 	for epoch := epochMin; epoch <= epochMax; epoch++ {
-		if err := consensusengine.CheckEpochAgainstDB(conn, epoch); err != nil {
+		if err := checkEpochAgainstDB(conn, epoch); err != nil {
 			return err
 		}
 	}

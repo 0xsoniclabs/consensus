@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Fantom Foundation
+// Copyright (c) 2026 Sonic Operations Ltd
 //
 // Use of this software is governed by the Business Source License included
 // in the LICENSE file and at fantom.foundation/bsl11.
@@ -29,7 +29,6 @@ var (
 func SetNodeName(n ValidatorID, name string) {
 	nodeNameDictMu.Lock()
 	defer nodeNameDictMu.Unlock()
-
 	nodeNameDict[n] = name
 }
 
@@ -37,7 +36,6 @@ func SetNodeName(n ValidatorID, name string) {
 func SetEventName(e EventHash, name string) {
 	eventNameDictMu.Lock()
 	defer eventNameDictMu.Unlock()
-
 	eventNameDict[e] = name
 }
 
@@ -45,7 +43,6 @@ func SetEventName(e EventHash, name string) {
 func GetNodeName(n ValidatorID) string {
 	nodeNameDictMu.RLock()
 	defer nodeNameDictMu.RUnlock()
-
 	return nodeNameDict[n]
 }
 
@@ -53,6 +50,5 @@ func GetNodeName(n ValidatorID) string {
 func GetEventName(e EventHash) string {
 	eventNameDictMu.RLock()
 	defer eventNameDictMu.RUnlock()
-
 	return eventNameDict[e]
 }
