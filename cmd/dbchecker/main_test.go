@@ -129,7 +129,9 @@ func TestRun_HappyPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	populateMinimalEpoch(t, conn, 1)
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	app := makeApp()
 	err = app.Run([]string{"cmd", "--db", dbPath})
@@ -162,7 +164,9 @@ func TestRun_InvalidEpochRange(t *testing.T) {
 		t.Fatal(err)
 	}
 	populateMinimalEpoch(t, conn, 1)
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	app := makeApp()
 	err = app.Run([]string{"cmd", "--db", dbPath, "--epoch.min", "10", "--epoch.max", "5"})
@@ -179,7 +183,9 @@ func TestRun_EpochMinFilter(t *testing.T) {
 	}
 	populateMinimalEpoch(t, conn, 1)
 	populateMinimalEpoch(t, conn, 2)
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	app := makeApp()
 	err = app.Run([]string{"cmd", "--db", dbPath, "--epoch.min", "2"})
@@ -196,7 +202,9 @@ func TestRun_EpochMaxFilter(t *testing.T) {
 	}
 	populateMinimalEpoch(t, conn, 1)
 	populateMinimalEpoch(t, conn, 2)
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	app := makeApp()
 	err = app.Run([]string{"cmd", "--db", dbPath, "--epoch.max", "1"})
@@ -214,7 +222,9 @@ func TestRun_EpochBothFilters(t *testing.T) {
 	populateMinimalEpoch(t, conn, 1)
 	populateMinimalEpoch(t, conn, 2)
 	populateMinimalEpoch(t, conn, 3)
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	app := makeApp()
 	err = app.Run([]string{"cmd", "--db", dbPath, "--epoch.min", "2", "--epoch.max", "2"})
@@ -271,7 +281,7 @@ func TestDecodeHashStr_InvalidHex(t *testing.T) {
 
 func TestGetEpochRange_EmptyDB(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	_, _, err := getEpochRange(conn)
 	if err == nil {
@@ -281,7 +291,7 @@ func TestGetEpochRange_EmptyDB(t *testing.T) {
 
 func TestGetEpochRange_SingleEpoch(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	populateMinimalEpoch(t, conn, 5)
 
 	epochMin, epochMax, err := getEpochRange(conn)
@@ -295,7 +305,7 @@ func TestGetEpochRange_SingleEpoch(t *testing.T) {
 
 func TestGetEpochRange_MultipleEpochs(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	populateMinimalEpoch(t, conn, 3)
 	populateMinimalEpoch(t, conn, 7)
 
@@ -310,7 +320,7 @@ func TestGetEpochRange_MultipleEpochs(t *testing.T) {
 
 func TestGetValidator_NoValidators(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	validators, weights, err := getValidator(conn, 99)
 	if err != nil {
@@ -323,7 +333,7 @@ func TestGetValidator_NoValidators(t *testing.T) {
 
 func TestGetValidator_ReturnsValidators(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	populateMinimalEpoch(t, conn, 1)
 
 	validators, weights, err := getValidator(conn, 1)
@@ -342,7 +352,7 @@ func TestGetValidator_ReturnsValidators(t *testing.T) {
 
 func TestGetEvents_NoEvents(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	events, eventMap, err := getEvents(conn, 99)
 	if err != nil {
@@ -355,7 +365,7 @@ func TestGetEvents_NoEvents(t *testing.T) {
 
 func TestGetEvents_ReturnsEventsOrderedByLamport(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	populateMinimalEpoch(t, conn, 1)
 
 	events, eventMap, err := getEvents(conn, 1)
@@ -378,7 +388,7 @@ func TestGetEvents_ReturnsEventsOrderedByLamport(t *testing.T) {
 
 func TestGetLeaders_NoAtropos(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	populateMinimalEpoch(t, conn, 1)
 
 	leaders, err := getLeaders(conn, 1)
@@ -392,7 +402,7 @@ func TestGetLeaders_NoAtropos(t *testing.T) {
 
 func TestGetLeaders_ReturnsAtropos(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	populateMinimalEpoch(t, conn, 1)
 
 	// First event ID is epoch*1000+1
@@ -412,7 +422,7 @@ func TestGetLeaders_ReturnsAtropos(t *testing.T) {
 
 func TestAppointParents_MissingChildEvent(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	populateMinimalEpoch(t, conn, 1)
 
 	// Insert a parent row where both EventId and ParentId exist in the Event
@@ -453,24 +463,32 @@ func TestAppointParents_MissingChildEvent(t *testing.T) {
 
 func TestAppointParents_ParentNotInEventMap(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	epoch := consensus.Epoch(1)
 	// Insert 2 validators
 	for _, v := range []int{1, 2} {
-		conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", epoch, v, 1)
+		if _, err := conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", epoch, v, 1); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Insert 2 events
 	hash1 := makeEventHash(epoch, 1, 0x01)
 	hash2 := makeEventHash(epoch, 2, 0x02)
-	conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		1, hash1, 1, 1, 1, 1, epoch)
-	conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		2, hash2, 2, 1, 1, 2, epoch)
+	if _, err := conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		1, hash1, 1, 1, 1, 1, epoch); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		2, hash2, 2, 1, 1, 2, epoch); err != nil {
+		t.Fatal(err)
+	}
 
 	// Event 2 has parent event 1
-	conn.Exec("INSERT INTO Parent (EventId, ParentId) VALUES (?, ?)", 2, 1)
+	if _, err := conn.Exec("INSERT INTO Parent (EventId, ParentId) VALUES (?, ?)", 2, 1); err != nil {
+		t.Fatal(err)
+	}
 
 	// Get events, then remove event 1 from the map to simulate missing parent.
 	_, eventMap, err := getEvents(conn, epoch)
@@ -489,21 +507,29 @@ func TestAppointParents_ParentNotInEventMap(t *testing.T) {
 
 func TestAppointParents_ChildNotInEventMap(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	epoch := consensus.Epoch(1)
 	for _, v := range []int{1, 2} {
-		conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", epoch, v, 1)
+		if _, err := conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", epoch, v, 1); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	hash1 := makeEventHash(epoch, 1, 0x01)
 	hash2 := makeEventHash(epoch, 2, 0x02)
-	conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		1, hash1, 1, 1, 1, 1, epoch)
-	conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		2, hash2, 2, 1, 1, 2, epoch)
+	if _, err := conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		1, hash1, 1, 1, 1, 1, epoch); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		2, hash2, 2, 1, 1, 2, epoch); err != nil {
+		t.Fatal(err)
+	}
 
-	conn.Exec("INSERT INTO Parent (EventId, ParentId) VALUES (?, ?)", 2, 1)
+	if _, err := conn.Exec("INSERT INTO Parent (EventId, ParentId) VALUES (?, ?)", 2, 1); err != nil {
+		t.Fatal(err)
+	}
 
 	_, eventMap, err := getEvents(conn, epoch)
 	if err != nil {
@@ -522,13 +548,17 @@ func TestAppointParents_ChildNotInEventMap(t *testing.T) {
 
 func TestAppointParents_InvalidEventHash(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	epoch := consensus.Epoch(1)
-	conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", epoch, 1, 1)
+	if _, err := conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", epoch, 1, 1); err != nil {
+		t.Fatal(err)
+	}
 	// Insert event with an invalid hex hash
-	conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		1, "0xINVALIDHEX", 1, 1, 1, 1, epoch)
+	if _, err := conn.Exec("INSERT INTO Event (EventId, EventHash, ValidatorId, SequenceNumber, FrameId, LamportNumber, EpochId) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		1, "0xINVALIDHEX", 1, 1, 1, 1, epoch); err != nil {
+		t.Fatal(err)
+	}
 
 	_, _, err := getEvents(conn, epoch)
 	if err == nil {
@@ -538,10 +568,12 @@ func TestAppointParents_InvalidEventHash(t *testing.T) {
 
 func TestCheckEpochAgainstDB_EmptyEpoch(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Insert validators but no events for epoch 5.
-	conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", 5, 1, 1)
+	if _, err := conn.Exec("INSERT INTO Validator (EpochId, ValidatorId, Weight) VALUES (?, ?, ?)", 5, 1, 1); err != nil {
+		t.Fatal(err)
+	}
 
 	// checkEpochAgainstDB should return nil for an epoch with no validators
 	// returned from the Event-based query, but we need events in the Event table
@@ -577,7 +609,7 @@ func TestExecuteElection_Empty(t *testing.T) {
 
 func TestCloseRowsAndCombineErrors(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	rows, err := conn.Query("SELECT 1")
 	if err != nil {
@@ -593,7 +625,7 @@ func TestCloseRowsAndCombineErrors(t *testing.T) {
 
 func TestCloseRowsAndCombineErrors_PreservesExistingError(t *testing.T) {
 	conn := setupTestDB(t)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	rows, err := conn.Query("SELECT 1")
 	if err != nil {
