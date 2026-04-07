@@ -15,8 +15,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-// IndexCacheConfig - config for cache sizes of Engine
-type IndexCacheConfig struct {
+// indexCacheConfig - config for cache sizes of Engine
+type indexCacheConfig struct {
 	HighestBeforeTimeSize uint
 	DBCache               int
 	HighestBeforeSeqSize  uint
@@ -25,13 +25,13 @@ type IndexCacheConfig struct {
 
 // IndexConfig - Engine config (cache sizes)
 type IndexConfig struct {
-	Caches IndexCacheConfig
+	Caches indexCacheConfig
 }
 
 // DefaultConfig returns default index config
 func DefaultConfig(scale cachescale.Func) IndexConfig {
 	return IndexConfig{
-		Caches: IndexCacheConfig{
+		Caches: indexCacheConfig{
 			HighestBeforeTimeSize: scale.U(160 * 1024),
 			DBCache:               scale.I(10 * opt.MiB),
 			HighestBeforeSeqSize:  scale.U(160 * 1024),
@@ -44,7 +44,7 @@ func DefaultConfig(scale cachescale.Func) IndexConfig {
 func LiteConfig() IndexConfig {
 	scale := cachescale.Ratio{Base: 100, Target: 1}
 	return IndexConfig{
-		Caches: IndexCacheConfig{
+		Caches: indexCacheConfig{
 			HighestBeforeTimeSize: 4 * 1024,
 			HighestBeforeSeqSize:  scale.U(160 * 1024),
 			LowestAfterSeqSize:    scale.U(160 * 1024),

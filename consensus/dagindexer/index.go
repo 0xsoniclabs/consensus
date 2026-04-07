@@ -16,6 +16,7 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/dagindexer/dagbranch"
 	"github.com/0xsoniclabs/consensus/consensus/dagindexer/dagstore"
+	"github.com/0xsoniclabs/consensus/consensus/dagindexer/dagvec"
 	"github.com/0xsoniclabs/consensus/consensus/vecflushable"
 	"github.com/0xsoniclabs/kvdb"
 )
@@ -48,7 +49,7 @@ func NewIndex(crit func(error), config IndexConfig) *Index {
 
 // Add calculates vector clocks for the event and saves into DB.
 func (vi *Index) Add(e consensus.Event) error {
-	vi.InitBranchesInfo()
+	vi.initBranchesInfo()
 	_, err := vi.fillEventVectors(e)
 	return err
 }
@@ -92,13 +93,13 @@ func (vi *Index) Close() error {
 }
 
 // fillEventVectors calculates (and stores) event's vectors, and updates LowestAfter of newly-reachable events.
-func (vi *Index) fillEventVectors(e consensus.Event) (AllVecs, error) {
+func (vi *Index) fillEventVectors(e consensus.Event) (dagvec.AllVecs, error) {
 	meIdx := vi.validatorIdxs[e.Creator()]
 	branchCount := vi.branches.BranchCount()
 
-	myVecs := AllVecs{
-		Before: NewHighestBefore(branchCount),
-		After:  NewLowestAfterSeq(branchCount),
+	myVecs := dagvec.AllVecs{
+		Before: dagvec.NewHighestBefore(branchCount),
+		After:  dagvec.NewLowestAfterSeq(branchCount),
 	}
 
 	meBranchID, err := vi.branches.AssignBranchID(e, meIdx)
@@ -107,11 +108,11 @@ func (vi *Index) fillEventVectors(e consensus.Event) (AllVecs, error) {
 	}
 
 	// pre-load parents into RAM for quick access
-	parentsVecs := make([]*HighestBefore, len(e.Parents()))
+	parentsVecs := make([]*dagvec.HighestBefore, len(e.Parents()))
 	parentsBranchIDs := make([]consensus.ValidatorIndex, len(e.Parents()))
 	for i, p := range e.Parents() {
-		parentsBranchIDs[i] = vi.GetEventBranchID(p)
-		parentsVecs[i] = vi.GetHighestBefore(p)
+		parentsBranchIDs[i] = vi.getEventBranchID(p)
+		parentsVecs[i] = vi.getHighestBefore(p)
 		if parentsVecs[i] == nil {
 			return myVecs, fmt.Errorf("processed out of order, parent not found (inconsistent DB), parent=%s", p.String())
 		}
@@ -130,41 +131,41 @@ func (vi *Index) fillEventVectors(e consensus.Event) (AllVecs, error) {
 
 	// graph traversal starting from e, but excluding e
 	onWalk := func(walk consensus.EventHash) (godeeper bool) {
-		wLowestAfterSeq := vi.GetLowestAfter(walk)
+		wLowestAfterSeq := vi.getLowestAfter(walk)
 		// update LowestAfter vector of the old event, because newly-connected event reaches it
 		if wLowestAfterSeq.Visit(meBranchID, e) {
-			vi.SetLowestAfter(walk, wLowestAfterSeq)
+			vi.setLowestAfter(walk, wLowestAfterSeq)
 			return true
 		}
 		return false
 	}
-	err = vi.DfsSubgraph(e, onWalk)
+	err = vi.dfsSubgraph(e, onWalk)
 	if err != nil {
 		vi.crit(err)
 	}
 
 	// store calculated vectors
-	vi.SetHighestBefore(e.ID(), myVecs.Before)
-	vi.SetLowestAfter(e.ID(), myVecs.After)
+	vi.setHighestBefore(e.ID(), myVecs.Before)
+	vi.setLowestAfter(e.ID(), myVecs.After)
 	vi.branches.SetEventBranchID(e.ID(), meBranchID)
 
 	return myVecs, nil
 }
 
 // GetMergedHighestBefore returns HighestBefore vector clock without branches, where branches are merged into one
-func (vi *Index) GetMergedHighestBefore(id consensus.EventHash) *HighestBefore {
-	return vi.branches.GetMergedHighestBefore(id, vi.GetHighestBefore)
+func (vi *Index) GetMergedHighestBefore(id consensus.EventHash) *dagvec.HighestBefore {
+	return vi.branches.GetMergedHighestBefore(id, vi.getHighestBefore)
 }
 
-// InitBranchesInfo loads BranchesInfo from store
-func (vi *Index) InitBranchesInfo() {
+// initBranchesInfo loads BranchesInfo from store
+func (vi *Index) initBranchesInfo() {
 	vi.branches.Init()
 }
 
-func (vi *Index) AtLeastOneEquivocation() bool {
+func (vi *Index) atLeastOneEquivocation() bool {
 	return vi.branches.AtLeastOneEquivocation()
 }
 
-func (vi *Index) BranchesInfo() *BranchesInfo {
+func (vi *Index) branchesInfo() *dagbranch.BranchesInfo {
 	return vi.branches.Info()
 }

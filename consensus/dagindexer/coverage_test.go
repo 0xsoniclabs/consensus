@@ -73,8 +73,8 @@ func TestIndex_SetEventBranchID(t *testing.T) {
 		nil,
 	)
 	hash := consensus.EventHash{1}
-	vi.SetEventBranchID(hash, 7)
-	assert.Equal(t, consensus.ValidatorIndex(7), vi.GetEventBranchID(hash))
+	vi.setEventBranchID(hash, 7)
+	assert.Equal(t, consensus.ValidatorIndex(7), vi.getEventBranchID(hash))
 }
 
 func TestIndex_StronglyReach_MissingA(t *testing.T) {
@@ -82,7 +82,7 @@ func TestIndex_StronglyReach_MissingA(t *testing.T) {
 	missing := consensus.EventHash{0xff, 0xfe}
 	b00 := consensus.EventHash{} // any existing
 	// Find a real event hash
-	vi.InitBranchesInfo()
+	vi.initBranchesInfo()
 	assert.Panics(t, func() {
 		vi.StronglyReach(missing, b00)
 	})
@@ -135,7 +135,7 @@ func TestIndex_DfsSubgraph_MissingEvent(t *testing.T) {
 	}
 
 	walked := false
-	err := vi.DfsSubgraph(lastEvent, func(hash consensus.EventHash) bool {
+	err := vi.dfsSubgraph(lastEvent, func(hash consensus.EventHash) bool {
 		walked = true
 		return true // go deeper
 	})
@@ -231,9 +231,9 @@ func TestIndex_fillEventVectors_AssignBranchIDError(t *testing.T) {
 	}
 
 	// Corrupt BranchesInfo to trigger AssignBranchID error
-	vi.InitBranchesInfo()
-	vi.BranchesInfo().BranchIDCreatorIdxs = vi.BranchesInfo().BranchIDCreatorIdxs[:0]
-	vi.BranchesInfo().BranchIDLastSeq = vi.BranchesInfo().BranchIDLastSeq[:0]
+	vi.initBranchesInfo()
+	vi.branchesInfo().BranchIDCreatorIdxs = vi.branchesInfo().BranchIDCreatorIdxs[:0]
+	vi.branchesInfo().BranchIDLastSeq = vi.branchesInfo().BranchIDLastSeq[:0]
 
 	err := vi.Add(secondEvent)
 	assert.Error(t, err)
@@ -262,8 +262,8 @@ func TestIndex_fillEventVectors_ParentHighestBeforeNil(t *testing.T) {
 			if len(e.Parents()) <= 1 {
 				// For each genesis event, set its branch ID but skip adding it
 				// to the index (so HighestBefore won't be stored).
-				vi.InitBranchesInfo()
-				vi.SetEventBranchID(e.ID(), consensus.ValidatorIndex(0))
+				vi.initBranchesInfo()
+				vi.setEventBranchID(e.ID(), consensus.ValidatorIndex(0))
 				vi.Flush()
 			} else {
 				childEvent = e

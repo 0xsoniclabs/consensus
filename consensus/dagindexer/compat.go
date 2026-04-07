@@ -19,23 +19,9 @@ import (
 // Compile-time check that dagstore.Store satisfies dagbranch.BranchStore.
 var _ dagbranch.BranchStore = (*dagstore.Store)(nil)
 
-// Type aliases re-exported from subpackages for backward compatibility.
+// Type aliases re-exported from subpackages for external consumers.
 type (
-	Timestamp         = dagvec.Timestamp
-	LowestAfterSeq    = dagvec.LowestAfterSeq
-	HighestBeforeSeq  = dagvec.HighestBeforeSeq
-	HighestBeforeTime = dagvec.HighestBeforeTime
-	BranchSeq         = dagvec.BranchSeq
-	HighestBefore     = dagvec.HighestBefore
-	LowestAfter       = dagvec.LowestAfter
-	AllVecs           = dagvec.AllVecs
-	CreationTimer     = dagvec.CreationTimer
-	BranchesInfo      = dagbranch.BranchesInfo
-)
-
-// Forwarded constructors from subpackages.
-var (
-	NewLowestAfterSeq      = dagvec.NewLowestAfterSeq
-	NewHighestBefore       = dagvec.NewHighestBefore
-	NewInitialBranchesInfo = dagbranch.NewInitialBranchesInfo
+	Timestamp        = dagvec.Timestamp
+	HighestBeforeSeq = dagvec.HighestBeforeSeq
+	BranchSeq        = dagvec.BranchSeq
 )

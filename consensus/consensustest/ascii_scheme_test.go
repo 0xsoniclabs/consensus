@@ -19,7 +19,7 @@ import (
 	"github.com/0xsoniclabs/consensus/utils/textcolumns"
 )
 
-func TestASCIIschemeToDAG(t *testing.T) {
+func Test_ASCIIschemeToDAG(t *testing.T) {
 	nodes, _, named := ASCIIschemeToDAG(`
 a00 b00   c00 d00
 ║   ║     ║   ║
@@ -76,14 +76,14 @@ a04 ╫ ─ ─ ╬  ╝║   ║
 	checkParents(t, named, expected)
 }
 
-func TestDAGtoASCIIschemeRand(t *testing.T) {
+func Test_dagToASCIIschemeRand(t *testing.T) {
 	assertar := assert.New(t)
 
 	nodes := GenNodes(5)
-	ee := GenRandEvents(nodes, 10, 3, nil)
+	ee := genRandEvents(nodes, 10, 3, nil)
 	src := delPeerIndex(ee)
 
-	scheme0, err := DAGtoASCIIscheme(src)
+	scheme0, err := dagToASCIIscheme(src)
 	if !assertar.NoError(err) {
 		return
 	}
@@ -105,7 +105,7 @@ func TestDAGtoASCIIschemeRand(t *testing.T) {
 			continue
 		}
 		// print info if not EqualValues:
-		scheme1, err := DAGtoASCIIscheme(got)
+		scheme1, err := dagToASCIIscheme(got)
 		if !assertar.NoError(err) {
 			return
 		}
@@ -115,10 +115,10 @@ func TestDAGtoASCIIschemeRand(t *testing.T) {
 	}
 }
 
-func TestDAGtoASCIIschemeOptimisation(t *testing.T) {
+func Test_dagToASCIIschemeOptimisation(t *testing.T) {
 
 	t.Run("Simple", func(t *testing.T) {
-		testDAGtoASCIIschemeOptimisation(t, `
+		testdagToASCIIschemeOptimisation(t, `
 a00  b00   c00
 ║    ║    ║║
 a01══╣    ║║
@@ -144,7 +144,7 @@ a02══╬═════╣
 	})
 
 	t.Run("Regression", func(t *testing.T) {
-		testDAGtoASCIIschemeOptimisation(t, `
+		testdagToASCIIschemeOptimisation(t, `
 c00
 ║       ║
 ║       a00
@@ -173,7 +173,7 @@ c02════╩╫─══════╣
 	})
 
 	t.Run("SwapParents", func(t *testing.T) {
-		testDAGtoASCIIschemeOptimisation(t, `
+		testdagToASCIIschemeOptimisation(t, `
 a00
 ║       ║
 ║       b00
@@ -202,7 +202,7 @@ a02═════╬═══════╣
 	})
 
 	t.Run("LostRefs", func(t *testing.T) {
-		testDAGtoASCIIschemeOptimisation(t, `
+		testdagToASCIIschemeOptimisation(t, `
 a000
 ║     ║
 ║     b000
@@ -277,7 +277,7 @@ a004══╬═════╣     ║     ║     // optimise this
 
 func TestDAGtoASCIIEquivocation(t *testing.T) {
 	t.Run("Case: Multiple equivocations", func(t *testing.T) {
-		testDAGtoASCIIschemeOptimisation(t, `
+		testdagToASCIIschemeOptimisation(t, `
         c00
         ║       ║
         ║       a00
@@ -318,7 +318,7 @@ func TestDAGtoASCIIEquivocation(t *testing.T) {
 	})
 
 	t.Run("Case: Mixed events with equivocations.", func(t *testing.T) {
-		testDAGtoASCIIschemeOptimisation(t, `
+		testdagToASCIIschemeOptimisation(t, `
         b00
         ║       ║
         ║       c00
@@ -363,7 +363,7 @@ func TestDAGtoASCIIEquivocation(t *testing.T) {
 		// Remove Skip() after merge additional fix from "try-new-event" branch.
 		t.Skip()
 
-		testDAGtoASCIIschemeOptimisation(t, `
+		testdagToASCIIschemeOptimisation(t, `
         a00     b00
         ║       ║
        ╚ a10    ╠═════════c00           // equivocation (a10)
@@ -390,14 +390,14 @@ func TestDAGtoASCIIEquivocation(t *testing.T) {
 	})
 }
 
-func testDAGtoASCIIschemeOptimisation(t *testing.T, origScheme string, refs map[string][]string) {
+func testdagToASCIIschemeOptimisation(t *testing.T, origScheme string, refs map[string][]string) {
 	t.Helper()
 	// step 1: ASCII --> DAG
 	_, events, named := ASCIIschemeToDAG(origScheme)
 	checkParents(t, named, refs)
 
 	// step 2: DAG --> ASCII
-	genScheme, err := DAGtoASCIIscheme(delPeerIndex(events))
+	genScheme, err := dagToASCIIscheme(delPeerIndex(events))
 	if !assert.NoError(t, err) {
 		return
 	}

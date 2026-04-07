@@ -23,7 +23,7 @@ var _ consensus.Consensus = (*Lachesis)(nil)
 // confirmed events traversal, cheaters detection.
 // Use this structure if need a general-purpose consensus. Instead, use lower-level abft.Orderer.
 type Lachesis struct {
-	*Orderer
+	*orderer
 	dagIndex *dagindexer.Index
 	callback consensus.ConsensusCallbacks
 }
@@ -31,7 +31,7 @@ type Lachesis struct {
 // NewLachesis creates Lachesis instance.
 func NewLachesis(store *consensusstore.Store, input consensus.EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Lachesis {
 	p := &Lachesis{
-		Orderer:  NewOrderer(store, input, dagIndex, crit, config),
+		orderer:  newOrderer(store, input, dagIndex, crit, config),
 		dagIndex: dagIndex,
 	}
 
@@ -87,11 +87,11 @@ func (p *Lachesis) applyLeader(certifiedFrame consensus.Frame, leader consensus.
 }
 
 func (p *Lachesis) Bootstrap(callback consensus.ConsensusCallbacks) error {
-	return p.BootstrapWithOrderer(callback, p.OrdererCallbacks())
+	return p.BootstrapWithOrderer(callback, p.ordererCallbacksFn())
 }
 
-func (p *Lachesis) BootstrapWithOrderer(callback consensus.ConsensusCallbacks, ordererCallbacks OrdererCallbacks) error {
-	err := p.Orderer.Bootstrap(ordererCallbacks)
+func (p *Lachesis) BootstrapWithOrderer(callback consensus.ConsensusCallbacks, ordererCb ordererCallbacks) error {
+	err := p.orderer.Bootstrap(ordererCb)
 	if err != nil {
 		return err
 	}
@@ -99,8 +99,8 @@ func (p *Lachesis) BootstrapWithOrderer(callback consensus.ConsensusCallbacks, o
 	return nil
 }
 
-func (p *Lachesis) OrdererCallbacks() OrdererCallbacks {
-	return OrdererCallbacks{
+func (p *Lachesis) ordererCallbacksFn() ordererCallbacks {
+	return ordererCallbacks{
 		ApplyLeader: p.applyLeader,
 	}
 }

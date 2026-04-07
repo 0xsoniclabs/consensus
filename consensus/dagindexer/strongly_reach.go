@@ -35,9 +35,9 @@ type kv struct {
 // This great property is the reason why this function exists,
 // providing the base for the BFT algorithm.
 func (vi *Index) StronglyReach(aID, bID consensus.EventHash) bool {
-	vi.InitBranchesInfo()
+	vi.initBranchesInfo()
 	// Get events by hash
-	aFull := vi.GetHighestBefore(aID)
+	aFull := vi.getHighestBefore(aID)
 	if aFull == nil {
 		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
 		return false
@@ -45,15 +45,15 @@ func (vi *Index) StronglyReach(aID, bID consensus.EventHash) bool {
 	a := aFull.VSeq
 
 	// check A doesn't have any reachable equivocations from B
-	if vi.AtLeastOneEquivocation() {
-		bBranchID := vi.GetEventBranchID(bID)
+	if vi.atLeastOneEquivocation() {
+		bBranchID := vi.getEventBranchID(bID)
 		if a.Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by A
 			return false
 		}
 	}
 
 	// check A has a reachable {QUORUM} of non-cheater-validators that have B as reachable
-	b := vi.GetLowestAfter(bID)
+	b := vi.getLowestAfter(bID)
 	if b == nil {
 		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
 		return false
@@ -61,11 +61,11 @@ func (vi *Index) StronglyReach(aID, bID consensus.EventHash) bool {
 
 	yes := vi.validators.NewCounter()
 	// calculate strongly reaching using the indexes
-	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
+	branchIDs := vi.branchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := consensus.ValidatorIndex(branchIDint)
 
-		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which reaches B
+		// bLowestAfter := vi.getLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which reaches B
 		bLowestAfter := b.Get(branchID)   // lowest event from creator on branchID, which reaches B
 		aHighestBefore := a.Get(branchID) // highest event from creator, reachable by A
 
@@ -100,14 +100,14 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 	chosenParentsSRProgress := vi.validators.NewCounter() // initialise the counter for chosen parents only
 
 	// Get events by hash
-	aHBFull := vi.GetHighestBefore(aID)
+	aHBFull := vi.getHighestBefore(aID)
 	if aHBFull == nil {
 		vi.crit(fmt.Errorf("event A=%s not found", aID.String()))
 		return chosenParentsSRProgress, candidateParentsSRProgress
 	}
 	aHB := aHBFull.VSeq
 
-	bLA := vi.GetLowestAfter(bID)
+	bLA := vi.getLowestAfter(bID)
 	if bLA == nil {
 		vi.crit(fmt.Errorf("event B=%s not found", bID.String()))
 		return chosenParentsSRProgress, candidateParentsSRProgress
@@ -115,7 +115,7 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 
 	candidateParentsHB := make([]*HighestBeforeSeq, len(candidateParents))
 	for i := range candidateParents {
-		hbFull := vi.GetHighestBefore(candidateParents[i])
+		hbFull := vi.getHighestBefore(candidateParents[i])
 		if hbFull == nil {
 			vi.crit(fmt.Errorf("candidate parent=%s not found", candidateParents[i].String()))
 			return chosenParentsSRProgress, candidateParentsSRProgress
@@ -125,7 +125,7 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 
 	chosenParentsHB := make([]*HighestBeforeSeq, len(chosenParents))
 	for i := range chosenParents {
-		hbFull := vi.GetHighestBefore(chosenParents[i])
+		hbFull := vi.getHighestBefore(chosenParents[i])
 		if hbFull == nil {
 			vi.crit(fmt.Errorf("chosen parent=%s not found", chosenParents[i].String()))
 			return chosenParentsSRProgress, candidateParentsSRProgress
@@ -134,8 +134,8 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 	}
 
 	// check A doesn't have any reachable equivocations from B
-	if vi.AtLeastOneEquivocation() {
-		bBranchID := vi.GetEventBranchID(bID)
+	if vi.atLeastOneEquivocation() {
+		bBranchID := vi.getEventBranchID(bID)
 		if aHB.Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by A
 			return chosenParentsSRProgress, candidateParentsSRProgress
 		}
@@ -143,8 +143,8 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 
 	// check chosenParents don't have any reachable equivocations from B
 	for i := 0; i < len(chosenParentsHB); i++ {
-		if vi.AtLeastOneEquivocation() {
-			bBranchID := vi.GetEventBranchID(bID)
+		if vi.atLeastOneEquivocation() {
+			bBranchID := vi.getEventBranchID(bID)
 			if chosenParentsHB[i].Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by a chosen parent
 				return chosenParentsSRProgress, candidateParentsSRProgress
 			}
@@ -153,8 +153,8 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 
 	// check candidateParents don't have any reachable equivocations from B
 	for i := 0; i < len(candidateParentsHB); i++ {
-		if vi.AtLeastOneEquivocation() {
-			bBranchID := vi.GetEventBranchID(bID)
+		if vi.atLeastOneEquivocation() {
+			bBranchID := vi.getEventBranchID(bID)
 			if candidateParentsHB[i].Get(bBranchID).IsEquivocationDetected() { // B is reachable as cheater by a candidate parent
 				return chosenParentsSRProgress, candidateParentsSRProgress
 			}
@@ -162,11 +162,11 @@ func (vi *Index) StronglyReachProgress(aID, bID consensus.EventHash, candidatePa
 	}
 
 	// calculate strongly reaching using the indexes
-	branchIDs := vi.BranchesInfo().BranchIDCreatorIdxs
+	branchIDs := vi.branchesInfo().BranchIDCreatorIdxs
 	for branchIDint, creatorIdx := range branchIDs {
 		branchID := consensus.ValidatorIndex(branchIDint)
 
-		// bLowestAfter := vi.GetLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which reaches B
+		// bLowestAfter := vi.getLowestAfterSeq_(bID, branchID)   // lowest event from creator on branchID, which reaches B
 		bLowestAfter := bLA.Get(branchID)  // lowest event from creator on branchID, which reaches B
 		HighestBefore := aHB.Get(branchID) // highest event from creator, reachable by A
 

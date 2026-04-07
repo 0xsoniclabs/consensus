@@ -174,7 +174,7 @@ func TestHashesType(t *testing.T) {
 }
 
 func TestHashesSetType(t *testing.T) {
-	hashesSet := make(HashesSet)
+	hashesSet := make(hashesSet)
 	hash1 := HexToHash("0x0102030405060708090a0b0c0d0e0f0102030405060708090a0b0c0d0e0f0102")
 	hash2 := HexToHash("0x0202030405060708090a0b0c0d0e0f0102030405060708090a0b0c0d0e0f0103")
 

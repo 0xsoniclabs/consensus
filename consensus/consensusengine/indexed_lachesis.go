@@ -77,8 +77,8 @@ func (p *IndexedLachesis) Process(e consensus.Event) (err error) {
 }
 
 func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error {
-	base := p.OrdererCallbacks()
-	ordererCallbacks := OrdererCallbacks{
+	base := p.ordererCallbacksFn()
+	oc := ordererCallbacks{
 		ApplyLeader: base.ApplyLeader,
 		EpochDBLoaded: func(epoch consensus.Epoch) {
 			if base.EpochDBLoaded != nil {
@@ -88,7 +88,7 @@ func (p *IndexedLachesis) Bootstrap(callback consensus.ConsensusCallbacks) error
 			p.DagIndexer.Reset(p.store.GetValidators(), flushable, p.Input.GetEvent)
 		},
 	}
-	return p.BootstrapWithOrderer(callback, ordererCallbacks)
+	return p.BootstrapWithOrderer(callback, oc)
 }
 
 type uniqueID struct {

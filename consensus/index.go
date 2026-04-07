@@ -28,9 +28,6 @@ type (
 	// Frame numeration.
 	Frame uint32
 
-	// Pack numeration.
-	Pack uint32
-
 	// ValidatorID numeration.
 	ValidatorID uint32
 

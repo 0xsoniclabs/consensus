@@ -34,7 +34,7 @@ func GenNodes(
 	nodes = make([]consensus.ValidatorID, nodeCount)
 	// make and name nodes
 	for i := 0; i < nodeCount; i++ {
-		addr := FakePeer()
+		addr := fakePeer()
 		nodes[i] = addr
 		consensus.SetNodeName(addr, "node"+string('A'+rune(i)))
 	}
@@ -164,7 +164,7 @@ func ForEachRandEvent(
 // GenRandEvents generates random events for test purpose.
 // Result:
 //   - events maps node address to array of its events;
-func GenRandEvents(
+func genRandEvents(
 	nodes []consensus.ValidatorID,
 	eventCount int,
 	parentCount int,
@@ -191,12 +191,12 @@ func delPeerIndex(events map[consensus.ValidatorID]consensus.Events) (res consen
 }
 
 // FakePeer generates random fake peer id for testing purpose.
-func FakePeer() consensus.ValidatorID {
+func fakePeer() consensus.ValidatorID {
 	return consensus.BytesToValidatorID(FakeHash().Bytes()[:4])
 }
 
 // FakeEpoch gives fixed value of fake epoch for testing purpose.
-func FakeEpoch() consensus.Epoch {
+func fakeEpoch() consensus.Epoch {
 	return 123456
 }
 
@@ -206,7 +206,7 @@ func FakeEventHash() (h consensus.EventHash) {
 	if err != nil {
 		panic(err)
 	}
-	copy(h[0:4], byteutils.Uint32ToBigEndian(uint32(FakeEpoch())))
+	copy(h[0:4], byteutils.Uint32ToBigEndian(uint32(fakeEpoch())))
 	return
 }
 

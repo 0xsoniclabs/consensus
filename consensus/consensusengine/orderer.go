@@ -16,7 +16,7 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus/dagindexer"
 )
 
-type OrdererCallbacks struct {
+type ordererCallbacks struct {
 	ApplyLeader func(certifiedFrame consensus.Frame, leader consensus.EventHash) (sealEpoch *consensus.Validators)
 
 	EpochDBLoaded func(consensus.Epoch)
@@ -24,7 +24,7 @@ type OrdererCallbacks struct {
 
 // Orderer processes events to reach finality on their order.
 // Unlike abft.Lachesis, this raw level of abstraction doesn't track cheaters detection
-type Orderer struct {
+type orderer struct {
 	config Config
 	crit   func(error)
 	store  *consensusstore.Store
@@ -33,14 +33,14 @@ type Orderer struct {
 	election *election
 	dagIndex *dagindexer.Index
 
-	callback OrdererCallbacks
+	callback ordererCallbacks
 }
 
 // NewOrderer creates Orderer instance.
 // Unlike Lachesis, Orderer doesn't updates DAG indexes for events, and doesn't detect cheaters
 // It has only one purpose - reaching consensus on events order.
-func NewOrderer(store *consensusstore.Store, input consensus.EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *Orderer {
-	p := &Orderer{
+func newOrderer(store *consensusstore.Store, input consensus.EventSource, dagIndex *dagindexer.Index, crit func(error), config Config) *orderer {
+	p := &orderer{
 		config:   config,
 		store:    store,
 		Input:    input,

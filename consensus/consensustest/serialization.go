@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-type TestEventMarshaling struct {
+type testEventMarshaling struct {
 	Epoch   consensus.Epoch
 	Seq     consensus.Seq
 	Frame   consensus.Frame
@@ -28,7 +28,7 @@ type TestEventMarshaling struct {
 
 // EventToBytes serializes events
 func (e *TestEvent) Bytes() []byte {
-	b, _ := rlp.EncodeToBytes(&TestEventMarshaling{
+	b, _ := rlp.EncodeToBytes(&testEventMarshaling{
 		Epoch:   e.Epoch(),
 		Seq:     e.Seq(),
 		Frame:   e.Frame(),

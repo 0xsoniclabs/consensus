@@ -43,7 +43,7 @@ func TestGenNodes_CreateSpecifiedNodeCount(t *testing.T) {
 	}
 }
 
-func TestForEachRandEquivocation_CreateEventsWithoutEquivocations(t *testing.T) {
+func Test_ForEachRandEquivocation_CreateEventsWithoutEquivocations(t *testing.T) {
 	nodes := GenNodes(3)
 	eventCount := 2
 	parentCount := 2
@@ -60,7 +60,7 @@ func TestForEachRandEquivocation_CreateEventsWithoutEquivocations(t *testing.T) 
 	}
 }
 
-func TestForEachRandEquivocation_CreateEventsWithEquivocations(t *testing.T) {
+func Test_ForEachRandEquivocation_CreateEventsWithEquivocations(t *testing.T) {
 	nodes := GenNodes(3)
 	eventCount := 5
 	parentCount := 2
@@ -95,7 +95,7 @@ func TestForEachRandEquivocation_CreateEventsWithEquivocations(t *testing.T) {
 		"Number of unique sequence numbers should be less than eventCount for cheater nodes")
 }
 
-func TestForEachRandEquivocation_WithCallbacks(t *testing.T) {
+func Test_ForEachRandEquivocation_WithCallbacks(t *testing.T) {
 	nodes := GenNodes(2)
 	eventCount := 2
 	parentCount := 2
@@ -123,7 +123,7 @@ func TestForEachRandEquivocation_WithCallbacks(t *testing.T) {
 		"Build and Process callbacks should be called the same number of times")
 }
 
-func TestForEachRandEquivocation_BuildCallbackError(t *testing.T) {
+func Test_ForEachRandEquivocation_BuildCallbackError(t *testing.T) {
 	nodes := GenNodes(3)
 	eventCount := 5
 	parentCount := 2
@@ -159,7 +159,7 @@ func TestForEachRandEquivocation_BuildCallbackError(t *testing.T) {
 	assert.Less(t, totalEvents, len(nodes)*eventCount, "Total events should be less than expected due to skipped events")
 }
 
-func TestForEachRandEquivocation_CheaterCreatesNilParentEquivocation(t *testing.T) {
+func Test_ForEachRandEquivocation_CheaterCreatesNilParentEquivocation(t *testing.T) {
 	nodes := GenNodes(3)
 	cheaters := []consensus.ValidatorID{nodes[0]} // First node is the cheater
 	eventCount := 5                               // Need enough events for equivocationPossible (len(ee) > 1)
@@ -214,18 +214,18 @@ func TestForEachRandEvent_DelegateToForEachRandEquivocation(t *testing.T) {
 	}
 }
 
-func TestGenRandEvents_DelegateToForEachRandEvent(t *testing.T) {
+func Test_genRandEvents_DelegateToForEachRandEvent(t *testing.T) {
 	nodes := GenNodes(2)
 	eventCount := 2
 	parentCount := 2
 	r := NewIntSeededRandGenerator(42)
 
-	events1 := GenRandEvents(nodes, eventCount, parentCount, r)
+	events1 := genRandEvents(nodes, eventCount, parentCount, r)
 
 	r = NewIntSeededRandGenerator(42)
 	events2 := ForEachRandEvent(nodes, eventCount, parentCount, r, ForEachEvent{})
 
-	assert.Equal(t, len(events1), len(events2), "GenRandEvents should produce the same number of node events as ForEachRandEvent")
+	assert.Equal(t, len(events1), len(events2), "genRandEvents should produce the same number of node events as ForEachRandEvent")
 
 	for node, nodeEvents1 := range events1 {
 		nodeEvents2 := events2[node]
@@ -241,9 +241,9 @@ func TestGenRandEvents_DelegateToForEachRandEvent(t *testing.T) {
 	}
 }
 
-func TestCalcHashForTestEvent_CalculateHash(t *testing.T) {
+func Test_CalcHashForTestEvent_CalculateHash(t *testing.T) {
 	event := &TestEvent{}
-	event.SetCreator(FakePeer())
+	event.SetCreator(fakePeer())
 	event.SetSeq(1)
 	event.SetLamport(1)
 	event.Name = "test"
@@ -265,7 +265,7 @@ func TestDelPeerIndex_FlattenEventMap(t *testing.T) {
 	nodes := GenNodes(3)
 	eventCount := 2
 	r := NewIntSeededRandGenerator(42)
-	eventMap := GenRandEvents(nodes, eventCount, 2, r)
+	eventMap := genRandEvents(nodes, eventCount, 2, r)
 
 	totalEventsCount := 0
 	for _, events := range eventMap {
@@ -290,9 +290,9 @@ func TestDelPeerIndex_FlattenEventMap(t *testing.T) {
 	}
 }
 
-func TestFakePeer_GenerateRandomPeerID(t *testing.T) {
-	peer1 := FakePeer()
-	peer2 := FakePeer()
+func Test_fakePeer_GenerateRandomPeerID(t *testing.T) {
+	peer1 := fakePeer()
+	peer2 := fakePeer()
 
 	assert.NotEqual(t, peer1, peer2, "Generated fake peers should be different")
 
@@ -301,19 +301,19 @@ func TestFakePeer_GenerateRandomPeerID(t *testing.T) {
 	assert.Len(t, peer1.Bytes(), 4, "Peer ID should be 4 bytes")
 }
 
-func TestFakeEpoch_ReturnConstantValue(t *testing.T) {
-	epoch := FakeEpoch()
-	assert.Equal(t, consensus.Epoch(123456), epoch, "FakeEpoch should return 123456")
+func Test_fakeEpoch_ReturnConstantValue(t *testing.T) {
+	epoch := fakeEpoch()
+	assert.Equal(t, consensus.Epoch(123456), epoch, "fakeEpoch should return 123456")
 
-	epoch2 := FakeEpoch()
-	assert.Equal(t, epoch, epoch2, "FakeEpoch should always return the same value")
+	epoch2 := fakeEpoch()
+	assert.Equal(t, epoch, epoch2, "fakeEpoch should always return the same value")
 }
 
 func TestFakeEventHash_GenerateHashWithEpoch(t *testing.T) {
 	hash := FakeEventHash()
 
 	epoch := consensus.BytesToEpoch(hash[0:4])
-	assert.Equal(t, FakeEpoch(), epoch, "First 4 bytes of the hash should encode the fake epoch")
+	assert.Equal(t, fakeEpoch(), epoch, "First 4 bytes of the hash should encode the fake epoch")
 
 	hash2 := FakeEventHash()
 	assert.NotEqual(t, hash, hash2, "Generated fake event hashes should be different")
@@ -349,7 +349,7 @@ func TestFakeEventHashes_GenerateMultipleHashes(t *testing.T) {
 
 		for _, hash := range hashes {
 			epoch := consensus.BytesToEpoch(hash[0:4])
-			assert.Equal(t, FakeEpoch(), epoch, "Each hash should encode the fake epoch in the first 4 bytes")
+			assert.Equal(t, fakeEpoch(), epoch, "Each hash should encode the fake epoch in the first 4 bytes")
 		}
 	}
 }

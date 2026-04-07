@@ -24,7 +24,7 @@ import (
 
 // Store is a abft persistent storage working over parent key-value database.
 type Store struct {
-	GetEpochDB EpochDBProducer
+	GetEpochDB epochDBProducer
 	cfg        StoreConfig
 	crit       func(error)
 
@@ -62,10 +62,10 @@ var (
 	ErrNoGenesis = errors.New("genesis not applied")
 )
 
-type EpochDBProducer func(epoch consensus.Epoch) kvdb.Store
+type epochDBProducer func(epoch consensus.Epoch) kvdb.Store
 
 // NewStore creates store over key-value db.
-func NewStore(mainDB kvdb.Store, getDB EpochDBProducer, crit func(error), cfg StoreConfig) *Store {
+func NewStore(mainDB kvdb.Store, getDB epochDBProducer, crit func(error), cfg StoreConfig) *Store {
 	s := &Store{
 		GetEpochDB: getDB,
 		cfg:        cfg,

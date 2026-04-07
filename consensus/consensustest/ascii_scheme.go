@@ -223,7 +223,7 @@ func ASCIIschemeToDAG(
 }
 
 // DAGtoASCIIscheme builds ASCII-scheme of events for debug purpose.
-func DAGtoASCIIscheme(events consensus.Events) (string, error) {
+func dagToASCIIscheme(events consensus.Events) (string, error) {
 	events = ByParents(events)
 
 	var (

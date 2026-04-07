@@ -19,7 +19,7 @@ import (
 
 func TestEventsByParents(t *testing.T) {
 	nodes := GenNodes(5)
-	events := GenRandEvents(nodes, 10, 3, nil)
+	events := genRandEvents(nodes, 10, 3, nil)
 	var ee consensus.Events
 	for _, e := range events {
 		ee = append(ee, e...)
@@ -52,19 +52,19 @@ func TestEventsByParents(t *testing.T) {
 
 func TestTestEventsByParents(t *testing.T) {
 	nodes := GenNodes(5)
-	events := GenRandEvents(nodes, 10, 3, nil)
+	events := genRandEvents(nodes, 10, 3, nil)
 
-	var testEvents TestEvents
+	var te TestEvents
 	for _, e := range events {
 		for _, event := range e {
-			testEvents = append(testEvents, event.(*TestEvent))
+			te = append(te, event.(*TestEvent))
 		}
 	}
 
 	// shuffle
-	unordered := make(TestEvents, len(testEvents))
-	for i, j := range rand.Perm(len(testEvents)) {
-		unordered[i] = testEvents[j]
+	unordered := make(TestEvents, len(te))
+	for i, j := range rand.Perm(len(te)) {
+		unordered[i] = te[j]
 	}
 
 	// order the events using TestEvents.ByParents()

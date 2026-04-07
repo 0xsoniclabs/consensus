@@ -17,12 +17,12 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus/consensusstore"
 )
 
-var ErrAlreadyBootstrapped = errors.New("already bootstrapped")
+var errAlreadyBootstrapped = errors.New("already bootstrapped")
 
 // Bootstrap restores abft's state from store.
-func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
+func (p *orderer) Bootstrap(callback ordererCallbacks) error {
 	if p.election != nil {
-		return ErrAlreadyBootstrapped
+		return errAlreadyBootstrapped
 	}
 	// block handler must be set before p.handleElection
 	p.callback = callback
@@ -43,7 +43,7 @@ func (p *Orderer) Bootstrap(callback OrdererCallbacks) error {
 }
 
 // Reset switches epoch state to a new empty epoch.
-func (p *Orderer) Reset(epoch consensus.Epoch, validators *consensus.Validators) error {
+func (p *orderer) Reset(epoch consensus.Epoch, validators *consensus.Validators) error {
 	if err := p.store.SwitchGenesis(&consensusstore.Genesis{Epoch: epoch, Validators: validators}); err != nil {
 		return err
 	}
@@ -59,6 +59,6 @@ func (p *Orderer) Reset(epoch consensus.Epoch, validators *consensus.Validators)
 	return nil
 }
 
-func (p *Orderer) loadEpochDB() error {
+func (p *orderer) loadEpochDB() error {
 	return p.store.OpenEpochDB(p.store.GetEpoch())
 }

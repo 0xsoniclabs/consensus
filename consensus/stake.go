@@ -16,9 +16,6 @@ type (
 )
 
 type (
-	// WeightCounterProvider providers weight counter.
-	WeightCounterProvider func() *WeightCounter
-
 	// WeightCounter counts weights.
 	WeightCounter struct {
 		validators   Validators

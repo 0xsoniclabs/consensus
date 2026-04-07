@@ -14,7 +14,7 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 )
 
-// TestEvents is a ordered slice of events.
+// testEvents is a ordered slice of events.
 type TestEvents []*TestEvent
 
 // ByParents returns events topologically ordered by parent dependency.

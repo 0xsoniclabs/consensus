@@ -17,6 +17,7 @@ import (
 
 	"github.com/0xsoniclabs/consensus/consensus"
 	"github.com/0xsoniclabs/consensus/consensus/consensustest"
+	"github.com/0xsoniclabs/consensus/consensus/dagindexer/dagvec"
 	"github.com/0xsoniclabs/kvdb/memorydb"
 )
 
@@ -32,7 +33,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 	{ // seq=0
 		e := consensus.ZeroEventHash
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
+		before := dagvec.NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
 
 		before.VSeq.Set(0, BranchSeq{Seq: 0})
 		before.VTime.Set(0, 100)
@@ -49,14 +50,14 @@ func TestMedianTimeOnIndex(t *testing.T) {
 		before.VSeq.Set(4, BranchSeq{Seq: 1})
 		before.VTime.Set(4, 10)
 
-		vi.SetHighestBefore(e, before)
+		vi.setHighestBefore(e, before)
 		assertar.Equal(Timestamp(1), vi.MedianTime(e, 1))
 	}
 
 	{ // equivocation seen = true
 		e := consensus.ZeroEventHash
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
+		before := dagvec.NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
 
 		before.SetEquivocationDetected(0)
 		before.VTime.Set(0, 100)
@@ -73,14 +74,14 @@ func TestMedianTimeOnIndex(t *testing.T) {
 		before.VSeq.Set(4, BranchSeq{Seq: 1})
 		before.VTime.Set(4, 10)
 
-		vi.SetHighestBefore(e, before)
+		vi.setHighestBefore(e, before)
 		assertar.Equal(Timestamp(10), vi.MedianTime(e, 1))
 	}
 
 	{ // normal
 		e := consensus.ZeroEventHash
 		// validator indexes are sorted by weight amount
-		before := NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
+		before := dagvec.NewHighestBefore(consensus.ValidatorIndex(validators.Len()))
 
 		before.VSeq.Set(0, BranchSeq{Seq: 1})
 		before.VTime.Set(0, 11)
@@ -97,7 +98,7 @@ func TestMedianTimeOnIndex(t *testing.T) {
 		before.VSeq.Set(4, BranchSeq{Seq: 4})
 		before.VTime.Set(4, 15)
 
-		vi.SetHighestBefore(e, before)
+		vi.setHighestBefore(e, before)
 		assertar.Equal(Timestamp(12), vi.MedianTime(e, 1))
 	}
 

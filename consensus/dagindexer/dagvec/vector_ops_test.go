@@ -28,7 +28,7 @@ type mockEvent struct {
 func (e *mockEvent) Seq() consensus.Seq             { return e.seq }
 func (e *mockEvent) Parents() consensus.EventHashes { return e.parents }
 
-// mockCreationTimerEvent also implements CreationTimer.
+// mockCreationTimerEvent also implements creationTimer.
 type mockCreationTimerEvent struct {
 	*mockEvent
 	creationTime Timestamp
@@ -46,7 +46,7 @@ func TestHighestBefore_InitWithEvent(t *testing.T) {
 	got := hb.VSeq.Get(1)
 	assert.Equal(t, consensus.Seq(5), got.Seq)
 	assert.Equal(t, consensus.Seq(5), got.MinSeq)
-	// No CreationTimer => VTime stays 0
+	// No creationTimer => VTime stays 0
 	assert.Equal(t, Timestamp(0), hb.VTime.Get(1))
 }
 

@@ -19,12 +19,12 @@ import (
 )
 
 var (
-	ErrWrongFrame = errors.New("claimed frame mismatched with calculated")
+	errWrongFrame = errors.New("claimed frame mismatched with calculated")
 )
 
 // Build fills consensus-related fields: Frame, IsBase
 // returns error if event should be dropped
-func (p *Orderer) Build(e consensus.MutableEvent) error {
+func (p *orderer) Build(e consensus.MutableEvent) error {
 	// sanity check
 	if e.Epoch() != p.store.GetEpoch() {
 		p.crit(errors.New("event has wrong epoch"))
@@ -42,11 +42,11 @@ func (p *Orderer) Build(e consensus.MutableEvent) error {
 // Event order matter: parents first.
 // All the event checkers must be launched.
 // Process is not safe for concurrent use.
-func (p *Orderer) Process(e consensus.Event) (err error) {
+func (p *orderer) Process(e consensus.Event) (err error) {
 	// Verify event's frame and proceed with election if it is a base
 	selfParentFrame, frameIdx, stronglyReachableBases := p.constructEventFrame(e)
 	if !p.config.SuppressFramePanic && e.Frame() != frameIdx {
-		return ErrWrongFrame
+		return errWrongFrame
 	}
 	if selfParentFrame == e.Frame() {
 		return nil
@@ -65,7 +65,7 @@ func (p *Orderer) Process(e consensus.Event) (err error) {
 }
 
 // runElectionOnBase runs Leader election for the base and triggers block closure callbacks if election was certified
-func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash, stronglyReachableBases []*consensus.BaseDescriptor) (bool, error) {
+func (p *orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus.ValidatorID, baseHash consensus.EventHash, stronglyReachableBases []*consensus.BaseDescriptor) (bool, error) {
 	certifications, err := p.election.VoteAndAggregate(frame, validatorID, baseHash, stronglyReachableBases)
 	if err != nil {
 		return false, err
@@ -82,7 +82,7 @@ func (p *Orderer) runElectionOnBase(frame consensus.Frame, validatorID consensus
 	return false, nil
 }
 
-func (p *Orderer) bootstrapElection() error {
+func (p *orderer) bootstrapElection() error {
 	for frame := p.store.GetLastCertifiedFrame() + 1; ; frame++ {
 		frameBases := p.store.GetFrameBases(frame)
 		if len(frameBases) == 0 {
@@ -102,7 +102,7 @@ func (p *Orderer) bootstrapElection() error {
 }
 
 // stronglyReachableByQuorum returns true if event is strongly reachable by 2/3W bases on specified frame
-func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame) bool {
+func (p *orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame) bool {
 	validators := p.store.GetValidators()
 	reachableCounter := validators.NewCounter()
 	frameBases := p.store.GetFrameBases(f)
@@ -125,7 +125,7 @@ func (p *Orderer) stronglyReachableByQuorum(e consensus.Event, f consensus.Frame
 
 // stronglyReachableByQuorumMemoize extends the standard stronglyReachableByQuorum by memoizing the strongly reachable bases.
 // It performs worse than its vanilla counterpart as it checks the SR relation for all the bases - even when quorum is reached mid-iteration.
-func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensus.Frame) (bool, []*consensus.BaseDescriptor) {
+func (p *orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensus.Frame) (bool, []*consensus.BaseDescriptor) {
 	reachableCounter := p.store.GetValidators().NewCounter()
 	frameBases := p.store.GetFrameBases(f)
 	memoizedDescriptors := make([]*consensus.BaseDescriptor, 0)
@@ -138,7 +138,7 @@ func (p *Orderer) stronglyReachableByQuorumMemoize(e consensus.Event, f consensu
 	return reachableCounter.QuorumReached(), memoizedDescriptors
 }
 
-func (p *Orderer) stronglyReachableBases(eventHash consensus.EventHash, f consensus.Frame) []*consensus.BaseDescriptor {
+func (p *orderer) stronglyReachableBases(eventHash consensus.EventHash, f consensus.Frame) []*consensus.BaseDescriptor {
 	frameBases := p.store.GetFrameBases(f)
 	memoizedDescriptors := make([]*consensus.BaseDescriptor, 0)
 	for idx, baseDescriptor := range p.store.GetFrameBases(f) {
@@ -150,7 +150,7 @@ func (p *Orderer) stronglyReachableBases(eventHash consensus.EventHash, f consen
 }
 
 // calcFrameIdx is not safe for concurrent use.
-func (p *Orderer) constructEventFrame(e consensus.Event) (selfParentFrame, frame consensus.Frame, memoizedDescriptors []*consensus.BaseDescriptor) {
+func (p *orderer) constructEventFrame(e consensus.Event) (selfParentFrame, frame consensus.Frame, memoizedDescriptors []*consensus.BaseDescriptor) {
 	if e.SelfParent() == nil {
 		return 0, 1, []*consensus.BaseDescriptor{}
 	}

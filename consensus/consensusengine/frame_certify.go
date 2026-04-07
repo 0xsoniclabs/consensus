@@ -16,7 +16,7 @@ import (
 
 // onFrameCertified moves LastCertifiedFrameN to frame.
 // It includes: moving current certified frame, txs ordering and execution, epoch sealing.
-func (p *Orderer) onFrameCertified(frame consensus.Frame, leader consensus.EventHash) (bool, error) {
+func (p *orderer) onFrameCertified(frame consensus.Frame, leader consensus.EventHash) (bool, error) {
 	// new checkpoint
 	var newValidators *consensus.Validators
 	if p.callback.ApplyLeader != nil {
@@ -38,7 +38,7 @@ func (p *Orderer) onFrameCertified(frame consensus.Frame, leader consensus.Event
 	return newValidators != nil, nil
 }
 
-func (p *Orderer) resetEpochStore(newEpoch consensus.Epoch) error {
+func (p *orderer) resetEpochStore(newEpoch consensus.Epoch) error {
 	err := p.store.DropEpochDB()
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (p *Orderer) resetEpochStore(newEpoch consensus.Epoch) error {
 	return nil
 }
 
-func (p *Orderer) sealEpoch(newValidators *consensus.Validators) error {
+func (p *orderer) sealEpoch(newValidators *consensus.Validators) error {
 	// new PrevEpoch state
 	epochState := *p.store.GetEpochState()
 	epochState.Epoch++

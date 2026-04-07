@@ -25,7 +25,7 @@ func TestBootstrap_AlreadyBootstrapped(t *testing.T) {
 	if err := lachesis.Bootstrap(consensusCallbacks); err != nil {
 		t.Fatalf("unexpected error on bootstrapping: %v", err)
 	}
-	if err := lachesis.Bootstrap(consensusCallbacks); err != ErrAlreadyBootstrapped {
+	if err := lachesis.Bootstrap(consensusCallbacks); err != errAlreadyBootstrapped {
 		t.Fatalf("expected an `already bootstrapped` error but recieved: %v", err)
 	}
 }

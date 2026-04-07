@@ -25,7 +25,7 @@ type medianTimeIndex struct {
 
 // MedianTime calculates weighted median of claimed time within highest reachable events.
 func (vi *Index) MedianTime(id consensus.EventHash, defaultTime Timestamp) Timestamp {
-	vi.InitBranchesInfo()
+	vi.initBranchesInfo()
 	// Get event by hash
 	before := vi.GetMergedHighestBefore(id)
 	if before == nil {

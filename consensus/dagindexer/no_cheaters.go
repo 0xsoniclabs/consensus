@@ -22,14 +22,14 @@ func (vi *Index) NoCheaters(selfParent *consensus.EventHash, options consensus.E
 	if selfParent == nil {
 		return options
 	}
-	vi.InitBranchesInfo()
+	vi.initBranchesInfo()
 
-	if !vi.AtLeastOneEquivocation() {
+	if !vi.atLeastOneEquivocation() {
 		return options
 	}
 
 	// no need to merge, because every branch is marked by IsEquivocationDetected if equivocation is reachable
-	highest := vi.GetHighestBefore(*selfParent)
+	highest := vi.getHighestBefore(*selfParent)
 	filtered := make(consensus.EventHashes, 0, len(options))
 	for _, id := range options {
 		e := vi.getEvent(id)

@@ -22,13 +22,13 @@ import (
 	"github.com/0xsoniclabs/consensus/consensus"
 )
 
-type CreationTimer interface {
+type creationTimer interface {
 	CreationTimePortable() Timestamp
 }
 
 func (b *HighestBefore) InitWithEvent(i consensus.ValidatorIndex, e consensus.Event) {
 	b.VSeq.Set(i, BranchSeq{Seq: e.Seq(), MinSeq: e.Seq()})
-	if eCreationTimer, ok := e.(CreationTimer); ok { // Workaround for existing type-unsafe practices.
+	if eCreationTimer, ok := e.(creationTimer); ok { // Workaround for existing type-unsafe practices.
 		b.VTime.Set(i, eCreationTimer.CreationTimePortable())
 	}
 }
