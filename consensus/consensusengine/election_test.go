@@ -249,7 +249,7 @@ func testVoteAndAggregate(
 
 	validatorsBuilder := consensus.NewValidatorsBuilder()
 	for _, node := range nodes {
-		nodeName := consensustest.GetNodeName(node)
+		nodeName := consensus.GetNodeName(node)
 		if len(nodeName) == 0 {
 			nodeName = fmt.Sprintf("%d", node)
 		}
@@ -297,12 +297,12 @@ func testVoteAndAggregate(
 		}
 
 		// checking:
-		certifying := expected != nil && expected.CertifyingBases[consensustest.GetEventName(base.ID())]
+		certifying := expected != nil && expected.CertifyingBases[consensus.GetEventName(base.ID())]
 		if certifying {
 			assertar.NotNil(leaders)
 			assertar.NotEmpty(leaders)
 			assertar.Equal(expected.CertifiedFrame, leaders[0].Frame)
-			assertar.Equal(expected.CertifiedLeader, consensustest.GetEventName(leaders[0].LeaderHash))
+			assertar.Equal(expected.CertifiedLeader, consensus.GetEventName(leaders[0].LeaderHash))
 			return
 		} else {
 			assertar.Empty(leaders)

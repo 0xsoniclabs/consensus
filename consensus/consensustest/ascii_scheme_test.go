@@ -96,7 +96,7 @@ func TestDAGtoASCIIschemeRand(t *testing.T) {
 	}
 
 	for _, e0 := range src {
-		n := GetEventName(e0.ID())
+		n := consensus.GetEventName(e0.ID())
 		e1 := names[n]
 
 		parents0 := edges2text(e0)
@@ -422,7 +422,7 @@ func checkParents(t *testing.T, named map[string]consensus.Event, expected map[s
 
 		parents1 := make(map[string]struct{}, len(e1.Parents()))
 		for _, s := range e1.Parents() {
-			parents1[GetEventName(s)] = struct{}{}
+			parents1[consensus.GetEventName(s)] = struct{}{}
 		}
 
 		if !assertar.Equal(parents0, parents1, "at event "+n) {
@@ -434,7 +434,7 @@ func checkParents(t *testing.T, named map[string]consensus.Event, expected map[s
 func edges2text(e consensus.Event) map[string]struct{} {
 	res := make(map[string]struct{}, len(e.Parents()))
 	for _, p := range e.Parents() {
-		res[GetEventName(p)] = struct{}{}
+		res[consensus.GetEventName(p)] = struct{}{}
 	}
 	return res
 }

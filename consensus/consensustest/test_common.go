@@ -36,7 +36,7 @@ func GenNodes(
 	for i := 0; i < nodeCount; i++ {
 		addr := FakePeer()
 		nodes[i] = addr
-		SetNodeName(addr, "node"+string('A'+rune(i)))
+		consensus.SetNodeName(addr, "node"+string('A'+rune(i)))
 	}
 
 	return
@@ -134,7 +134,7 @@ func ForEachRandEquivocation(
 		var id [24]byte
 		copy(id[:], hasher.Sum(nil)[:24])
 		e.SetID(id)
-		SetEventName(e.ID(), fmt.Sprintf("%s%03d", string('a'+rune(self)), len(events[creator])))
+		consensus.SetEventName(e.ID(), fmt.Sprintf("%s%03d", string('a'+rune(self)), len(events[creator])))
 		events[creator] = append(events[creator], e)
 		// callback
 		if callback.Process != nil {

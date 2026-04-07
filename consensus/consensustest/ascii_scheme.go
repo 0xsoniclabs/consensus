@@ -188,7 +188,7 @@ func ASCIIschemeForEach(
 			// save event
 			events[creator] = append(events[creator], e)
 			names[name] = e
-			SetEventName(e.ID(), name)
+			consensus.SetEventName(e.ID(), name)
 			// callback
 			if callback.Process != nil {
 				callback.Process(e, name)
@@ -201,11 +201,11 @@ func ASCIIschemeForEach(
 		if len(ee) < 1 {
 			continue
 		}
-		name := []rune(GetEventName(ee[0].ID()))
+		name := []rune(consensus.GetEventName(ee[0].ID()))
 		if strings.HasPrefix(string(name), "node") {
-			SetNodeName(node, "node"+strings.ToUpper(string(name[4:5])))
+			consensus.SetNodeName(node, "node"+strings.ToUpper(string(name[4:5])))
 		} else {
-			SetNodeName(node, "node"+strings.ToUpper(string(name[0:1])))
+			consensus.SetNodeName(node, "node"+strings.ToUpper(string(name[0:1])))
 		}
 	}
 
@@ -264,9 +264,9 @@ func DAGtoASCIIscheme(events consensus.Events) (string, error) {
 			nodeCols[e.Creator()] = r.Self
 		}
 		// name
-		r.Name = GetEventName(ehash)
+		r.Name = consensus.GetEventName(ehash)
 		if len(r.Name) < 1 {
-			r.Name = GetNodeName(e.Creator())
+			r.Name = consensus.GetNodeName(e.Creator())
 			if len(r.Name) < 1 {
 				r.Name = string('a' + rune(r.Self))
 			}
