@@ -46,7 +46,7 @@ test-race :
 
 .PHONY: coverage
 coverage:
-	go test -count=1 -shuffle=on -covermode=atomic -coverpkg=./... -coverprofile=cover.prof ./...
+	go test -count=1 -shuffle=on -covermode=atomic -coverpkg=$(shell go list ./... | grep -v ./scripts/... | paste -sd,) -coverprofile=cover.prof ./...
 	go tool cover -func cover.prof | grep -e "^total:"
 
 .PHONY : clean
